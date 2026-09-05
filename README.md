@@ -34,6 +34,9 @@ Not yet built: the 54 clinical modules, PowerSync sync stream definitions, the
 backend mutation path for high-risk writes, real AI provider adapters, the
 on-device vision and speech pipelines, WebRTC telehealth, and thermal printing.
 
+**Resuming work:** see [`CONTINUE.md`](CONTINUE.md) for toolchain setup,
+decisions already made, Phase 2 in dependency order, and known gaps.
+
 This repository is **not** evidence of regulatory certification or clinical
 validation.
 

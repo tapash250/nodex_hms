@@ -9,8 +9,9 @@ streams define replication scope from the same authorization model.
 
 ## Applied migrations
 
-Phase 1 established the foundation schema directly against the project. The
-migration history is recorded in `supabase_migrations.schema_migrations`:
+`migrations/` holds the exact SQL applied to the linked project. Every file was
+verified byte-for-byte against `supabase_migrations.schema_migrations`, so local
+and remote are in step and the schema is reproducible from source control.
 
 | Version | Name |
 |---|---|
@@ -34,24 +35,31 @@ migration history is recorded in `supabase_migrations.schema_migrations`:
 | 20260905162157 | `phase1_snapshot_issuance_rpc` |
 | 20260905162531 | `phase1_revoke_anon_rpc_execute` |
 
-### Pull them into source control
+Two of these supersede earlier work rather than adding new objects, and are kept
+rather than squashed so the history explains itself:
+`phase1_snapshot_revocation_guard` replaces a blanket UPDATE block that also
+blocked legitimate device revocation, and `phase1_dedupe_app_user_guard` removes
+a redundant second guard trigger on `app_users`.
 
-`migrations/` is intentionally empty in this repository. Run the following once
-against the linked project to materialise the SQL locally, then commit it — from
-that point on the schema is reproducible from source control and every further
-change goes through a migration file:
+### Working with them
 
 ```bash
 supabase login
-supabase link --project-ref <project-ref>
-supabase db pull            # writes the current schema as a migration
-supabase migration list     # confirms local and remote are in step
+supabase link --project-ref neoernavfntxsotwvmwq
+supabase migration list      # local and remote should match
 ```
 
-From then on, apply changes with `supabase migration new <name>` followed by
+Apply further changes with `supabase migration new <name>` then
 `supabase db push`. Do not edit the schema through the dashboard: the
 specification prohibits uncontrolled schema changes, and an out-of-band edit
 breaks the correspondence between RLS policies and sync stream definitions.
+
+Reproducing the schema on a fresh project:
+
+```bash
+supabase link --project-ref <new-ref>
+supabase db push
+```
 
 ## What Phase 1 established
 
