@@ -1,0 +1,57 @@
+name: nodex_hms
+description: >-
+  NODEX Enterprise HMS - Android-first Flutter clinical operating system.
+  Offline-first clinical workflows over an encrypted PowerSync SQLite local
+  operational projection, with Supabase PostgreSQL as the authoritative cloud
+  system of record and a provider-agnostic hybrid edge/cloud AI architecture.
+publish_to: 'none'
+
+# versionName+versionCode consumed by the Android Gradle build.
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.2
+  flutter: '>=3.47.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Presentation / state / routing
+  flutter_riverpod: ^3.4.3
+  go_router: ^18.0.1
+
+  # Local operational projection.
+  # powersync_sqlcipher provides the encrypted SQLite database required by the
+  # specification; it re-exports the powersync_core API surface.
+  powersync_sqlcipher: ^0.1.17
+
+  # Authoritative cloud system of record
+  supabase_flutter: ^2.17.2
+
+  # Device security primitives
+  flutter_secure_storage: ^11.0.0
+  local_auth: ^3.0.2
+
+  # Platform / environment
+  connectivity_plus: ^7.3.1
+  device_info_plus: ^13.2.0
+  package_info_plus: ^10.2.1
+  path_provider: ^2.1.6
+
+  # Utilities
+  collection: ^1.19.1
+  crypto: ^3.0.7
+  intl: ^0.20.3
+  logging: ^1.3.0
+  meta: ^1.16.0
+  uuid: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  fake_async: ^1.3.3
+
+flutter:
+  uses-material-design: true

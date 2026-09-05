@@ -1,0 +1,204 @@
+name: CI
+
+# Verification pipeline for NODEX Enterprise HMS.
+#
+# Every push and pull request runs formatting, static analysis and the full test
+# suite before a build is attempted. A debug APK is produced on every run so a
+# reviewer can install and exercise the build; a release APK is produced only for
+# tagged revisions, which is where signing material would be injected.
+#
+# Secrets are never committed. Backend configuration reaches the build through
+# --dart-define, sourced from repository secrets when present and otherwise from
+# safe local-development defaults so a fork can still build and test.
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.2'
+  JAVA_VERSION: '17'
+
+jobs:
+  verify:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Report toolchain versions
+        run: |
+          flutter --version
+          dart --version
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        # Formatting is checked, not applied: CI must not rewrite the tree.
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        # analysis_options.yaml promotes boundary and correctness issues to
+        # errors, so --fatal-infos keeps style regressions from accumulating too.
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Run tests with coverage
+        run: flutter test --coverage --reporter expanded
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: warn
+          retention-days: 14
+
+  build-debug-apk:
+    name: Build debug APK
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build debug APK
+        # Development defaults keep the build reproducible on a fork with no
+        # secrets configured. The app refuses to start against a privileged key
+        # or a cleartext production endpoint regardless of what is passed here.
+        env:
+          SUPABASE_URL: ${{ secrets.NODEX_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NODEX_SUPABASE_PUBLISHABLE_KEY }}
+          POWERSYNC_URL: ${{ secrets.NODEX_POWERSYNC_URL }}
+        run: |
+          flutter build apk --debug \
+            --dart-define=NODEX_ENVIRONMENT=development \
+            --dart-define=NODEX_SUPABASE_URL="${SUPABASE_URL:-https://localhost.invalid}" \
+            --dart-define=NODEX_SUPABASE_PUBLISHABLE_KEY="${SUPABASE_PUBLISHABLE_KEY:-sb_publishable_ci_placeholder}" \
+            --dart-define=NODEX_POWERSYNC_URL="${POWERSYNC_URL:-}" \
+            --dart-define=NODEX_AI_PROFILE_REVISION=ci-debug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodex-hms-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  build-release-apk:
+    name: Build release APK
+    needs: verify
+    # Release artifacts are produced for tagged revisions only. An untagged
+    # build is a verification build, not something to distribute.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Verify production configuration is present
+        # A production build with placeholder configuration would be worse than
+        # no build: it would look installable but reach nothing.
+        env:
+          SUPABASE_URL: ${{ secrets.NODEX_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NODEX_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::error::NODEX_SUPABASE_URL and NODEX_SUPABASE_PUBLISHABLE_KEY must be configured as repository secrets for a release build."
+            exit 1
+          fi
+
+      - name: Build release APK (split per ABI)
+        env:
+          SUPABASE_URL: ${{ secrets.NODEX_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NODEX_SUPABASE_PUBLISHABLE_KEY }}
+          POWERSYNC_URL: ${{ secrets.NODEX_POWERSYNC_URL }}
+        run: |
+          flutter build apk --release --split-per-abi \
+            --dart-define=NODEX_ENVIRONMENT=production \
+            --dart-define=NODEX_SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=NODEX_SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define=NODEX_POWERSYNC_URL="${POWERSYNC_URL:-}" \
+            --dart-define=NODEX_AI_PROFILE_REVISION="${GITHUB_REF_NAME}"
+
+      - name: Upload release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: nodex-hms-release-apk
+          path: build/app/outputs/flutter-apk/*-release.apk
+          if-no-files-found: error
+          retention-days: 90

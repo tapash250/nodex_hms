@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NODEX Enterprise HMS - network security configuration.
+
+  Cleartext traffic is refused application-wide. All backend and replication
+  endpoints are https, and a hospital network that terminates TLS at a proxy must
+  install its CA rather than downgrading the app to cleartext.
+
+  User-added CAs are trusted only in debug builds, so a clinician's device cannot
+  be induced to trust an attacker-installed certificate in production, while an
+  engineer can still inspect traffic against a development backend.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+</network-security-config>
