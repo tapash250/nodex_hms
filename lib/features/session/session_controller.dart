@@ -200,7 +200,7 @@ final class SessionController extends Notifier<SessionState> {
       state = state.copyWith(
         phase: SessionPhase.awaitingAuthorization,
         clearSnapshot: true,
-        message: error.message,
+        message: _authorizationDenialMessage(error),
       );
     } on ConnectivityError {
       // Keep the existing window; local-first operation continues.
@@ -383,6 +383,22 @@ final class SessionController extends Notifier<SessionState> {
         await refreshAuthorization();
       }
     });
+  }
+
+  /// Maps an authorization denial to the message shown on the
+  /// awaiting-authorization screen.
+  ///
+  /// An unprovisioned account (authenticated but holding no membership, or a
+  /// device the tenant has revoked) gets a first-run explanation that points
+  /// at the administrator, not a raw database error string. Every other denial
+  /// keeps the mapped message, which carries no PHI by construction.
+  String _authorizationDenialMessage(AuthorizationError error) {
+    if (error.code == 'account_not_provisioned' ||
+        error.code == 'no_active_membership') {
+      return 'This account has not been set up for clinical access yet. '
+          'Ask your hospital administrator for an invitation, then sign in again.';
+    }
+    return error.message;
   }
 
   Future<void> _quarantine(IntegrityError error) async {

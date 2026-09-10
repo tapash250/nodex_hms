@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 19 files, verified byte-identical to what is applied remotely |
+| Migrations | `supabase/migrations/` — 21 files. Statement content verified against `supabase_migrations.schema_migrations`. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 234 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 245 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -101,37 +101,39 @@ mutation. `avoid_print` is an error because PHI must not reach a general log.
 
 Two backend gaps block all clinical modules. Do these first, in this order.
 
-### 1. PowerSync sync streams
+### 1. PowerSync instance (rules done, instance missing)
 
-Without them no data reaches a device, so no clinical module can be tested
-offline. There is no PowerSync instance provisioned yet.
+Rules are written at `powersync/sync-rules.yaml` with parameters derived from
+the JWT (`request.user_id()`) plus the membership graph — never client input.
+`powersync/SETUP.md` documents the reader-role grant matrix, including why the
+reader needs BYPASSRLS (ten tables are FORCE RLS with `TO authenticated`
+policies, so a non-bypass reader sees zero rows and every bucket comes back
+silently empty).
 
-Each stream must mirror the same tenant/role/assignment policy the RLS helpers
-implement, and must use trusted authentication parameters rather than client
-input. The membership graph is the shared source: a stream should resolve scope
-the same way `nodex.has_facility_access` and `nodex.has_ward_access` do.
+Still missing: the instance itself. Without it no data reaches a device, so no
+clinical module can be tested offline.
 
 Acceptance: a device holding a ward-scoped nursing membership replicates rows for
 that ward only. Verify by inspecting the local database directly, not by checking
 that the interface hides other wards.
 
-### 2. Backend mutation path
+### 2. Backend mutation path (shipped)
 
-Clients currently write through PostgREST under RLS. That is sufficient for
-Phase 1's own tables but not for clinical writes, which need domain validation,
-an audit event and a clinical event committed in one transaction.
+`supabase/functions/mutation-handler` is deployed with `verify_jwt: true` and
+uses `withSupabase({ auth: 'user' })` per the supabase-server skill (auth key is
+`auth`, not `allow`; modes are `user`/`publishable`/`secret`/`none`). The
+Flutter connector submits CRUD batches with stable UUIDv5 ids and decodes
+per-mutation outcomes; unknown outcomes decode as rejections. The table
+allowlist is empty by design: a table registers with a validator in the same
+change that adds its offline write path.
 
-Build as a Supabase Edge Function. `lib/data/sync/backend_connector.dart` already
-routes uploads through `SupabaseGateway.upsert`/`patch`; point it at the function
-instead. The connector already classifies rejections and refuses hard deletes, so
-that logic does not need rewriting.
-
-Note the skill available for this: `supabase-server` covers `@supabase/server`
-auth modes and should be loaded before writing the function.
+Next on this path: `device_id` in the mutations ledger (connector currently
+sends null) and a real SHA-256 `payload_digest` instead of the idempotency-key
+placeholder.
 
 ### 3. First clinical module
 
-Once 1 and 2 exist, build **Master Patient Index** (module 10) as the reference
+Once 1 exists, build **Master Patient Index** (module 10) as the reference
 implementation. It is the right first module because every other clinical module
 references a patient, and it exercises the field-level merge conflict policy,
 which is the most intricate of the eight.
@@ -148,7 +150,7 @@ Deferred deliberately, not overlooked.
 - **Release signing is not configured.** The release build type falls back to the
   debug key so verification builds succeed. Supply real signing material before
   distributing anything.
-- **No widget or integration tests.** All 234 tests are unit tests. The adaptive
+- **No widget or integration tests.** All 245 tests are unit tests. The adaptive
   shell, route guards and session lifecycle have no widget coverage; the spec's
   integration flows (appointment → encounter → prescription → pharmacy → billing)
   have none either.
@@ -156,29 +158,32 @@ Deferred deliberately, not overlooked.
   buckets with short-lived signed URLs and checksum validation on upload.
 - **No backup or restore procedure.** RPO/RTO targets must be defined and a
   restore actually exercised, not merely documented.
-- **`app_users` rows are not created automatically.** A user authenticating for
-  the first time has no `app_users` row and therefore no membership, so snapshot
-  issuance fails with "no active membership in tenant". Either add a trigger on
-  `auth.users` insert or provision through an admin flow. **This blocks the first
-  real sign-in** — worth handling early.
-- **No seeded tenant.** The database has roles and permissions but no tenant,
-  facility or user, so there is nothing to sign into yet.
+- ~~**`app_users` rows are not created automatically**~~ — **resolved.**
+  `phase1_user_provisioning` adds `user_invites` plus an `AFTER INSERT` trigger
+  on `auth.users`: invited emails auto-provision `app_users` + membership on
+  first signup; uninvited signups get nothing. Verified end-to-end with a
+  dry-run, including proof that the append-only audit guard cannot be bypassed
+  even by the table owner.
+- ~~**No seeded tenant**~~ — **resolved.** `phase1_bootstrap_tenant_seed`
+  creates `nodex-bootstrap` (Asia/Dhaka, fixed UUIDs): 1 facility, 2
+  departments, 2 wards.
 
 ---
 
 ## Fastest path to a running app
 
-Roughly in order, for whoever wants to see it work before building Phase 2:
-
-1. Create a tenant and facility row.
-2. Create an `auth.users` record, then a matching `app_users` row, then a
-   `memberships` row granting `medical_officer` in that tenant.
+1. Insert a `user_invites` row (needs `user.administer` in the tenant, or run as
+   owner): tenant `10000000-0000-4000-8000-000000000001`, the admin email,
+   `role_key = 'hospital_super_admin'`.
+2. Create the Supabase Auth user for the same email (dashboard or API). The
+   provisioning trigger creates `app_users` + membership automatically.
 3. Build with `--dart-define=NODEX_SUPABASE_URL=…` and
    `--dart-define=NODEX_SUPABASE_PUBLISHABLE_KEY=…` (publishable, never a secret
    key — startup validation rejects privileged keys).
 4. Sign in with the tenant UUID, email and password. The app will issue a
    snapshot, land on the role-aware home, and show which modules that role
-   reaches.
+   reaches. An uninvited account lands on the awaiting-authorization screen with
+   a first-run explanation instead of a database error string.
 
 Replication stays disconnected until `NODEX_POWERSYNC_URL` is supplied; the app
 runs local-only and says so in the settings screen.

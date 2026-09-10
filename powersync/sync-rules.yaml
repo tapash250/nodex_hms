@@ -1,0 +1,94 @@
+sync_rules:
+  # Parameters are resolved from the client's Supabase JWT. The client cannot
+  # supply or influence any of them: a device can only be itself.
+  parameters:
+    - name: user_id
+      type: string
+      description: >
+        Supabase auth.uid() of the connecting device. All bucket queries below
+        derive scope from this plus the server-side membership graph.
+
+  bucket_definitions:
+    # Tenant-wide master data for every tenant the caller holds an active,
+    # unexpired membership in. This is the membership graph being the single
+    # source of truth for replication scope, exactly as RLS derives it.
+    tenant_master_data:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+      data:
+        - select * from public.tenants where id = bucket.tenant_id
+        - select * from public.facilities where tenant_id = bucket.tenant_id
+        - select * from public.departments where tenant_id = bucket.tenant_id
+        - select * from public.wards where tenant_id = bucket.tenant_id
+        - select * from public.roles
+        - select * from public.permissions
+        - select * from public.role_permissions
+        # Staff directory within the tenant. Mirrors the app_users_select_directory
+        # RLS policy: any co-member may see directory profiles, never other
+        # tenants' staff.
+        - select
+            u.id, u.primary_tenant_id, u.full_name, u.display_name, u.designation,
+            u.employee_code, u.status, u.locale, u.avatar_path, u.last_login_at
+          from public.app_users u
+          where u.primary_tenant_id = bucket.tenant_id
+            and exists (
+              select 1 from public.memberships m
+              where m.tenant_id = bucket.tenant_id
+                and m.user_id = :user_id
+                and m.status = 'active'
+            )
+
+    # The caller's own identity and role assignments. Needed offline so the
+    # client can resolve its snapshot against live membership data.
+    membership_self:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          where m.user_id = :user_id
+            and m.status = 'active'
+      data:
+        - select * from public.memberships where user_id = :user_id
+        - select * from public.app_users where id = :user_id
+
+    # The caller's own devices and per-stream sync health.
+    device_self:
+      parameters:
+        - select
+            d.tenant_id as tenant_id
+          from public.devices d
+          where d.assigned_user_id = :user_id
+      data:
+        - select * from public.devices where assigned_user_id = :user_id
+        - select * from public.sync_cursors
+          where device_id in (
+            select id from public.devices where assigned_user_id = :user_id
+          )
+
+    # AI governance configuration: registry, routing policies and deployment
+    # profiles are global read-only configuration. No PHI, no credentials —
+    # provider secrets are held server-side only.
+    ai_configuration:
+      data:
+        - select * from public.ai_model_registry
+        - select * from public.ai_routing_policies
+        - select * from public.ai_deployment_profiles
+          where is_active = true
+
+    # Audit rows the caller authored themselves. The full audit trail is
+    # queried through the server under audit.read permission; only the actor's
+    # own history belongs on a device.
+    audit_self:
+      parameters:
+        - select
+            a.tenant_id as tenant_id
+          from public.audit_events a
+          where a.actor_id = :user_id
+      data:
+        - select * from public.audit_events where actor_id = :user_id

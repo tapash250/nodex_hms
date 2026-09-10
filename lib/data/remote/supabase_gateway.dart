@@ -12,7 +12,8 @@ library;
 import 'package:nodex_hms/core/errors/error_mapper.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:nodex_hms/data/sync/mutation_batch.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide Supabase;
 
 /// A non-PHI view of the current authentication session.
 final class SupabaseSessionSnapshot {
@@ -163,6 +164,28 @@ final class SupabaseGateway {
       };
       return row;
     } on PostgrestException catch (error) {
+      // No membership in this tenant means the account was never provisioned
+      // (no invite) or was revoked: emit a dedicated code so the session layer
+      // can explain the first-run situation instead of showing a database
+      // error string. The server message carries the tenant id; the client
+      // message deliberately does not repeat it.
+      if (error.code == PostgresErrorCode.insufficientPrivilege &&
+          error.message.startsWith('NODEX: no active membership')) {
+        _logger.warning(
+          _module,
+          'Snapshot issuance found no active membership.',
+          operation: 'authorization.issue_snapshot',
+          outcome: 'denied',
+          errorCode: 'no_active_membership',
+        );
+        throw AuthorizationError(
+          message:
+              'The server found no active membership for this account in the '
+              'selected hospital.',
+          code: 'no_active_membership',
+          cause: error,
+        );
+      }
       throw _mapPostgrestException(
         error,
         operation: 'authorization.issue_snapshot',
@@ -173,6 +196,75 @@ final class SupabaseGateway {
         error,
         operation: 'authorization.issue_snapshot',
       );
+    }
+  }
+
+  /// Submits a batch of mutations to the authorized backend mutation path.
+  ///
+  /// This is the only client route to the Edge Function. The server applies
+  /// domain validation, audit creation and the idempotency ledger before
+  /// anything reaches PostgreSQL; the caller trusts only the returned
+  /// per-mutation decisions and never assumes a 2xx means every entry applied.
+  Future<List<MutationDecision>> submitMutations(
+    List<Map<String, Object?>> mutations,
+  ) async {
+    final SupabaseSessionSnapshot? session = currentSession();
+    if (session == null) {
+      throw const AuthorizationError(
+        message: 'An authenticated session is required to upload mutations.',
+        code: 'no_session',
+      );
+    }
+
+    try {
+      final FunctionResponse response = await _client.functions.invoke(
+        'mutation-handler',
+        body: <String, Object?>{'mutations': mutations},
+      );
+
+      final Object? payload = response.data;
+      if (payload is Map<String, Object?>) {
+        final Object? rawResults = payload['results'];
+        if (rawResults is List<Object?>) {
+          return <MutationDecision>[
+            for (final Object? raw in rawResults)
+              decodeMutationDecision(
+                (raw as Map<Object?, Object?>).cast<String, Object?>(),
+              ),
+          ];
+        }
+      }
+
+      throw const RemoteError(
+        message: 'The mutation path returned a malformed response.',
+        code: 'malformed_mutation_response',
+      );
+    } on FunctionException catch (error) {
+      final Object? details = error.details;
+      final Map<String, Object?> context = details is Map<String, Object?>
+          ? details
+          : const <String, Object?>{};
+      final String? errorText = context['error'] is String
+          ? context['error'] as String
+          : null;
+
+      // The function signals an unprovisioned account with 403; surface it as
+      // an authorization failure so the session layer can explain it.
+      if (error.status == 403) {
+        throw AuthorizationError(
+          message: errorText ?? 'This account is not provisioned for uploads.',
+          code: 'account_not_provisioned',
+        );
+      }
+
+      throw RemoteError(
+        message: errorText ?? 'The mutation path rejected the request.',
+        statusCode: error.status,
+        isTransient: error.status >= 500 || error.status == 0,
+        code: 'mutation_handler_error',
+      );
+    } on Object catch (error) {
+      throw NodexErrorMapper.map(error, operation: 'sync.submit_mutations');
     }
   }
 

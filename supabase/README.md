@@ -9,9 +9,12 @@ streams define replication scope from the same authorization model.
 
 ## Applied migrations
 
-`migrations/` holds the exact SQL applied to the linked project. Every file was
-verified byte-for-byte against `supabase_migrations.schema_migrations`, so local
-and remote are in step and the schema is reproducible from source control.
+`migrations/` holds the SQL applied to the linked project. Statement content was
+verified against `supabase_migrations.schema_migrations` (normalized-hash
+comparison plus object-level checks: every table, function, trigger, policy and
+index confirmed live). One caveat for future verification: the migration tool
+strips `--` comment lines when recording statements, so remote text differs from
+these files by comments only — compare semantics, not bytes.
 
 | Version | Name |
 |---|---|
@@ -34,6 +37,8 @@ and remote are in step and the schema is reproducible from source control.
 | 20260905162031 | `phase1_seed_role_permission_grants` |
 | 20260905162157 | `phase1_snapshot_issuance_rpc` |
 | 20260905162531 | `phase1_revoke_anon_rpc_execute` |
+| 20260910120545 | `phase1_user_provisioning` |
+| 20260910120953 | `phase1_bootstrap_tenant_seed` |
 
 Two of these supersede earlier work rather than adding new objects, and are kept
 rather than squashed so the history explains itself:
@@ -103,6 +108,44 @@ derives roles, permissions and scopes server-side from the membership graph and
 never trusts client-supplied authorization input. `EXECUTE` is granted to
 `authenticated` only; the `anon` grant is revoked.
 
+### User provisioning
+
+Access is granted by invitation, never by signup. An administrator holding
+`user.administer` creates a `user_invites` row; when the invited email signs up
+through Supabase Auth, the `on_auth_user_created_provision` trigger
+(`nodex.tg_provision_invited_user`, executable by `supabase_auth_admin` only)
+provisions the `app_users` row and every matching pending membership. A signup
+without an invite provisions nothing: fail closed.
+
+Invite governance: a pending invite may only transition to
+cancelled/expired, never be edited; an accepted invite is frozen evidence
+(`nodex.tg_user_invite_freeze`). Invitation creation and provisioning each write
+an elevated audit event. The pipeline was verified end-to-end with a dry-run
+provisioning (asserted `app_users` + `membership` + audit + invite acceptance,
+then cleaned up) — including the discovery that the append-only audit guard
+cannot be bypassed even by the table owner, which is the invariant working as
+designed.
+
+Bootstrap tenant (`slug = 'nodex-bootstrap'`, id
+`10000000-0000-4000-8000-000000000001`, Asia/Dhaka): one hospital facility, two
+departments (Medicine, Emergency), two wards (general, resuscitation). First
+admin onboarding is an invite row plus a Supabase Auth signup for the same
+email — no dashboard surgery on `app_users` or `memberships` required.
+
+### Backend mutation path
+
+`supabase/functions/mutation-handler` (deployed, `verify_jwt: true`,
+`withSupabase({ auth: 'user' })`) is the only route for offline-originated
+writes. Per-mutation contract: validation → table allowlist (empty in Phase 1;
+a table registers with a validator in the same change that adds its write path)
+→ idempotency ledger on `(tenant_id, idempotency_key)` → audit-before-apply →
+apply under RLS. Unknown outcomes from the client side decode as rejections.
+
+The Flutter connector (`NodexBackendConnector.uploadData`) submits PowerSync
+CRUD batches with UUIDv5 ids derived from the queue position, so retries land
+on the same ledger row. Deletes are refused on both ends; retirement is a
+status transition.
+
 ### Audit and clinical events
 
 `audit_events` is the high-risk audit envelope and `clinical_events` the
@@ -134,15 +177,12 @@ failure class, circuit state and the human review decision.
 
 ## Remaining backend work
 
-- **PowerSync sync streams.** Not yet defined. Each stream must mirror the same
-  tenant/role/assignment policy the RLS helpers implement, and must use trusted
-  authentication parameters rather than client input. A record a device is not
-  authorized to hold must never be replicated merely because the interface hides
-  it.
-- **Backend mutation path.** Clients currently write through PostgREST under
-  RLS. High-risk clinical mutations need an Edge Function that applies domain
-  validation, records the audit event and creates the clinical event inside one
-  transaction.
+- **PowerSync instance.** Rules are written (`powersync/sync-rules.yaml`, parameters
+  derived from the JWT via `request.user_id()` and the membership graph, never
+  client input) and the reader-role grant matrix is documented
+  (`powersync/SETUP.md`, including why the reader needs BYPASSRLS under FORCE'd
+  tables). No instance is provisioned yet; acceptance is a ward-scoped user
+  receiving that ward's rows only, verified against the local database.
 - **Storage buckets.** DICOM, PDFs, scans and signatures need tenant-scoped
   buckets with short-lived signed URLs and checksum validation on upload.
 - **Backup and restore.** RPO/RTO targets defined and a restore actually

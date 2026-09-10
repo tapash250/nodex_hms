@@ -20,6 +20,7 @@ import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
 import 'package:nodex_hms/core/sync/conflict_policy.dart';
 import 'package:nodex_hms/data/remote/supabase_gateway.dart';
+import 'package:nodex_hms/data/sync/mutation_batch.dart';
 import 'package:powersync_sqlcipher/powersync.dart';
 
 /// Outcome of attempting to upload one batch of local mutations.
@@ -77,19 +78,95 @@ final class NodexBackendConnector extends PowerSyncBackendConnector {
       return;
     }
 
-    try {
-      for (final CrudEntry entry in transaction.crud) {
-        await _applyEntry(entry);
+    // Delete entries never enter the batch loop: the connector refuses them
+    // before any network call, because retirement is a status transition.
+    for (final CrudEntry entry in transaction.crud) {
+      if (entry.op == UpdateType.delete) {
+        throw IntegrityError(
+          message:
+              'A hard delete reached the upload path for table '
+              '"${entry.table}". Clinical records are retired by status '
+              'transition, never deleted.',
+          subject: entry.table,
+          code: 'hard_delete_attempted',
+          context: <String, Object?>{'resource_type': entry.table},
+        );
       }
+    }
+
+    try {
+      final List<Map<String, Object?>> payload = <Map<String, Object?>>[
+        for (final CrudEntry entry in transaction.crud)
+          () {
+            // Stable across retries: PowerSync replays the same transactionId
+            // and clientId after a lost response, so the idempotency ledger
+            // recognises the retry instead of applying it twice.
+            final String stableKey =
+                '${transaction.transactionId ?? 'tx'}-${entry.clientId}';
+            return <String, Object?>{
+              'id': NodexMutationId.forQueueEntry(
+                transactionId: transaction.transactionId,
+                clientId: entry.clientId,
+              ),
+              'operation': entry.op == UpdateType.put ? 'upsert' : 'patch',
+              'table': entry.table,
+              'row_id': entry.id,
+              'idempotency_key': stableKey,
+              'origin': 'online',
+              'client_created_at': DateTime.now().toUtc().toIso8601String(),
+              'data': entry.opData ?? const <String, Object?>{},
+            };
+          }(),
+      ];
+
+      final List<MutationDecision> decisions = await _gateway.submitMutations(
+        payload,
+      );
+
+      // Map every decision before completing the batch. A rejected entry
+      // means the server permanently refused it: the local row stays, but the
+      // queue entry is cleared because retrying can never succeed, and the
+      // rejection is logged for sync diagnostics.
+      bool sawRejection = false;
+      for (int i = 0; i < decisions.length; i++) {
+        final MutationDecision decision = decisions[i];
+        final CrudEntry entry = transaction.crud[i];
+
+        switch (decision.outcome) {
+          case MutationOutcome.applied:
+          case MutationOutcome.alreadyApplied:
+            break;
+          case MutationOutcome.rejected:
+            sawRejection = true;
+            _logger.error(
+              _module,
+              'Mutation permanently rejected by the backend path.',
+              operation: 'sync.upload',
+              outcome: UploadOutcome.rejected.name,
+              errorCode: decision.rejectionClass,
+              dimensions: <String, Object?>{
+                'resource_type': entry.table,
+                'row_id': entry.id,
+                'detail': decision.detail,
+              },
+            );
+        }
+      }
+
       await transaction.complete();
 
       _logger.info(
         _module,
-        'Uploaded a local mutation transaction.',
+        'Uploaded a local mutation transaction${sawRejection ? ' with rejections' : ''}.',
         operation: 'sync.upload',
-        outcome: 'accepted',
+        outcome: sawRejection ? 'partial' : 'accepted',
         dimensions: <String, Object?>{
           'entry_count': transaction.crud.length,
+          'rejected_count': decisions
+              .where(
+                (MutationDecision d) => d.outcome == MutationOutcome.rejected,
+              )
+              .length,
           'transaction_id': transaction.transactionId,
         },
       );
@@ -111,36 +188,6 @@ final class NodexBackendConnector extends PowerSyncBackendConnector {
       // Rethrowing keeps the batch queued: PowerSync retries after its
       // configured delay. Committing here would drop a clinical mutation.
       rethrow;
-    }
-  }
-
-  Future<void> _applyEntry(CrudEntry entry) async {
-    switch (entry.op) {
-      case UpdateType.put:
-        await _gateway.upsert(
-          table: entry.table,
-          id: entry.id,
-          values: entry.opData ?? const <String, Object?>{},
-        );
-      case UpdateType.patch:
-        await _gateway.patch(
-          table: entry.table,
-          id: entry.id,
-          values: entry.opData ?? const <String, Object?>{},
-        );
-      case UpdateType.delete:
-        // Legally and clinically retained records are never hard-deleted. The
-        // repository layer models retirement as a status transition, so a delete
-        // reaching here is a programming error rather than a user action.
-        throw IntegrityError(
-          message:
-              'A hard delete reached the upload path for table '
-              '"${entry.table}". Clinical records are retired by status '
-              'transition, never deleted.',
-          subject: entry.table,
-          code: 'hard_delete_attempted',
-          context: <String, Object?>{'resource_type': entry.table},
-        );
     }
   }
 
