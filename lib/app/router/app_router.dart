@@ -22,6 +22,8 @@ import 'package:nodex_hms/features/auth/sign_in_screen.dart';
 import 'package:nodex_hms/features/diagnostics/sync_diagnostics_screen.dart';
 import 'package:nodex_hms/features/home/home_screen.dart';
 import 'package:nodex_hms/features/module_placeholder/module_placeholder_screen.dart';
+import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
+import 'package:nodex_hms/features/patients/patient_search_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/settings_screen.dart';
@@ -147,10 +149,14 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
           GoRoute(
             path: NodexDestinations.patients.routePath,
             builder: (BuildContext context, GoRouterState state) =>
-                const ModulePlaceholderScreen(
-                  destination: NodexDestinations.patients,
-                  plannedPhase: 'Phase 2 - Core Clinical Workflows',
-                ),
+                const PatientSearchScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: ':id',
+                builder: (BuildContext context, GoRouterState state) =>
+                    PatientDetailScreen(patientId: state.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: NodexDestinations.appointments.routePath,

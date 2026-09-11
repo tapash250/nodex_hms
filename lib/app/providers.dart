@@ -19,6 +19,8 @@ import 'package:nodex_hms/core/security/database_key_manager.dart';
 import 'package:nodex_hms/core/security/secure_key_store.dart';
 import 'package:nodex_hms/data/local/local_database.dart';
 import 'package:nodex_hms/data/remote/supabase_gateway.dart';
+import 'package:nodex_hms/domain/patients/patient_repository.dart';
+import 'package:nodex_hms/domain/patients/patient_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -100,6 +102,59 @@ final Provider<SessionRepository> sessionRepositoryProvider =
         gateway: ref.watch(supabaseGatewayProvider),
         keyStore: ref.watch(secureKeyStoreProvider),
         logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Master Patient Index repository over the encrypted local projection.
+final Provider<PatientRepository> patientRepositoryProvider =
+    Provider<PatientRepository>(
+      (Ref ref) => DefaultPatientRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// MPI use cases. Thin wrappers over the repository carrying the authorization
+/// gate; constructed per read so tests can substitute fakes at this boundary.
+final Provider<RegisterPatientUseCase> registerPatientUseCaseProvider =
+    Provider<RegisterPatientUseCase>(
+      (Ref ref) => RegisterPatientUseCase(
+        repository: ref.watch(patientRepositoryProvider),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Contact update use case.
+final Provider<UpdatePatientContactUseCase>
+updatePatientContactUseCaseProvider = Provider<UpdatePatientContactUseCase>(
+  (Ref ref) => UpdatePatientContactUseCase(
+    repository: ref.watch(patientRepositoryProvider),
+  ),
+);
+
+/// Allergy report use case.
+final Provider<RecordAllergyUseCase> recordAllergyUseCaseProvider =
+    Provider<RecordAllergyUseCase>(
+      (Ref ref) => RecordAllergyUseCase(
+        repository: ref.watch(patientRepositoryProvider),
+      ),
+    );
+
+/// Allergy retirement use case.
+final Provider<RetireAllergyUseCase> retireAllergyUseCaseProvider =
+    Provider<RetireAllergyUseCase>(
+      (Ref ref) => RetireAllergyUseCase(
+        repository: ref.watch(patientRepositoryProvider),
+      ),
+    );
+
+/// Patient merge use case.
+final Provider<MergePatientsUseCase> mergePatientsUseCaseProvider =
+    Provider<MergePatientsUseCase>(
+      (Ref ref) => MergePatientsUseCase(
+        repository: ref.watch(patientRepositoryProvider),
       ),
     );
 

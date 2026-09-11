@@ -27,17 +27,20 @@
 //     "rejection_class": "...", "detail": "..." }
 //
 // Invariants enforced here, not by convention:
-//   1. Table allowlist. Phase 1 admits none: every clinical table that gains an
-//      offline write path must be registered here with a validator, its conflict
-//      policy and its audit action. Unknown tables are rejected, not routed.
+//   1. Table allowlist. Every clinical table that gains an offline write path
+//      registers here with a validator, its permitted operations and its audit
+//      actions. Unknown tables are rejected, not routed.
 //   2. Idempotency: (tenant_id, idempotency_key) unique on public.mutations. A
 //      retried upload after a lost response returns already_applied instead of
 //      applying twice. Exactly-once business effect for idempotent mutations.
 //   3. No deletes. Legally or clinically retained records are retired by status
 //      transition; the client connector already refuses them, and this endpoint
 //      refuses them again server-side.
-//   4. Audit before apply: every applied mutation records an audit_events row.
-//      Rejections record nothing — there was no clinical action.
+//   4. Ledger before apply: the ledger row lands first with status 'received'.
+//      A ledger failure blocks the apply — otherwise a successful write with no
+//      ledger row would re-apply on retry. Audit-before-apply still holds: the
+//      audit row lands before the clinical write, so a failed apply leaves a
+//      complete trail, never a silent loss.
 
 import { withSupabase } from 'npm:@supabase/server'
 
@@ -72,21 +75,90 @@ const UUID_RE =
 //
 // A clinical table is admitted alongside, in the same change:
 //   - a validator that whitelists columns and enforces domain rules,
-//   - the table's registered conflict policy from the client registry,
-//   - the audit action name recorded in audit_events.
-// Phase 1 intentionally registers none. The device's local tables are
-// read-only replicas of server state; nothing this phase ships has an offline
-// write path yet. When Master Patient Index lands, it registers here first.
+//   - the permitted operations (append-only tables admit upsert, never patch),
+//   - the audit actions recorded in audit_events per operation.
 // ---------------------------------------------------------------------------
 
-type ColumnType = 'text' | 'uuid' | 'boolean' | 'integer' | 'timestamp'
+type ColumnType = 'text' | 'uuid' | 'boolean' | 'integer' | 'timestamp' | 'json'
 
 interface TableRule {
   columns: Record<string, ColumnType>
-  auditAction: string
+  operations: Array<'upsert' | 'patch'>
+  auditActionUpsert: string
+  auditActionPatch: string
 }
 
-const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {}
+const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
+  // Module 10 (MPI). Column names mirror public.patients exactly; the local
+  // projection, this validator and PostgreSQL must agree or replication drops
+  // columns silently. Identity edits are blocked client-side by
+  // Patient.contactUpdateRow, but the validator admits the columns because the
+  // merge workflow legitimately writes them through reviewed merges.
+  patients: {
+    columns: {
+      tenant_id: 'uuid',
+      mrn: 'text',
+      national_id_hash: 'text',
+      first_name: 'text',
+      last_name: 'text',
+      date_of_birth: 'timestamp',
+      gender: 'text',
+      blood_group: 'text',
+      phone_number: 'text',
+      email: 'text',
+      address: 'text',
+      next_of_kin: 'text',
+      occupation: 'text',
+      marital_status: 'text',
+      preferred_language: 'text',
+      is_active: 'integer',
+      created_by: 'uuid',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'patient.registered',
+    auditActionPatch: 'patient.updated',
+  },
+  // Allergy rows are append-only with a retire-only transition enforced by
+  // nodex.tg_allergy_retire_only. Patch exists solely for that transition;
+  // any other column change is rejected by the trigger, not just by policy.
+  patient_allergies: {
+    columns: {
+      tenant_id: 'uuid',
+      patient_id: 'uuid',
+      substance: 'text',
+      reaction: 'text',
+      severity: 'text',
+      status: 'text',
+      retired_reason: 'text',
+      recorded_by: 'uuid',
+      recorded_at: 'timestamp',
+      retired_at: 'timestamp',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'allergy.recorded',
+    auditActionPatch: 'allergy.retired',
+  },
+  // Merge history is written once per decision and never edited: upsert only.
+  // A patch attempt falls through to RLS, which has no update policy on this
+  // table, and is rejected there too. Defense in depth, not duplication.
+  patient_merge_history: {
+    columns: {
+      tenant_id: 'uuid',
+      surviving_patient_id: 'uuid',
+      merged_patient_id: 'uuid',
+      merged_by: 'uuid',
+      reason: 'text',
+      field_choices: 'json',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'patient.merged',
+    auditActionPatch: 'patient.merged',
+  },
+}
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -138,6 +210,13 @@ function validateColumns(
   for (const [key, value] of Object.entries(data)) {
     const type = rule.columns[key]
     if (type === undefined) return { ok: false, error: `column "${key}" is not writable on this table` }
+    // Null passes every type: it clears a nullable column, and the database
+    // enforces NOT NULL finally. Rejecting null here would forbid legitimate
+    // clears and duplicate a constraint the database already owns.
+    if (value === null || value === undefined) {
+      clean[key] = null
+      continue
+    }
     switch (type) {
       case 'uuid':
         if (typeof value !== 'string' || !UUID_RE.test(value)) return { ok: false, error: `column "${key}" must be a uuid` }
@@ -153,6 +232,9 @@ function validateColumns(
         break
       case 'timestamp':
         if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) return { ok: false, error: `column "${key}" must be an ISO-8601 timestamp` }
+        break
+      case 'json':
+        if (typeof value !== 'object') return { ok: false, error: `column "${key}" must be a JSON object` }
         break
     }
     clean[key] = value
@@ -230,6 +312,16 @@ export default {
         continue
       }
 
+      if (!rule.operations.includes(m.operation)) {
+        results.push({
+          id: m.id,
+          outcome: 'rejected',
+          rejection_class: 'unsupported',
+          detail: `operation "${m.operation}" is not permitted on table "${m.table}"`,
+        })
+        continue
+      }
+
       const cols = validateColumns(rule, m.data)
       if (!cols.ok) {
         results.push({
@@ -260,12 +352,51 @@ export default {
         continue
       }
 
+      // Ledger row first, status 'received'. A ledger failure blocks the apply:
+      // a successful write with no ledger row would re-apply on retry.
+      const { error: ledgerError } = await ctx.supabaseAdmin.from('mutations').insert({
+        id: m.id,
+        tenant_id: tenantId,
+        user_id: userId,
+        device_id: null, // connector does not yet send device_id; see phase-2 follow-up
+        operation: m.operation,
+        resource_type: m.table,
+        resource_id: m.row_id,
+        idempotency_key: m.idempotency_key,
+        client_created_at: m.client_created_at,
+        origin: m.origin,
+        payload_digest: String(m.idempotency_key), // connector upgrades this to a real digest in Phase 2
+        status: 'received',
+      })
+      if (ledgerError) {
+        // Unique violation here means a concurrent duplicate landed first.
+        const duplicate = ledgerError.message.includes('duplicate key')
+        results.push({
+          id: m.id,
+          outcome: duplicate ? 'already_applied' : 'rejected',
+          rejection_class: duplicate ? undefined : 'internal',
+          detail: duplicate ? 'mutation already applied' : `ledger write failed: ${ledgerError.message}`,
+        })
+        continue
+      }
+
+      const markLedger = async (status: 'applied' | 'rejected') => {
+        await ctx.supabaseAdmin
+          .from('mutations')
+          .update({
+            status,
+            applied_at: status === 'applied' ? new Date().toISOString() : null,
+          })
+          .eq('id', m.id)
+      }
+
       // Audit before apply. If the write itself then fails, the ledger and the
       // audit trail both record the attempt; nothing is silently lost.
+      const auditAction = m.operation === 'upsert' ? rule.auditActionUpsert : rule.auditActionPatch
       const { error: auditError } = await ctx.supabaseAdmin.from('audit_events').insert({
         tenant_id: tenantId,
         actor_id: userId,
-        action: rule.auditAction,
+        action: auditAction,
         resource_type: m.table,
         resource_id: m.row_id,
         mutation_id: m.id,
@@ -274,6 +405,7 @@ export default {
         risk_tier: 'standard',
       })
       if (auditError) {
+        await markLedger('rejected')
         results.push({
           id: m.id,
           outcome: 'rejected',
@@ -282,25 +414,6 @@ export default {
         })
         continue
       }
-
-      // Ledger entry, then the write itself. The ledger row is the durable
-      // record that makes retries exactly-once; it is inserted even when the
-      // apply fails, so a later retry sees a definitive status.
-      const { error: ledgerError } = await ctx.supabaseAdmin.from('mutations').insert({
-        id: m.id,
-        tenant_id: tenantId,
-        user_id: userId,
-        device_id: null, // Phase 1: connector does not yet send device_id
-        operation: m.operation,
-        resource_type: m.table,
-        resource_id: m.row_id,
-        idempotency_key: m.idempotency_key,
-        client_created_at: m.client_created_at,
-        origin: m.origin,
-        payload_digest: String(m.idempotency_key), // connector upgrades this to a real digest in Phase 2
-        status: 'applied',
-        applied_at: new Date().toISOString(),
-      })
 
       const table = ctx.supabase.from(m.table)
       let applyError: { message: string } | null = null
@@ -313,15 +426,17 @@ export default {
       }
 
       if (applyError) {
+        await markLedger('rejected')
         results.push({
           id: m.id,
           outcome: 'rejected',
           rejection_class: 'internal',
-          detail: `apply failed: ${applyError.message}${ledgerError ? '; ledger write also failed' : ''}`,
+          detail: `apply failed: ${applyError.message}`,
         })
         continue
       }
 
+      await markLedger('applied')
       results.push({ id: m.id, outcome: 'applied' })
     }
 

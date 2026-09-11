@@ -145,7 +145,7 @@ void main() {
       expect(
         ConflictPolicyRegistry.canResolveAutomatically(
           ConflictPolicyRegistry.patient,
-          clientChangedFields: <String>{'phone'},
+          clientChangedFields: <String>{'phone_number'},
           serverChangedFields: <String>{'address'},
         ),
         isTrue,
@@ -156,8 +156,8 @@ void main() {
       expect(
         ConflictPolicyRegistry.canResolveAutomatically(
           ConflictPolicyRegistry.patient,
-          clientChangedFields: <String>{'phone'},
-          serverChangedFields: <String>{'phone'},
+          clientChangedFields: <String>{'phone_number'},
+          serverChangedFields: <String>{'phone_number'},
         ),
         isFalse,
       );

@@ -65,6 +65,15 @@ abstract final class LocalTables {
 
   /// Local-only diagnostics ring buffer.
   static const String localDiagnostics = 'local_diagnostics';
+
+  /// Master Patient Index (Module 10). Synced, tenant-scoped.
+  static const String patients = 'patients';
+
+  /// Allergy records (Module 10). Synced, tenant-scoped, append-only semantics.
+  static const String patientAllergies = 'patient_allergies';
+
+  /// Master-merge audit trail (Module 10). Synced, append-only.
+  static const String patientMergeHistory = 'patient_merge_history';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -89,6 +98,9 @@ abstract final class NodexLocalSchema {
     _aiRoutingPolicies,
     _localMutationLog,
     _localDiagnostics,
+    _patients,
+    _patientAllergies,
+    _patientMergeHistory,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -387,6 +399,98 @@ abstract final class NodexLocalSchema {
     indexes: <Index>[
       Index('local_diagnostic_time', <IndexedColumn>[
         IndexedColumn('recorded_at'),
+      ]),
+    ],
+  );
+
+  /// Master Patient Index (Module 10).
+  ///
+  /// Mirrors `public.patients` exactly: PowerSync replicates by name, and the
+  /// mutation-handler allowlist validates these same columns server-side.
+  /// Dates travel as ISO-8601 text; booleans as integers.
+  static const Table _patients = Table(
+    LocalTables.patients,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('mrn'),
+      Column.text('national_id_hash'),
+      Column.text('first_name'),
+      Column.text('last_name'),
+      Column.text('date_of_birth'),
+      Column.text('gender'),
+      Column.text('blood_group'),
+      Column.text('phone_number'),
+      Column.text('email'),
+      Column.text('address'),
+      Column.text('next_of_kin'),
+      Column.text('occupation'),
+      Column.text('marital_status'),
+      Column.text('preferred_language'),
+      Column.integer('is_active'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('patient_tenant_name', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('last_name'),
+        IndexedColumn('first_name'),
+      ]),
+      Index('patient_tenant_mrn', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('mrn'),
+      ]),
+      Index('patient_tenant_phone', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('phone_number'),
+      ]),
+    ],
+  );
+
+  /// Allergy records (Module 10).
+  ///
+  /// Append-only semantics are enforced server-side by
+  /// `nodex.tg_allergy_retire_only`; the local projection mirrors the same
+  /// rule by convention — repositories retire, never edit.
+  static const Table _patientAllergies = Table(
+    LocalTables.patientAllergies,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('substance'),
+      Column.text('reaction'),
+      Column.text('severity'),
+      Column.text('status'),
+      Column.text('retired_reason'),
+      Column.text('recorded_by'),
+      Column.text('recorded_at'),
+      Column.text('retired_at'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('allergy_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Master-merge audit trail (Module 10). Written once per merge, never edited.
+  static const Table _patientMergeHistory = Table(
+    LocalTables.patientMergeHistory,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('surviving_patient_id'),
+      Column.text('merged_patient_id'),
+      Column.text('merged_by'),
+      Column.text('reason'),
+      Column.text('field_choices'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('merge_surviving', <IndexedColumn>[
+        IndexedColumn('surviving_patient_id'),
       ]),
     ],
   );

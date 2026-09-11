@@ -172,7 +172,7 @@ abstract final class ConflictPolicyRegistry {
               'demographic fields while offline. Overlapping edits to the same '
               'field are a human decision, not a merge.',
           mergeableFields: <String>{
-            'phone',
+            'phone_number',
             'email',
             'address',
             'next_of_kin',

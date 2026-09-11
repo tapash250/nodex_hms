@@ -26,7 +26,7 @@ void main() {
       expect(schema.validate, returnsNormally);
     });
 
-    test('declares every Phase 1 table', () {
+    test('declares every Phase 1 table plus Module 10 (MPI)', () {
       final Set<String> tableNames = schema.tables
           .map((Table table) => table.name)
           .toSet();
@@ -47,6 +47,9 @@ void main() {
         LocalTables.aiRoutingPolicies,
         LocalTables.localMutationLog,
         LocalTables.localDiagnostics,
+        LocalTables.patients,
+        LocalTables.patientAllergies,
+        LocalTables.patientMergeHistory,
       });
     });
 
@@ -194,6 +197,70 @@ void main() {
           'attempt_count',
           'rejection_class',
         ]),
+      );
+    });
+
+    test('MPI tables mirror the PostgreSQL patient schema', () {
+      // Rule 1 of the local schema file: names mirror PostgreSQL exactly, or
+      // PowerSync silently drops the column. The mergeable contact columns
+      // must be present or field-level merge has nothing to merge.
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      final Set<String> patientColumns = byName(LocalTables.patients).columns
+          .map((Column c) => c.name)
+          .toSet();
+      expect(
+        patientColumns,
+        containsAll(<String>{
+          'tenant_id',
+          'mrn',
+          'national_id_hash',
+          'first_name',
+          'last_name',
+          'date_of_birth',
+          'gender',
+          'blood_group',
+          'phone_number',
+          'email',
+          'address',
+          'next_of_kin',
+          'occupation',
+          'marital_status',
+          'preferred_language',
+          'is_active',
+        }),
+      );
+
+      final Set<String> allergyColumns = byName(LocalTables.patientAllergies)
+          .columns
+          .map((Column c) => c.name)
+          .toSet();
+      expect(
+        allergyColumns,
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'substance',
+          'reaction',
+          'severity',
+          'status',
+          'retired_reason',
+          'retired_at',
+        }),
+      );
+
+      expect(
+        byName(LocalTables.patientMergeHistory).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'surviving_patient_id',
+          'merged_patient_id',
+          'reason',
+          'field_choices',
+        }),
       );
     });
 

@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 245 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 290 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -99,7 +99,9 @@ mutation. `avoid_print` is an error because PHI must not reach a general log.
 
 ## Phase 2 in dependency order
 
-Two backend gaps block all clinical modules. Do these first, in this order.
+The backend mutation path is shipped and MPI is landed. The PowerSync instance
+is still the gating item: without it, MPI writes queue locally but never
+upload, and no replicated data reaches a device.
 
 ### 1. PowerSync instance (rules done, instance missing)
 
@@ -131,15 +133,29 @@ Next on this path: `device_id` in the mutations ledger (connector currently
 sends null) and a real SHA-256 `payload_digest` instead of the idempotency-key
 placeholder.
 
-### 3. First clinical module
+### 3. First clinical module (MPI landed)
 
-Once 1 exists, build **Master Patient Index** (module 10) as the reference
-implementation. It is the right first module because every other clinical module
-references a patient, and it exercises the field-level merge conflict policy,
-which is the most intricate of the eight.
+**Master Patient Index (module 10) is implemented** as the reference vertical
+slice: `patients` + `patient_allergies` + `patient_merge_history` in Postgres
+(with RLS), PowerSync local schema, repository with a test seam, five use cases
+gated on `patient.write`, search/register/detail/allergy screens on `/patients`,
+field-level 3-way merge engine, and 45 unit tests. The mutation-handler
+allowlist registers all three MPI tables.
 
-Work through the module definition of done in `README.md`. Treat the result as
-the template later modules copy.
+Handbook deviations applied while building it (all deliberate, all documented
+in the migration headers):
+- `(tenant_id, mrn)` uniqueness instead of global `mrn UNIQUE`
+- FKs to `app_users(id)`, not `users(id)`
+- Membership-derived RLS instead of `auth.jwt() ->> 'tenant_id'`
+- Allergies as a separate frozen-column entity instead of JSONB columns
+- Registry `mergeableFields` corrected to real column names (`phone_number`,
+  not `phone`); six contact columns added to match
+
+Next module: pick by dependency — encounters (16) need patients (done) and
+are needed by prescriptions, labs, and discharge. Appointments (07) are
+independent and smaller; either is a valid next slice. Whichever lands must
+follow the MPI template: migration + RLS, local schema, repository + seam,
+use cases with auth gates, screens, allowlist registration, tests.
 
 ---
 

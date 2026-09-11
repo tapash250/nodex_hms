@@ -39,6 +39,9 @@ these files by comments only — compare semantics, not bytes.
 | 20260905162531 | `phase1_revoke_anon_rpc_execute` |
 | 20260910120545 | `phase1_user_provisioning` |
 | 20260910120953 | `phase1_bootstrap_tenant_seed` |
+| 20260911120000 | `phase2_mpi_patient_identity` |
+| 20260911121000 | `phase2_mpi_contact_fields` |
+| 20260911122000 | `phase2_mutations_device_nullable` |
 
 Two of these supersede earlier work rather than adding new objects, and are kept
 rather than squashed so the history explains itself:
@@ -132,14 +135,42 @@ departments (Medicine, Emergency), two wards (general, resuscitation). First
 admin onboarding is an invite row plus a Supabase Auth signup for the same
 email — no dashboard surgery on `app_users` or `memberships` required.
 
+### Master Patient Index (Module 10)
+
+`patients` holds one row per person per tenant with `(tenant_id, mrn)`
+uniqueness (global MRN uniqueness would reject valid cross-hospital
+collisions), a partial unique index on `(tenant_id, national_id_hash)`, and
+name/phone/DOB search indexes over active records. Raw national IDs are never
+stored — only hashes.
+
+`patient_allergies` is a separate entity, not JSONB: allergy changes are
+safety-critical, so `nodex.tg_allergy_retire_only` permits exactly one
+transition (active → retired with reason and timestamp) and freezes every
+clinical column. Corrections retire and re-insert; nothing is edited.
+
+`patient_merge_history` is append-only (`tg_block_mutation`): surviving id,
+absorbed id, decider, reason, per-field winners. Absorbed patient rows are
+deactivated, never deleted.
+
+All three tables carry FORCE RLS with membership-derived policies
+(`patient.read` / `patient.write`) — never JWT claims, which cannot represent
+multi-tenant principals.
+
 ### Backend mutation path
 
 `supabase/functions/mutation-handler` (deployed, `verify_jwt: true`,
 `withSupabase({ auth: 'user' })`) is the only route for offline-originated
-writes. Per-mutation contract: validation → table allowlist (empty in Phase 1;
-a table registers with a validator in the same change that adds its write path)
-→ idempotency ledger on `(tenant_id, idempotency_key)` → audit-before-apply →
-apply under RLS. Unknown outcomes from the client side decode as rejections.
+writes. Per-mutation contract: validation → table allowlist → operation
+allowlist → column validation (null passes; the database enforces NOT NULL
+finally) → idempotency ledger (`received` first, so a ledger failure blocks the
+apply) → audit-before-apply → apply under RLS → ledger marked
+applied/rejected. Unknown outcomes from the client side decode as rejections.
+
+Registered tables: `patients` (upsert `patient.registered`, patch
+`patient.updated`), `patient_allergies` (upsert `allergy.recorded`, patch
+`allergy.retired` — the retire-only trigger rejects anything else),
+`patient_merge_history` (upsert `patient.merged` only; no update policy exists,
+so patch is refused twice).
 
 The Flutter connector (`NodexBackendConnector.uploadData`) submits PowerSync
 CRUD batches with UUIDv5 ids derived from the queue position, so retries land
