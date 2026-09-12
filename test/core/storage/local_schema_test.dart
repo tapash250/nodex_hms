@@ -26,7 +26,7 @@ void main() {
       expect(schema.validate, returnsNormally);
     });
 
-    test('declares every Phase 1 table plus Module 10 (MPI)', () {
+    test('declares every Phase 1 table plus Modules 10 and 16', () {
       final Set<String> tableNames = schema.tables
           .map((Table table) => table.name)
           .toSet();
@@ -50,6 +50,8 @@ void main() {
         LocalTables.patients,
         LocalTables.patientAllergies,
         LocalTables.patientMergeHistory,
+        LocalTables.clinicalEncounters,
+        LocalTables.encounterAmendments,
       });
     });
 
@@ -260,6 +262,44 @@ void main() {
           'merged_patient_id',
           'reason',
           'field_choices',
+        }),
+      );
+    });
+
+    test('encounter tables mirror the PostgreSQL EMR schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.clinicalEncounters).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'attending_physician_id',
+          'encounter_type',
+          'status',
+          'subjective_note',
+          'objective_findings',
+          'assessment',
+          'plan_description',
+          'diagnoses',
+          'signed_at',
+        }),
+      );
+
+      expect(
+        byName(LocalTables.encounterAmendments).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'encounter_id',
+          'amendment_type',
+          'reason',
+          'field_changes',
+          'amended_by',
         }),
       );
     });

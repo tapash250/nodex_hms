@@ -116,3 +116,28 @@ sync_rules:
           where p.tenant_id = bucket.tenant_id
         - select mh.* from public.patient_merge_history mh
           where mh.tenant_id = bucket.tenant_id
+
+    # Module 16 (encounters): encounters for patients in the caller's tenants.
+    # Mirrors the clinical_encounters_select_member RLS policy (encounter.read).
+    # Amendments travel with their encounter: a device that holds a signed
+    # record must also hold its corrections, or the frozen content reads as
+    # current when it is not.
+    emr_encounters:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'encounter.read'
+      data:
+        - select e.* from public.clinical_encounters e
+          join public.patients p on p.id = e.patient_id
+          where p.tenant_id = bucket.tenant_id
+        - select am.* from public.encounter_amendments am
+          join public.clinical_encounters e on e.id = am.encounter_id
+          join public.patients p on p.id = e.patient_id
+          where p.tenant_id = bucket.tenant_id

@@ -74,6 +74,12 @@ abstract final class LocalTables {
 
   /// Master-merge audit trail (Module 10). Synced, append-only.
   static const String patientMergeHistory = 'patient_merge_history';
+
+  /// Clinical encounters (Module 16). Synced, tenant-scoped.
+  static const String clinicalEncounters = 'clinical_encounters';
+
+  /// Encounter amendments (Module 16). Synced, append-only.
+  static const String encounterAmendments = 'encounter_amendments';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -101,6 +107,8 @@ abstract final class NodexLocalSchema {
     _patients,
     _patientAllergies,
     _patientMergeHistory,
+    _clinicalEncounters,
+    _encounterAmendments,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -491,6 +499,61 @@ abstract final class NodexLocalSchema {
     indexes: <Index>[
       Index('merge_surviving', <IndexedColumn>[
         IndexedColumn('surviving_patient_id'),
+      ]),
+    ],
+  );
+
+  /// Clinical encounters (Module 16).
+  ///
+  /// Mirrors `public.clinical_encounters` exactly. The `diagnoses` JSON column
+  /// travels as text through the local projection and the upload path; the
+  /// server parses it as jsonb finally.
+  static const Table _clinicalEncounters = Table(
+    LocalTables.clinicalEncounters,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('attending_physician_id'),
+      Column.text('encounter_type'),
+      Column.text('status'),
+      Column.text('subjective_note'),
+      Column.text('objective_findings'),
+      Column.text('assessment'),
+      Column.text('plan_description'),
+      Column.text('diagnoses'),
+      Column.text('signed_at'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('encounter_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('encounter_physician', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('attending_physician_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Encounter amendments (Module 16). Append-only, like the server table.
+  static const Table _encounterAmendments = Table(
+    LocalTables.encounterAmendments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('encounter_id'),
+      Column.text('amendment_type'),
+      Column.text('reason'),
+      Column.text('field_changes'),
+      Column.text('amended_by'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('amendment_encounter', <IndexedColumn>[
+        IndexedColumn('encounter_id'),
       ]),
     ],
   );

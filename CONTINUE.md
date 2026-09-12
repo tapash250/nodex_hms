@@ -133,14 +133,15 @@ Next on this path: `device_id` in the mutations ledger (connector currently
 sends null) and a real SHA-256 `payload_digest` instead of the idempotency-key
 placeholder.
 
-### 3. First clinical module (MPI landed)
+### 3. First clinical module (MPI landed, encounters landed)
 
-**Master Patient Index (module 10) is implemented** as the reference vertical
-slice: `patients` + `patient_allergies` + `patient_merge_history` in Postgres
-(with RLS), PowerSync local schema, repository with a test seam, five use cases
-gated on `patient.write`, search/register/detail/allergy screens on `/patients`,
-field-level 3-way merge engine, and 45 unit tests. The mutation-handler
-allowlist registers all three MPI tables.
+**Master Patient Index (module 10)** and **Longitudinal EMR encounters
+(module 16)** are implemented as reference vertical slices: Postgres schema
+with RLS, PowerSync local schema, repository with test seam, `*.write`-gated
+use cases, screens, field-level merge (MPI) and signature-gated freeze with
+append-only amendments (encounters), mutation-handler allowlist registration,
+and unit tests. The mutation-handler allowlist registers all five clinical
+tables.
 
 Handbook deviations applied while building it (all deliberate, all documented
 in the migration headers):
@@ -151,11 +152,11 @@ in the migration headers):
 - Registry `mergeableFields` corrected to real column names (`phone_number`,
   not `phone`); six contact columns added to match
 
-Next module: pick by dependency — encounters (16) need patients (done) and
-are needed by prescriptions, labs, and discharge. Appointments (07) are
-independent and smaller; either is a valid next slice. Whichever lands must
-follow the MPI template: migration + RLS, local schema, repository + seam,
-use cases with auth gates, screens, allowlist registration, tests.
+Next module: encounters unblock labs (17), prescriptions (25) and discharge
+(23), all of which reference a clinical encounter. The lab module is the
+natural next slice: order → specimen → result → validate state machine,
+immutable results with correction workflow (`immutableWithCorrection`
+conflict policy), and barcode specimen tracking.
 
 ---
 

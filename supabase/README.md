@@ -42,6 +42,7 @@ these files by comments only — compare semantics, not bytes.
 | 20260911120000 | `phase2_mpi_patient_identity` |
 | 20260911121000 | `phase2_mpi_contact_fields` |
 | 20260911122000 | `phase2_mutations_device_nullable` |
+| 20260912100000 | `phase2_emr_encounters` |
 
 Two of these supersede earlier work rather than adding new objects, and are kept
 rather than squashed so the history explains itself:
@@ -155,6 +156,22 @@ deactivated, never deleted.
 All three tables carry FORCE RLS with membership-derived policies
 (`patient.read` / `patient.write`) — never JWT claims, which cannot represent
 multi-tenant principals.
+
+### Longitudinal EMR encounters (Module 16)
+
+`clinical_encounters` holds the SOAP record with a closed status machine
+(`planned → in_progress → signed_and_locked → amended`) and a signature
+consistency CHECK: `signed_at` exists exactly when the status is signed. Once
+signed, `nodex.tg_encounter_freeze_after_sign` freezes every clinical column
+and permits exactly one transition (`signed_and_locked → amended`).
+
+`encounter_amendments` is append-only (`tg_block_mutation` plus no
+update/delete RLS policy): corrections reference the frozen record with a
+reason, field changes and author — the signed row is never rewritten.
+
+The mutation path registers both tables: `encounter.started` /
+`encounter.updated` for the shell, `encounter.amended` for amendments
+(upsert-only, matching the append-only table).
 
 ### Backend mutation path
 

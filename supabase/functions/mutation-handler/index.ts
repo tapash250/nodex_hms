@@ -158,6 +158,48 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'patient.merged',
     auditActionPatch: 'patient.merged',
   },
+  // Module 16 (encounters). Column names mirror public.clinical_encounters.
+  // The freeze trigger (nodex.tg_encounter_freeze_after_sign) is the final
+  // enforcer: this validator admits the columns so legitimate unsigned edits
+  // pass, and the trigger rejects any rewrite of signed content.
+  clinical_encounters: {
+    columns: {
+      tenant_id: 'uuid',
+      patient_id: 'uuid',
+      attending_physician_id: 'uuid',
+      encounter_type: 'text',
+      status: 'text',
+      subjective_note: 'text',
+      objective_findings: 'text',
+      assessment: 'text',
+      plan_description: 'text',
+      diagnoses: 'json',
+      signed_at: 'timestamp',
+      created_by: 'uuid',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'encounter.started',
+    auditActionPatch: 'encounter.updated',
+  },
+  // Amendments are append-only: upsert only. The encounter's move to `amended`
+  // travels as a separate patch on clinical_encounters, itself gated by the
+  // freeze trigger's single permitted transition.
+  encounter_amendments: {
+    columns: {
+      tenant_id: 'uuid',
+      encounter_id: 'uuid',
+      amendment_type: 'text',
+      reason: 'text',
+      field_changes: 'json',
+      amended_by: 'uuid',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'encounter.amended',
+    auditActionPatch: 'encounter.amended',
+  },
 }
 
 // ---------------------------------------------------------------------------
@@ -234,8 +276,20 @@ function validateColumns(
         if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) return { ok: false, error: `column "${key}" must be an ISO-8601 timestamp` }
         break
       case 'json':
-        if (typeof value !== 'object') return { ok: false, error: `column "${key}" must be a JSON object` }
-        break
+        // Accepts an object as-is, or a JSON-encoded string, which is what
+        // the client sends: the local projection stores JSON columns as TEXT,
+        // so rows arrive encoded. The string is parsed back here so the jsonb
+        // column receives a value, not a doubly-encoded string.
+        if (typeof value === 'object') break
+        if (typeof value === 'string') {
+          try {
+            clean[key] = JSON.parse(value)
+          } catch {
+            return { ok: false, error: `column "${key}" must be a JSON object` }
+          }
+          continue
+        }
+        return { ok: false, error: `column "${key}" must be a JSON object` }
     }
     clean[key] = value
   }

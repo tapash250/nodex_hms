@@ -19,6 +19,8 @@ import 'package:nodex_hms/core/security/database_key_manager.dart';
 import 'package:nodex_hms/core/security/secure_key_store.dart';
 import 'package:nodex_hms/data/local/local_database.dart';
 import 'package:nodex_hms/data/remote/supabase_gateway.dart';
+import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
+import 'package:nodex_hms/domain/encounters/encounter_use_cases.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
 import 'package:nodex_hms/domain/patients/patient_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
@@ -155,6 +157,49 @@ final Provider<MergePatientsUseCase> mergePatientsUseCaseProvider =
     Provider<MergePatientsUseCase>(
       (Ref ref) => MergePatientsUseCase(
         repository: ref.watch(patientRepositoryProvider),
+      ),
+    );
+
+/// Clinical encounter repository over the encrypted local projection.
+final Provider<EncounterRepository> encounterRepositoryProvider =
+    Provider<EncounterRepository>(
+      (Ref ref) => DefaultEncounterRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Encounter use cases, constructed per read like the MPI ones.
+final Provider<StartEncounterUseCase> startEncounterUseCaseProvider =
+    Provider<StartEncounterUseCase>(
+      (Ref ref) => StartEncounterUseCase(
+        repository: ref.watch(encounterRepositoryProvider),
+      ),
+    );
+
+/// Encounter draft save use case.
+final Provider<SaveEncounterDraftUseCase> saveEncounterDraftUseCaseProvider =
+    Provider<SaveEncounterDraftUseCase>(
+      (Ref ref) => SaveEncounterDraftUseCase(
+        repository: ref.watch(encounterRepositoryProvider),
+      ),
+    );
+
+/// Encounter signature use case.
+final Provider<SignEncounterUseCase> signEncounterUseCaseProvider =
+    Provider<SignEncounterUseCase>(
+      (Ref ref) => SignEncounterUseCase(
+        repository: ref.watch(encounterRepositoryProvider),
+      ),
+    );
+
+/// Encounter amendment use case.
+final Provider<AmendEncounterUseCase> amendEncounterUseCaseProvider =
+    Provider<AmendEncounterUseCase>(
+      (Ref ref) => AmendEncounterUseCase(
+        repository: ref.watch(encounterRepositoryProvider),
       ),
     );
 
