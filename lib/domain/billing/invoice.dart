@@ -426,9 +426,7 @@ final class Payment {
     String? reference,
     String? note,
   }) {
-    if (tenantId.isEmpty ||
-        invoiceId.isEmpty ||
-        recordedBy.isEmpty) {
+    if (tenantId.isEmpty || invoiceId.isEmpty || recordedBy.isEmpty) {
       throw const ValidationError(
         message: 'Payment is missing a required identity field.',
         code: 'payment_invalid',
@@ -555,8 +553,8 @@ final class Refund {
       'recorded_by': recordedBy,
       'amount_minor': amountMinor,
       'reason': reason.trim(),
-      'refunded_at': DateTime.now().toUtc().toIso8601String(),
-      'created_at': DateTime.now().toUtc().toIso8601String(),
+      'refunded_at': now,
+      'created_at': now,
     };
   }
 

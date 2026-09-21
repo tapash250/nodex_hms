@@ -1,5 +1,6 @@
 /// Inventory management screen (Module 13).
 library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,11 +8,11 @@ import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/inventory/inventory.dart';
-import 'package:nodex_hms/domain/session/session_state.dart'
-    show SessionState;
+import 'package:nodex_hms/domain/session/session_state.dart' show SessionState;
 import 'package:nodex_hms/features/inventory/inventory_controller.dart';
 import 'package:nodex_hms/features/session/session_controller.dart'
     show sessionProvider;
+
 /// Inventory management screen.
 class InventoryScreen extends ConsumerWidget {
   const InventoryScreen({super.key});
@@ -24,7 +25,7 @@ class InventoryScreen extends ConsumerWidget {
     final bool canManage = session.authorization.can(
       NodexPermissions.inventoryMovement,
     );
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Inventory'),
@@ -72,12 +73,13 @@ class InventoryScreen extends ConsumerWidget {
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => context.go('/inventory/${item.id}'),
                     ),
-                  ),
+                  );
                 },
               ),
       ),
     );
   }
+
   Future<void> _showItemSheet(BuildContext context, WidgetRef ref) async {
     final _ItemDraft? draft = await showModalBottomSheet<_ItemDraft>(
       context: context,
@@ -115,6 +117,7 @@ class InventoryScreen extends ConsumerWidget {
     }
   }
 }
+
 class _ItemDraft {
   const _ItemDraft({
     required this.itemCode,
@@ -137,11 +140,13 @@ class _ItemDraft {
   final bool requiresBatch;
   final bool requiresExpiry;
 }
+
 class _ItemSheet extends StatefulWidget {
   const _ItemSheet();
   @override
   State<_ItemSheet> createState() => _ItemSheetState();
 }
+
 class _ItemSheetState extends State<_ItemSheet> {
   final TextEditingController _itemCode = TextEditingController();
   final TextEditingController _name = TextEditingController();
@@ -163,6 +168,7 @@ class _ItemSheetState extends State<_ItemSheet> {
     _standardCost.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     final double keyboard = MediaQuery.viewInsetsOf(context).bottom;
@@ -224,7 +230,9 @@ class _ItemSheetState extends State<_ItemSheet> {
               Expanded(
                 child: TextField(
                   controller: _standardCost,
-                  decoration: const InputDecoration(labelText: 'Std cost (minor)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Std cost (minor)',
+                  ),
                   keyboardType: TextInputType.number,
                 ),
               ),

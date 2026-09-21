@@ -4,8 +4,8 @@ library;
 import 'package:nodex_hms/core/authorization/authorization_policy.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
-import 'package:nodex_hms/domain/billing/invoice.dart';
 import 'package:nodex_hms/domain/billing/billing_repository.dart';
+import 'package:nodex_hms/domain/billing/invoice.dart';
 
 /// Drafts a new invoice.
 final class DraftInvoiceUseCase {

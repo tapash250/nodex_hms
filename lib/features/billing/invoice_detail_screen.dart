@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
-import 'package:nodex_hms/core/errors/nodex_error.dart'
-    show NodexError;
+import 'package:nodex_hms/core/errors/nodex_error.dart' show NodexError;
 import 'package:nodex_hms/domain/billing/invoice.dart';
-import 'package:nodex_hms/domain/session/session_state.dart'
-    show SessionState;
+import 'package:nodex_hms/domain/session/session_state.dart' show SessionState;
 import 'package:nodex_hms/features/billing/billing_controller.dart';
 import 'package:nodex_hms/features/session/session_controller.dart'
     show sessionProvider;
@@ -75,8 +73,14 @@ class _InvoiceBody extends ConsumerWidget {
                 Text(value.invoiceCode, style: theme.textTheme.titleLarge),
                 const SizedBox(height: 8),
                 _BillFact(label: 'Currency', value: value.currency),
-                _BillFact(label: 'Total', value: value.formatMinor(value.totalMinor)),
-                _BillFact(label: 'Settled', value: value.formatMinor(value.settledMinor)),
+                _BillFact(
+                  label: 'Total',
+                  value: value.formatMinor(value.totalMinor),
+                ),
+                _BillFact(
+                  label: 'Settled',
+                  value: value.formatMinor(value.settledMinor),
+                ),
                 _BillFact(label: 'Status', value: value.status.wireValue),
                 if (value.notes != null)
                   _BillFact(label: 'Notes', value: value.notes!),
@@ -123,12 +127,7 @@ class _InvoiceBody extends ConsumerWidget {
         const SizedBox(height: 12),
         Row(
           children: <Widget>[
-            Expanded(
-              child: Text(
-                'Lines',
-                style: theme.textTheme.titleMedium,
-              ),
-            ),
+            Expanded(child: Text('Lines', style: theme.textTheme.titleMedium)),
             if (value.status.isEditable && canDraft)
               TextButton.icon(
                 icon: const Icon(Icons.add),
@@ -144,12 +143,10 @@ class _InvoiceBody extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
           ),
-          error: (Object error, StackTrace _) => Card(
+          error: (Object error, StackTrace _) => const Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Lines unavailable.',
-              ),
+              padding: EdgeInsets.all(16),
+              child: Text('Lines unavailable.'),
             ),
           ),
           data: (List<InvoiceLine> values) => values.isEmpty
@@ -180,10 +177,7 @@ class _InvoiceBody extends ConsumerWidget {
         Row(
           children: <Widget>[
             Expanded(
-              child: Text(
-                'Payments',
-                style: theme.textTheme.titleMedium,
-              ),
+              child: Text('Payments', style: theme.textTheme.titleMedium),
             ),
             if (value.status == InvoiceStatus.issued && canSettle)
               TextButton.icon(
@@ -200,9 +194,9 @@ class _InvoiceBody extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
           ),
-          error: (Object error, StackTrace _) => Card(
+          error: (Object error, StackTrace _) => const Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Text('Payments unavailable.'),
             ),
           ),
@@ -219,9 +213,7 @@ class _InvoiceBody extends ConsumerWidget {
                         (Payment payment) => Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
-                            leading: Icon(
-                              _paymentMethodIcon(payment.method),
-                            ),
+                            leading: Icon(_paymentMethodIcon(payment.method)),
                             title: Text(value.formatMinor(payment.amountMinor)),
                             subtitle: Text(
                               '${payment.method.label} · ${_formatWhen(payment.paidAt)}',
@@ -241,10 +233,7 @@ class _InvoiceBody extends ConsumerWidget {
         Row(
           children: <Widget>[
             Expanded(
-              child: Text(
-                'Refunds',
-                style: theme.textTheme.titleMedium,
-              ),
+              child: Text('Refunds', style: theme.textTheme.titleMedium),
             ),
             if (value.status != InvoiceStatus.cancelled && canDraft)
               TextButton.icon(
@@ -261,9 +250,9 @@ class _InvoiceBody extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             ),
           ),
-          error: (Object error, StackTrace _) => Card(
+          error: (Object error, StackTrace _) => const Card(
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Text('Refunds unavailable.'),
             ),
           ),
@@ -300,10 +289,7 @@ class _InvoiceBody extends ConsumerWidget {
     try {
       await ref
           .read(issueInvoiceUseCaseProvider)
-          .call(
-            policy: session.authorization,
-            invoice: value,
-          );
+          .call(policy: session.authorization, invoice: value);
       ref.invalidate(invoiceDetailProvider(value.id));
     } on NodexError catch (error) {
       if (context.mounted) _snack(context, error.message);
@@ -315,10 +301,7 @@ class _InvoiceBody extends ConsumerWidget {
     try {
       await ref
           .read(settleInvoiceUseCaseProvider)
-          .call(
-            policy: session.authorization,
-            invoice: value,
-          );
+          .call(policy: session.authorization, invoice: value);
       ref.invalidate(invoiceDetailProvider(value.id));
     } on NodexError catch (error) {
       if (context.mounted) _snack(context, error.message);
@@ -332,11 +315,7 @@ class _InvoiceBody extends ConsumerWidget {
     try {
       await ref
           .read(cancelInvoiceUseCaseProvider)
-          .call(
-            policy: session.authorization,
-            invoice: value,
-            reason: reason,
-          );
+          .call(policy: session.authorization, invoice: value, reason: reason);
       ref.invalidate(invoiceDetailProvider(value.id));
     } on NodexError catch (error) {
       if (context.mounted) _snack(context, error.message);
@@ -399,10 +378,11 @@ class _InvoiceBody extends ConsumerWidget {
     }
   }
 
-Future<void> _showRefundSheet(BuildContext context, WidgetRef ref) async {
+  Future<void> _showRefundSheet(BuildContext context, WidgetRef ref) async {
     final List<Payment> payments = await ref.read(
       invoicePaymentsProvider(value.id).future,
     );
+    if (!context.mounted) return;
     final _RefundDraft? draft = await showModalBottomSheet<_RefundDraft>(
       context: context,
       isScrollControlled: true,
@@ -428,70 +408,69 @@ Future<void> _showRefundSheet(BuildContext context, WidgetRef ref) async {
       if (context.mounted) _snack(context, error.message);
     }
   }
-  }
+}
 
-  Future<String?> _askReason(BuildContext context) async {
-    final TextEditingController controller = TextEditingController();
-    try {
-      return await showModalBottomSheet<String>(
-        context: context,
-        isScrollControlled: true,
-        builder: (BuildContext context) {
-          final double keyboard = MediaQuery.viewInsetsOf(context).bottom;
-          return Padding(
-            padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + keyboard),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                const Text(
-                  'Cancel reason required',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: controller,
-                  decoration: const InputDecoration(labelText: 'Reason *'),
-                  autofocus: true,
-                ),
-                const SizedBox(height: 20),
-                FilledButton(
-                  onPressed: () {
-                    if (controller.text.trim().isEmpty) return;
-                    Navigator.pop(context, controller.text.trim());
-                  },
-                  child: const Text('Cancel'),
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    } finally {
-      controller.dispose();
-    }
+Future<String?> _askReason(BuildContext context) async {
+  final TextEditingController controller = TextEditingController();
+  try {
+    return await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        final double keyboard = MediaQuery.viewInsetsOf(context).bottom;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + keyboard),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text(
+                'Cancel reason required',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(labelText: 'Reason *'),
+                autofocus: true,
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () {
+                  if (controller.text.trim().isEmpty) return;
+                  Navigator.pop(context, controller.text.trim());
+                },
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  } finally {
+    controller.dispose();
   }
+}
 
-  IconData _paymentMethodIcon(PaymentMethod method) {
-    return switch (method) {
-      PaymentMethod.cash => Icons.money_outlined,
-      PaymentMethod.card => Icons.credit_card_outlined,
-      PaymentMethod.mobileMoney => Icons.phone_android_outlined,
-      PaymentMethod.bankTransfer => Icons.account_balance_outlined,
-      PaymentMethod.insurance => Icons.health_and_safety_outlined,
-      PaymentMethod.waiver => Icons.block_outlined,
-    };
-  }
+IconData _paymentMethodIcon(PaymentMethod method) {
+  return switch (method) {
+    PaymentMethod.cash => Icons.money_outlined,
+    PaymentMethod.card => Icons.credit_card_outlined,
+    PaymentMethod.mobileMoney => Icons.phone_android_outlined,
+    PaymentMethod.bankTransfer => Icons.account_balance_outlined,
+    PaymentMethod.insurance => Icons.health_and_safety_outlined,
+    PaymentMethod.waiver => Icons.block_outlined,
+  };
+}
 
-  String _formatWhen(DateTime when) {
-    final DateTime local = when.toLocal();
-    return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} '
-        '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
-  }
+String _formatWhen(DateTime when) {
+  final DateTime local = when.toLocal();
+  return '${local.year}-${local.month.toString().padLeft(2, '0')}-${local.day.toString().padLeft(2, '0')} '
+      '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+}
 
-  void _snack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
+void _snack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
 
 class _LineDraft {
   const _LineDraft({
@@ -519,7 +498,7 @@ class _LineSheetState extends State<_LineSheet> {
   final TextEditingController _quantity = TextEditingController(text: '1');
   final TextEditingController _unitPrice = TextEditingController();
   final TextEditingController _lineTotal = TextEditingController();
-  int _lineNumber = 1;
+  final int _lineNumber = 1;
 
   @override
   void dispose() {
@@ -562,16 +541,20 @@ class _LineSheetState extends State<_LineSheet> {
               Expanded(
                 child: TextField(
                   controller: _unitPrice,
-                  decoration: const InputDecoration(labelText: 'Unit price (minor) *'),
+                  decoration: const InputDecoration(
+                    labelText: 'Unit price (minor) *',
+                  ),
                   keyboardType: TextInputType.number,
                 ),
               ),
-],
-    ),
+            ],
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _lineTotal,
-            decoration: const InputDecoration(labelText: 'Line total (minor) *'),
+            decoration: const InputDecoration(
+              labelText: 'Line total (minor) *',
+            ),
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 20),
@@ -581,7 +564,9 @@ class _LineSheetState extends State<_LineSheet> {
               final int? unit = int.tryParse(_unitPrice.text.trim());
               final int? total = int.tryParse(_lineTotal.text.trim());
               if (_description.text.trim().isEmpty ||
-                  qty == null || unit == null || total == null) {
+                  qty == null ||
+                  unit == null ||
+                  total == null) {
                 return;
               }
               Navigator.pop(
@@ -758,7 +743,9 @@ class _RefundSheetState extends State<_RefundSheet> {
                 .map(
                   (Payment p) => DropdownMenuItem<Payment>(
                     value: p,
-                    child: Text('${p.amountMinor} minor units · ${p.paidAt.toLocal()}'),
+                    child: Text(
+                      '${p.amountMinor} minor units · ${p.paidAt.toLocal()}',
+                    ),
                   ),
                 )
                 .toList(growable: false),
@@ -816,8 +803,8 @@ class _BillFact extends StatelessWidget {
         Text(value),
       ],
     ),
-); 
-  }
+  );
+}
 
 class _BillingError extends StatelessWidget {
   const _BillingError({required this.error, required this.onRetry});
@@ -839,4 +826,3 @@ class _BillingError extends StatelessWidget {
     ),
   );
 }
-

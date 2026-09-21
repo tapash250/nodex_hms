@@ -99,7 +99,11 @@ final class DefaultInventoryRepository implements InventoryRepository {
     try {
       final List<Map<String, Object?>> rows = await _store.query(
         'SELECT * FROM ${LocalTables.stockBatches} WHERE item_id = ? AND status IN (?, ?) ORDER BY received_at DESC',
-        <Object?>[itemId, BatchStatus.available.wireValue, BatchStatus.reserved.wireValue],
+        <Object?>[
+          itemId,
+          BatchStatus.available.wireValue,
+          BatchStatus.reserved.wireValue,
+        ],
       );
       return rows.map(StockBatch.fromRow).toList(growable: false);
     } on Object catch (error, stackTrace) {
@@ -164,10 +168,7 @@ final class DefaultInventoryRepository implements InventoryRepository {
   ) async {
     final String id = const Uuid().v4();
     try {
-      await _store.insert(table, <String, Object?>{
-        ...row,
-        'id': id,
-      });
+      await _store.insert(table, <String, Object?>{...row, 'id': id});
       _logger.info(
         _module,
         'Inventory write committed locally.',

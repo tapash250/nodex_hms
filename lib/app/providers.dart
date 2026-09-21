@@ -25,14 +25,12 @@ import 'package:nodex_hms/domain/beds/bed_repository.dart';
 import 'package:nodex_hms/domain/beds/bed_use_cases.dart';
 import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
-import 'package:nodex_hms/domain/billing/billing_repository.dart';
-import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_use_cases.dart';
-import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
-import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
 import 'package:nodex_hms/domain/encounters/encounter_use_cases.dart';
+import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
+import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
 import 'package:nodex_hms/domain/laboratory/lab_use_cases.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
@@ -454,10 +452,9 @@ final Provider<FinalizeDischargeUseCase> finalizeDischargeUseCaseProvider =
 final Provider<CancelDischargeUseCase> cancelDischargeUseCaseProvider =
     Provider<CancelDischargeUseCase>(
       (Ref ref) => CancelDischargeUseCase(
-repository: ref.watch(dischargeRepositoryProvider),
+        repository: ref.watch(dischargeRepositoryProvider),
       ),
     );
-  );
 
 /// Billing repository over the encrypted local projection.
 final Provider<BillingRepository> billingRepositoryProvider =
@@ -473,9 +470,8 @@ final Provider<BillingRepository> billingRepositoryProvider =
 /// Invoice drafting.
 final Provider<DraftInvoiceUseCase> draftInvoiceUseCaseProvider =
     Provider<DraftInvoiceUseCase>(
-      (Ref ref) => DraftInvoiceUseCase(
-        repository: ref.watch(billingRepositoryProvider),
-      ),
+      (Ref ref) =>
+          DraftInvoiceUseCase(repository: ref.watch(billingRepositoryProvider)),
     );
 
 /// Invoice line creation.
@@ -489,9 +485,8 @@ final Provider<AddInvoiceLineUseCase> addInvoiceLineUseCaseProvider =
 /// Invoice issuance.
 final Provider<IssueInvoiceUseCase> issueInvoiceUseCaseProvider =
     Provider<IssueInvoiceUseCase>(
-      (Ref ref) => IssueInvoiceUseCase(
-        repository: ref.watch(billingRepositoryProvider),
-      ),
+      (Ref ref) =>
+          IssueInvoiceUseCase(repository: ref.watch(billingRepositoryProvider)),
     );
 
 /// Invoice settlement.
@@ -513,9 +508,8 @@ final Provider<RecordPaymentUseCase> recordPaymentUseCaseProvider =
 /// Refund recording.
 final Provider<RecordRefundUseCase> recordRefundUseCaseProvider =
     Provider<RecordRefundUseCase>(
-      (Ref ref) => RecordRefundUseCase(
-        repository: ref.watch(billingRepositoryProvider),
-      ),
+      (Ref ref) =>
+          RecordRefundUseCase(repository: ref.watch(billingRepositoryProvider)),
     );
 
 /// Invoice cancellation.

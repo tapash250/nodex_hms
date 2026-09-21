@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/billing/invoice.dart';
-import 'package:nodex_hms/domain/billing/billing_repository.dart';
 
 /// Invoices for one patient, newest first.
 final invoicesForPatientProvider = FutureProvider.autoDispose

@@ -142,10 +142,7 @@ final class UpdateBatchStatusUseCase {
     required BatchStatus status,
   }) async {
     policy.require(NodexPermissions.inventoryMovement);
-    await _repository.updateBatch(
-      batch.id,
-      {'status': status.wireValue},
-    );
+    await _repository.updateBatch(batch.id, {'status': status.wireValue});
   }
 }
 

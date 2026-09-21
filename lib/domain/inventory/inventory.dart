@@ -19,6 +19,10 @@ enum StockItemStatus {
 
   final String wireValue;
 
+  /// Whether the item can still be modified. A discontinued item is retired
+  /// and must not be edited.
+  bool get isEditable => this != StockItemStatus.discontinued;
+
   static StockItemStatus fromWire(String value) =>
       StockItemStatus.values.firstWhere(
         (StockItemStatus status) => status.wireValue == value,
@@ -180,8 +184,8 @@ final class StockItem {
     final String? trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
-
 }
+
 /// Storage location.
 @immutable
 final class StockLocation {
