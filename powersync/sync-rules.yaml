@@ -232,3 +232,49 @@ sync_rules:
         - select a.* from public.bed_assignments a
           join public.beds b on b.id = a.bed_id
           where b.tenant_id = bucket.tenant_id
+
+    # Module 31 (billing): invoices, lines, payments and refunds for the
+    # caller's billing-read tenants. Settled invoices and their payment trail
+    # both travel: the billing desk reconstructs the ledger offline, not just
+    # open charges.
+    billing_ledger:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'billing.read'
+      data:
+        - select * from public.invoices where tenant_id = bucket.tenant_id
+        - select il.* from public.invoice_lines il
+          join public.invoices i on i.id = il.invoice_id
+          where i.tenant_id = bucket.tenant_id
+        - select * from public.payments where tenant_id = bucket.tenant_id
+        - select * from public.refunds where tenant_id = bucket.tenant_id
+
+    # Module 13 (inventory): items, locations, batches and movements for the
+    # caller's patient-read tenants (mirrors the inventory_select_member RLS
+    # policy). Movement history travels with the stock on hand: a device that
+    # shows a quantity must be able to explain how it got there.
+    inventory_stock:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select * from public.stock_items where tenant_id = bucket.tenant_id
+        - select * from public.stock_locations where tenant_id = bucket.tenant_id
+        - select b.* from public.stock_batches b
+          join public.stock_items i on i.id = b.item_id
+          where i.tenant_id = bucket.tenant_id
+        - select * from public.stock_movements where tenant_id = bucket.tenant_id
