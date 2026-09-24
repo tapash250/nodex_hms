@@ -111,6 +111,33 @@ abstract final class NodexDestinations {
     moduleCode: 'M11',
   );
 
+  /// Emergency Department triage and open visits.
+  static const NavigationDestinationSpec er = NavigationDestinationSpec(
+    routePath: '/er',
+    label: 'Emergency',
+    icon: Icons.emergency_outlined,
+    selectedIcon: Icons.emergency,
+    requiredPermissions: <String>{
+      NodexPermissions.triageRead,
+      NodexPermissions.erVisitWrite,
+    },
+    moduleCode: 'M05',
+  );
+
+  /// ICU bed census and critical-care documentation.
+  static const NavigationDestinationSpec icu = NavigationDestinationSpec(
+    routePath: '/icu',
+    label: 'ICU',
+    icon: Icons.monitor_heart_outlined,
+    selectedIcon: Icons.monitor_heart,
+    requiredPermissions: <String>{
+      NodexPermissions.icuBedAssign,
+      NodexPermissions.icuVitalsRecord,
+    },
+    moduleCode: 'M06',
+    isPrimary: false,
+  );
+
   /// Inventory management. Phase 2 supplies the implementation.
   static const NavigationDestinationSpec inventory = NavigationDestinationSpec(
     routePath: '/inventory',
@@ -172,6 +199,8 @@ abstract final class NodexDestinations {
         patients,
         appointments,
         wards,
+        er,
+        icu,
         inventory,
         syncDiagnostics,
         aiGovernance,

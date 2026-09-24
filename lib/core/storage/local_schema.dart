@@ -138,6 +138,24 @@ abstract final class LocalTables {
 
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
+
+  /// Triage assessments (Module 05). Synced, tenant-scoped.
+  static const String triageAssessments = 'triage_assessments';
+
+  /// Emergency department visits (Module 05). Synced.
+  static const String erVisits = 'er_visits';
+
+  /// ICU bed census (Module 06). Synced.
+  static const String icuBeds = 'icu_beds';
+
+  /// ICU continuous vitals observations (Module 06). Synced, append-only.
+  static const String icuVitals = 'icu_vitals';
+
+  /// ICU nursing handover records (Module 06). Synced, append-only.
+  static const String icuNursingHandover = 'icu_nursing_handover';
+
+  /// Ventilator event log (Module 06). Synced, append-only.
+  static const String ventilatorEvents = 'ventilator_events';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -186,6 +204,12 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _triageAssessments,
+    _erVisits,
+    _icuBeds,
+    _icuVitals,
+    _icuNursingHandover,
+    _ventilatorEvents,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -1125,6 +1149,189 @@ abstract final class NodexLocalSchema {
       ]),
       Index('discharge_encounter', <IndexedColumn>[
         IndexedColumn('encounter_id'),
+      ]),
+    ],
+  );
+
+  /// Triage assessments (Module 05): acuity, complaint, disposition and
+  /// one-way escalation. Mirrors `public.triage_assessments`.
+  static const Table _triageAssessments = Table(
+    LocalTables.triageAssessments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('assessed_by'),
+      Column.text('acuity'),
+      Column.text('chief_complaint'),
+      Column.text('vitals'),
+      Column.text('red_flags'),
+      Column.text('disposition'),
+      Column.integer('escalated'),
+      Column.text('escalated_by'),
+      Column.text('escalated_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('triage_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('triage_acuity', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('acuity'),
+      ]),
+    ],
+  );
+
+  /// ER visits (Module 05): status is a guarded state machine. Mirrors
+  /// `public.er_visits`.
+  static const Table _erVisits = Table(
+    LocalTables.erVisits,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('triage_id'),
+      Column.text('encounter_id'),
+      Column.text('provider_id'),
+      Column.text('status'),
+      Column.text('arrival_mode'),
+      Column.text('bed_id'),
+      Column.text('started_at'),
+      Column.text('disposition'),
+      Column.text('disposition_reason'),
+      Column.text('discharged_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('er_visit_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('started_at'),
+      ]),
+      Index('er_visit_triage', <IndexedColumn>[IndexedColumn('triage_id')]),
+      Index('er_visit_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// ICU beds (Module 06): occupancy projection, server-arbitrated. Mirrors
+  /// `public.icu_beds`.
+  static const Table _icuBeds = Table(
+    LocalTables.icuBeds,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('bed_id'),
+      Column.text('ventilator_id'),
+      Column.text('status'),
+      Column.text('current_patient_id'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('icu_bed_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+      Index('icu_bed_bed', <IndexedColumn>[IndexedColumn('bed_id')]),
+    ],
+  );
+
+  /// ICU vitals (Module 06): append-only observations. Mirrors
+  /// `public.icu_vitals`.
+  static const Table _icuVitals = Table(
+    LocalTables.icuVitals,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('icu_bed_id'),
+      Column.text('recorded_by'),
+      Column.text('recorded_at'),
+      Column.integer('heart_rate'),
+      Column.integer('spo2'),
+      Column.integer('respiratory_rate'),
+      Column.real('temperature_celsius'),
+      Column.integer('systolic_bp'),
+      Column.integer('diastolic_bp'),
+      Column.integer('map'),
+      Column.real('cvp'),
+      Column.integer('etco2'),
+      Column.integer('gcs_total'),
+      Column.integer('gcs_eye'),
+      Column.integer('gcs_verbal'),
+      Column.integer('gcs_motor'),
+      Column.real('fi_o2'),
+      Column.integer('peep'),
+      Column.integer('tidal_volume'),
+      Column.text('respiratory_mode'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('icu_vitals_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('recorded_at'),
+      ]),
+      Index('icu_vitals_bed', <IndexedColumn>[
+        IndexedColumn('icu_bed_id'),
+        IndexedColumn('recorded_at'),
+      ]),
+    ],
+  );
+
+  /// Nursing handover (Module 06): immutable shift record. Mirrors
+  /// `public.icu_nursing_handover`.
+  static const Table _icuNursingHandover = Table(
+    LocalTables.icuNursingHandover,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('icu_bed_id'),
+      Column.text('outgoing_nurse'),
+      Column.text('incoming_nurse'),
+      Column.text('handover_time'),
+      Column.text('summary'),
+      Column.text('concerns'),
+      Column.text('plan'),
+      Column.text('alerts'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('nursing_handover_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('handover_time'),
+      ]),
+      Index('nursing_handover_bed', <IndexedColumn>[
+        IndexedColumn('icu_bed_id'),
+      ]),
+    ],
+  );
+
+  /// Ventilator events (Module 06): append-only clinical events. Mirrors
+  /// `public.ventilator_events`.
+  static const Table _ventilatorEvents = Table(
+    LocalTables.ventilatorEvents,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('icu_bed_id'),
+      Column.text('ventilator_id'),
+      Column.text('event_type'),
+      Column.text('mode'),
+      Column.text('settings'),
+      Column.text('recorded_by'),
+      Column.text('recorded_at'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('ventilator_event_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('recorded_at'),
+      ]),
+      Index('ventilator_event_bed', <IndexedColumn>[
+        IndexedColumn('icu_bed_id'),
       ]),
     ],
   );

@@ -43,6 +43,8 @@ MAR), `appt_schedule` (Module 07), `ward_census` (Module 11, beds with active
 assignments), `billing_ledger` (Module 31, invoices, lines, payments, refunds),
 `inventory_stock` (Module 13, items, locations, batches, movements);
 discharges (Module 23) travel inside `emr_encounters` with their encounter.
+Added: `er_triage` (Module 05, triage assessments and ER
+visits), `icu_census` (Module 06, ICU beds, vitals, handover, ventilator).
 Remaining: OT, radiology, blood bank and the rest of the 54-module scope.
 
 ## Upload path

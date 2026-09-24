@@ -29,6 +29,10 @@ import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_use_cases.dart';
 import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
 import 'package:nodex_hms/domain/encounters/encounter_use_cases.dart';
+import 'package:nodex_hms/domain/er/er_repository.dart';
+import 'package:nodex_hms/domain/er/er_use_cases.dart';
+import 'package:nodex_hms/domain/icu/icu_repository.dart';
+import 'package:nodex_hms/domain/icu/icu_use_cases.dart';
 import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
 import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
@@ -578,6 +582,80 @@ final Provider<RecordMovementUseCase> recordMovementUseCaseProvider =
         repository: ref.watch(inventoryRepositoryProvider),
       ),
     );
+
+/// ER repository over the encrypted local projection.
+final Provider<ErRepository> erRepositoryProvider = Provider<ErRepository>(
+  (Ref ref) => DefaultErRepository(
+    store: PowerSyncPatientStore(database: ref.watch(localDatabaseProvider)),
+    logger: ref.watch(loggerProvider),
+  ),
+);
+
+/// Triage assessment recording.
+final Provider<RecordTriageUseCase> recordTriageUseCaseProvider =
+    Provider<RecordTriageUseCase>(
+      (Ref ref) =>
+          RecordTriageUseCase(repository: ref.watch(erRepositoryProvider)),
+    );
+
+/// Triage escalation.
+final Provider<EscalateTriageUseCase> escalateTriageUseCaseProvider =
+    Provider<EscalateTriageUseCase>(
+      (Ref ref) =>
+          EscalateTriageUseCase(repository: ref.watch(erRepositoryProvider)),
+    );
+
+/// ER visit opening from triage.
+final Provider<OpenErVisitUseCase> openErVisitUseCaseProvider =
+    Provider<OpenErVisitUseCase>(
+      (Ref ref) =>
+          OpenErVisitUseCase(repository: ref.watch(erRepositoryProvider)),
+    );
+
+/// ER visit lifecycle transitions.
+final Provider<TransitionErVisitUseCase> transitionErVisitUseCaseProvider =
+    Provider<TransitionErVisitUseCase>(
+      (Ref ref) =>
+          TransitionErVisitUseCase(repository: ref.watch(erRepositoryProvider)),
+    );
+
+/// ICU repository over the encrypted local projection.
+final Provider<IcuRepository> icuRepositoryProvider = Provider<IcuRepository>(
+  (Ref ref) => DefaultIcuRepository(
+    store: PowerSyncPatientStore(database: ref.watch(localDatabaseProvider)),
+    logger: ref.watch(loggerProvider),
+  ),
+);
+
+/// ICU bed assignment and release.
+final Provider<AssignIcuBedUseCase> assignIcuBedUseCaseProvider =
+    Provider<AssignIcuBedUseCase>(
+      (Ref ref) =>
+          AssignIcuBedUseCase(repository: ref.watch(icuRepositoryProvider)),
+    );
+
+/// ICU vital-sign recording.
+final Provider<RecordIcuVitalsUseCase> recordIcuVitalsUseCaseProvider =
+    Provider<RecordIcuVitalsUseCase>(
+      (Ref ref) =>
+          RecordIcuVitalsUseCase(repository: ref.watch(icuRepositoryProvider)),
+    );
+
+/// ICU nursing handover.
+final Provider<RecordIcuHandoverUseCase> recordIcuHandoverUseCaseProvider =
+    Provider<RecordIcuHandoverUseCase>(
+      (Ref ref) => RecordIcuHandoverUseCase(
+        repository: ref.watch(icuRepositoryProvider),
+      ),
+    );
+
+/// Ventilator event recording.
+final Provider<RecordVentilatorEventUseCase>
+recordVentilatorEventUseCaseProvider = Provider<RecordVentilatorEventUseCase>(
+  (Ref ref) => RecordVentilatorEventUseCase(
+    repository: ref.watch(icuRepositoryProvider),
+  ),
+);
 
 /// AI model and routing configuration.
 ///

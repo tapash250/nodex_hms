@@ -26,7 +26,13 @@ import 'package:nodex_hms/features/billing/invoice_detail_screen.dart';
 import 'package:nodex_hms/features/diagnostics/sync_diagnostics_screen.dart';
 import 'package:nodex_hms/features/discharge/discharge_detail_screen.dart';
 import 'package:nodex_hms/features/encounters/encounter_editor_screen.dart';
+import 'package:nodex_hms/features/er/er_list_screen.dart';
+import 'package:nodex_hms/features/er/er_visit_detail_screen.dart';
+import 'package:nodex_hms/features/er/triage_detail_screen.dart';
+import 'package:nodex_hms/features/er/triage_intake_screen.dart';
 import 'package:nodex_hms/features/home/home_screen.dart';
+import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
+import 'package:nodex_hms/features/icu/icu_list_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
 import 'package:nodex_hms/features/laboratory/lab_order_screen.dart';
 import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
@@ -224,6 +230,54 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                 const WardCensusScreen(),
           ),
           GoRoute(
+            path: NodexDestinations.er.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const ErListScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'visits/:visitId',
+                builder: (BuildContext context, GoRouterState state) =>
+                    ErVisitDetailScreen(
+                      visitId: state.pathParameters['visitId']!,
+                    ),
+              ),
+              // triage/new must precede triage/:triageId for declaration-order
+              // matching on the static 'new' segment.
+              GoRoute(
+                path: 'triage/new',
+                builder: (BuildContext context, GoRouterState state) {
+                  final String? patientId =
+                      state.uri.queryParameters['patientId'];
+                  if (patientId == null || patientId.isEmpty) {
+                    return const _MissingPatientScreen();
+                  }
+                  return TriageIntakeScreen(patientId: patientId);
+                },
+              ),
+              GoRoute(
+                path: 'triage/:triageId',
+                builder: (BuildContext context, GoRouterState state) =>
+                    TriageDetailScreen(
+                      triageId: state.pathParameters['triageId']!,
+                    ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: NodexDestinations.icu.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const IcuListScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'beds/:icuBedId',
+                builder: (BuildContext context, GoRouterState state) =>
+                    IcuBedDetailScreen(
+                      icuBedId: state.pathParameters['icuBedId']!,
+                    ),
+              ),
+            ],
+          ),
+          GoRoute(
             path: NodexDestinations.inventory.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const InventoryScreen(),
@@ -291,6 +345,22 @@ class _SplashScreen extends StatelessWidget {
           SizedBox(height: 24),
           Text('Preparing secure clinical workspace'),
         ],
+      ),
+    ),
+  );
+}
+
+/// Shown when the triage intake route is opened without a patientId query.
+class _MissingPatientScreen extends StatelessWidget {
+  const _MissingPatientScreen();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Record triage')),
+    body: const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text('Select a patient first.', textAlign: TextAlign.center),
       ),
     ),
   );

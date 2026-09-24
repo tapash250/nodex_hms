@@ -25,6 +25,12 @@ void main() {
         ConflictPolicyRegistry.bedAssignment,
         ConflictPolicyRegistry.billing,
         ConflictPolicyRegistry.discharge,
+        ConflictPolicyRegistry.triageAssessment,
+        ConflictPolicyRegistry.erVisit,
+        ConflictPolicyRegistry.icuBed,
+        ConflictPolicyRegistry.icuVitals,
+        ConflictPolicyRegistry.icuHandover,
+        ConflictPolicyRegistry.ventilatorEvent,
       ];
 
       for (final String resourceType in required) {
@@ -145,6 +151,53 @@ void main() {
       expect(
         ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.billing).policy,
         ConflictPolicy.transactional,
+      );
+    });
+
+    test('triage assessments use versioned revisions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.triageAssessment,
+        ).policy,
+        ConflictPolicy.versionedRevision,
+      );
+    });
+
+    test('ER visits are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.erVisit).policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('ICU beds are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.icuBed).policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('ICU vitals are append-only', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.icuVitals)
+            .policy,
+        ConflictPolicy.appendOnly,
+      );
+    });
+
+    test('ICU handovers are append-only', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.icuHandover)
+            .policy,
+        ConflictPolicy.appendOnly,
+      );
+    });
+
+    test('ventilator events resolve as event transactions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.ventilatorEvent)
+            .policy,
+        ConflictPolicy.eventTransaction,
       );
     });
   });

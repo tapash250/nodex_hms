@@ -172,6 +172,24 @@ abstract final class ConflictPolicyRegistry {
   /// Discharge record.
   static const String discharge = 'discharge';
 
+  /// Triage assessment.
+  static const String triageAssessment = 'triage_assessment';
+
+  /// Emergency department visit.
+  static const String erVisit = 'er_visit';
+
+  /// ICU bed occupancy projection.
+  static const String icuBed = 'icu_bed';
+
+  /// ICU vital sign observation.
+  static const String icuVitals = 'icu_vitals';
+
+  /// ICU nursing handover record.
+  static const String icuHandover = 'icu_handover';
+
+  /// Ventilator event.
+  static const String ventilatorEvent = 'ventilator_event';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -272,6 +290,52 @@ abstract final class ConflictPolicyRegistry {
               'episode and must remain readable exactly as issued. A '
               'readmission is a new encounter with its own discharge, so no '
               'version chain is needed.',
+        ),
+        triageAssessment: ConflictPolicyEntry(
+          resourceType: triageAssessment,
+          policy: ConflictPolicy.versionedRevision,
+          rationale:
+              'Triage documentation is clinical narrative that may be refined '
+              'before disposition. Concurrent refinements become ordered '
+              'revisions; escalation is one-way and never rewritten.',
+        ),
+        erVisit: ConflictPolicyEntry(
+          resourceType: erVisit,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'ER visit status is a guarded state machine the server owns. '
+              'Two devices cannot both be correct about who is still in the '
+              'department; the client reconciles to server state.',
+        ),
+        icuBed: ConflictPolicyEntry(
+          resourceType: icuBed,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'ICU bed occupancy, like Module 11 beds, is a scarce shared '
+              'resource. The server holds the allocation and the client '
+              'reconciles rather than claiming a bed unilaterally.',
+        ),
+        icuVitals: ConflictPolicyEntry(
+          resourceType: icuVitals,
+          policy: ConflictPolicy.appendOnly,
+          rationale:
+              'ICU observations are timestamped facts. Two nurses recording '
+              'vitals produce two observations, not a conflict.',
+        ),
+        icuHandover: ConflictPolicyEntry(
+          resourceType: icuHandover,
+          policy: ConflictPolicy.appendOnly,
+          rationale:
+              'A nursing handover is an immutable shift record. Concurrent '
+              'handovers append; nothing is overwritten.',
+        ),
+        ventilatorEvent: ConflictPolicyEntry(
+          resourceType: ventilatorEvent,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'A ventilator event is an event with an identity. Duplicate '
+              'uploads deduplicate so a retry cannot record a second '
+              'connection or mode change.',
         ),
       };
 

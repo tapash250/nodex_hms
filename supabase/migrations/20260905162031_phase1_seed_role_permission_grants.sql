@@ -19,13 +19,20 @@ values
   ('medical_officer', 'bed.assign'),
   ('medical_officer', 'vitals.record'),
   ('medical_officer', 'triage.escalate'),
+  ('medical_officer', 'triage.write'),
+  ('medical_officer', 'triage.read'),
+  ('medical_officer', 'er.visit.write'),
   ('medical_officer', 'discharge.finalize'),
   ('medical_officer', 'transfusion.finalize'),
   ('medical_officer', 'appointment.read'),
   ('medical_officer', 'appointment.write'),
   ('medical_officer', 'report.read'),
   ('medical_officer', 'ai_output.review'),
-  ('medical_officer', 'clinical_event.read');
+  ('medical_officer', 'clinical_event.read'),
+  ('medical_officer', 'icu.bed.assign'),
+  ('medical_officer', 'icu.vitals.record'),
+  ('medical_officer', 'icu.handover.record'),
+  ('medical_officer', 'ventilator.event.record');
 
 -- Nursing Staff
 insert into public.role_permissions (role_key, permission_key)
@@ -37,9 +44,15 @@ values
   ('nursing_staff', 'medication.administer'),
   ('nursing_staff', 'bed.assign'),
   ('nursing_staff', 'triage.escalate'),
+  ('nursing_staff', 'triage.write'),
+  ('nursing_staff', 'triage.read'),
+  ('nursing_staff', 'er.visit.write'),
   ('nursing_staff', 'lab_order.write'),
   ('nursing_staff', 'appointment.read'),
-  ('nursing_staff', 'ai_output.review');
+  ('nursing_staff', 'ai_output.review'),
+  ('nursing_staff', 'icu.vitals.record'),
+  ('nursing_staff', 'icu.handover.record'),
+  ('nursing_staff', 'ventilator.event.record');
 
 -- Diagnostic / Lab Technician
 insert into public.role_permissions (role_key, permission_key)
@@ -58,7 +71,9 @@ values
   ('pharmacist', 'pharmacy.dispense'),
   ('pharmacist', 'inventory.movement'),
   ('pharmacist', 'billing.read'),
-  ('pharmacist', 'ai_output.review');
+  ('pharmacist', 'ai_output.review'),
+  ('pharmacist', 'triage.read'),
+  ('pharmacist', 'er.visit.write');
 
 -- Billing & Accounts
 insert into public.role_permissions (role_key, permission_key)

@@ -18,6 +18,8 @@ import 'package:nodex_hms/features/beds/bed_patient_section.dart';
 import 'package:nodex_hms/features/billing/billing_patient_section.dart';
 import 'package:nodex_hms/features/discharge/discharge_patient_section.dart';
 import 'package:nodex_hms/features/encounters/encounter_list_section.dart';
+import 'package:nodex_hms/features/er/er_patient_section.dart';
+import 'package:nodex_hms/features/icu/icu_patient_section.dart';
 import 'package:nodex_hms/features/laboratory/lab_patient_section.dart';
 import 'package:nodex_hms/features/patients/patients_controller.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_patient_section.dart';
@@ -191,6 +193,10 @@ class _DetailBody extends ConsumerWidget {
         AppointmentPatientSection(patientId: bundle.patient.id),
         const SizedBox(height: 16),
         BedPatientSection(patientId: bundle.patient.id),
+        const SizedBox(height: 16),
+        ErPatientSection(patientId: bundle.patient.id),
+        const SizedBox(height: 16),
+        IcuPatientSection(patientId: bundle.patient.id),
         const SizedBox(height: 16),
         DischargePatientSection(patientId: bundle.patient.id),
         const SizedBox(height: 16),

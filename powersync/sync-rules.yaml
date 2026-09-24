@@ -278,3 +278,49 @@ sync_rules:
           join public.stock_items i on i.id = b.item_id
           where i.tenant_id = bucket.tenant_id
         - select * from public.stock_movements where tenant_id = bucket.tenant_id
+
+    # Module 06 (ICU): ICU beds, vitals, handover, and ventilator events for
+    # the caller's patient-read tenants. The ICU census board reads beds,
+    # active vitals, and handover records with active assignments.
+    icu_census:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select * from public.icu_beds where tenant_id = bucket.tenant_id
+        - select v.* from public.icu_vitals v
+          join public.icu_beds b on b.id = v.icu_bed_id
+          where b.tenant_id = bucket.tenant_id
+        - select h.* from public.icu_nursing_handover h
+          join public.icu_beds b on b.id = h.icu_bed_id
+          where b.tenant_id = bucket.tenant_id
+        - select e.* from public.ventilator_events e
+          join public.icu_beds b on b.id = e.icu_bed_id
+          where b.tenant_id = bucket.tenant_id
+
+    # Module 05 (ER/Triage): triage assessments and ER visits for the
+    # caller's patient-read tenants. Both travel together so the device
+    # sees the full acuity assessment and the resulting ER visit.
+    er_triage:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select * from public.triage_assessments where tenant_id = bucket.tenant_id
+        - select v.* from public.er_visits v
+          join public.triage_assessments t on t.id = v.triage_id
+          where t.tenant_id = bucket.tenant_id

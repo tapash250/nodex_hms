@@ -27,8 +27,8 @@ void main() {
     });
 
     test(
-      'declares every Phase 1 table plus Modules 07, 10, 11, 13, 16, 17, 23, '
-      '25 and 31',
+      'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
+      '17, 23, 25 and 31',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -74,6 +74,12 @@ void main() {
           LocalTables.stockBatches,
           LocalTables.stockMovements,
           LocalTables.discharges,
+          LocalTables.triageAssessments,
+          LocalTables.erVisits,
+          LocalTables.icuBeds,
+          LocalTables.icuVitals,
+          LocalTables.icuNursingHandover,
+          LocalTables.ventilatorEvents,
         });
       },
     );
@@ -487,6 +493,92 @@ void main() {
           'follow_up_plan',
           'finalized_by',
           'finalized_at',
+        }),
+      );
+    });
+
+    test('ER and triage tables mirror the Module 05 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.triageAssessments).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'encounter_id',
+          'assessed_by',
+          'acuity',
+          'chief_complaint',
+          'vitals',
+          'red_flags',
+          'disposition',
+          'escalated',
+          'escalated_by',
+          'escalated_at',
+          'created_at',
+          'updated_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.erVisits).columns.map((Column c) => c.name).toSet(),
+        containsAll(<String>{'tenant_id', 'patient_id', 'triage_id', 'status'}),
+      );
+    });
+
+    test('ICU tables mirror the Module 06 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.icuBeds).columns.map((Column c) => c.name).toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'bed_id',
+          'ventilator_id',
+          'status',
+          'current_patient_id',
+          'created_at',
+          'updated_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.icuVitals).columns.map((Column c) => c.name).toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'icu_bed_id',
+          'recorded_by',
+          'recorded_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.icuNursingHandover).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'icu_bed_id',
+          'outgoing_nurse',
+          'incoming_nurse',
+          'handover_time',
+        }),
+      );
+      expect(
+        byName(LocalTables.ventilatorEvents).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'icu_bed_id',
+          'ventilator_id',
+          'event_type',
+          'recorded_by',
+          'recorded_at',
         }),
       );
     });

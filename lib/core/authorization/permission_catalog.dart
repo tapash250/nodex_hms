@@ -155,6 +155,27 @@ abstract final class NodexPermissions {
   /// Change triage acuity or escalate to resuscitation.
   static const String triageEscalate = 'triage.escalate';
 
+  /// Create and update triage assessments.
+  static const String triageWrite = 'triage.write';
+
+  /// View triage assessments.
+  static const String triageRead = 'triage.read';
+
+  /// Create and update ER visits.
+  static const String erVisitWrite = 'er.visit.write';
+
+  /// ICU bed assignment and management.
+  static const String icuBedAssign = 'icu.bed.assign';
+
+  /// Record ICU vitals.
+  static const String icuVitalsRecord = 'icu.vitals.record';
+
+  /// Record nursing handover.
+  static const String icuHandoverRecord = 'icu.handover.record';
+
+  /// Record ventilator events.
+  static const String ventilatorEventRecord = 'ventilator.event.record';
+
   /// Approve and finalize a patient discharge.
   static const String dischargeFinalize = 'discharge.finalize';
 
@@ -197,6 +218,11 @@ abstract final class NodexPermissions {
     dischargeFinalize,
     transfusionFinalize,
     billingSettle,
+
+    icuBedAssign,
+    icuVitalsRecord,
+    icuHandoverRecord,
+    ventilatorEventRecord,
   };
 
   /// Permissions classified `high_risk` in the database catalogue.
@@ -214,8 +240,13 @@ abstract final class NodexPermissions {
     labResultVerify,
     pharmacyDispense,
     triageEscalate,
+
     dischargeFinalize,
     transfusionFinalize,
     billingSettle,
+    icuBedAssign,
+    icuVitalsRecord,
+    icuHandoverRecord,
+    ventilatorEventRecord,
   };
 }
