@@ -38,6 +38,9 @@ values
   ('medical_officer', 'imaging_order.write'),
   ('medical_officer', 'imaging_report.enter'),
   ('medical_officer', 'imaging_report.verify'),
+  ('medical_officer', 'physio_session.write'),
+  ('medical_officer', 'physio_exercise.write'),
+  ('medical_officer', 'physio_note.write'),
   ('medical_officer', 'ot.schedule'),
   ('medical_officer', 'ot.record'),
   ('medical_officer', 'ot.finalize');
@@ -63,6 +66,8 @@ values
   ('nursing_staff', 'ventilator.event.record'),
   ('nursing_staff', 'transfusion.administer'),
   ('nursing_staff', 'imaging_order.write'),
+  ('nursing_staff', 'physio_session.write'),
+  ('nursing_staff', 'physio_note.write'),
   ('nursing_staff', 'ot.record');
 
 -- Diagnostic / Lab Technician

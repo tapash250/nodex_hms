@@ -189,6 +189,15 @@ abstract final class LocalTables {
 
   /// Radiology imaging reports (Module 18). Synced.
   static const String imagingReports = 'imaging_reports';
+
+  /// Physiotherapy sessions (Module 20). Synced.
+  static const String physioSessions = 'physio_sessions';
+
+  /// Physiotherapy exercise regimens (Module 20). Synced.
+  static const String physioExercisePlans = 'physio_exercise_plans';
+
+  /// Physiotherapy recovery notes (Module 20). Synced.
+  static const String physioRecoveryNotes = 'physio_recovery_notes';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -254,6 +263,9 @@ abstract final class NodexLocalSchema {
     _imagingOrders,
     _imagingStudies,
     _imagingReports,
+    _physioSessions,
+    _physioExercisePlans,
+    _physioRecoveryNotes,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -1708,6 +1720,88 @@ abstract final class NodexLocalSchema {
         IndexedColumn('imaging_order_id'),
       ]),
       Index('imaging_report_study', <IndexedColumn>[IndexedColumn('study_id')]),
+    ],
+  );
+
+  /// Physiotherapy sessions: schedule -> start -> complete or cancel
+  /// (Module 20). Mirrors `public.physio_sessions`.
+  static const Table _physioSessions = Table(
+    LocalTables.physioSessions,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('physiotherapist_id'),
+      Column.text('session_code'),
+      Column.text('session_type'),
+      Column.text('body_area'),
+      Column.text('status'),
+      Column.text('scheduled_at'),
+      Column.text('started_at'),
+      Column.text('completed_at'),
+      Column.text('cancelled_at'),
+      Column.text('cancellation_reason'),
+      Column.text('equipment_used'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('physio_session_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('scheduled_at'),
+      ]),
+      Index('physio_session_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Prescribed physiotherapy exercise regimens (Module 20). Mirrors
+  /// `public.physio_exercise_plans`.
+  static const Table _physioExercisePlans = Table(
+    LocalTables.physioExercisePlans,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('session_id'),
+      Column.text('prescribed_by'),
+      Column.text('exercise_name'),
+      Column.integer('sets_count'),
+      Column.integer('reps_count'),
+      Column.integer('frequency_per_week'),
+      Column.integer('duration_weeks'),
+      Column.text('instructions'),
+      Column.text('status'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('physio_plan_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('created_at'),
+      ]),
+    ],
+  );
+
+  /// Physiotherapy recovery notes: append-only delete, edited by version
+  /// (Module 20). Mirrors `public.physio_recovery_notes`.
+  static const Table _physioRecoveryNotes = Table(
+    LocalTables.physioRecoveryNotes,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('session_id'),
+      Column.text('recorded_by'),
+      Column.text('content'),
+      Column.integer('pain_score'),
+      Column.text('recorded_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('physio_note_session', <IndexedColumn>[
+        IndexedColumn('session_id'),
+      ]),
     ],
   );
 

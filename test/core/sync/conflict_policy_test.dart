@@ -42,6 +42,9 @@ void main() {
         ConflictPolicyRegistry.imagingOrder,
         ConflictPolicyRegistry.imagingStudy,
         ConflictPolicyRegistry.imagingReport,
+        ConflictPolicyRegistry.physioSession,
+        ConflictPolicyRegistry.physioExercisePlan,
+        ConflictPolicyRegistry.physioRecoveryNote,
       ];
 
       for (final String resourceType in required) {
@@ -287,6 +290,32 @@ void main() {
         );
       },
     );
+
+    test('physiotherapy sessions are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.physioSession)
+            .policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('exercise regimens are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.physioExercisePlan,
+        ).policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('recovery notes resolve as versioned revisions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.physioRecoveryNote,
+        ).policy,
+        ConflictPolicy.versionedRevision,
+      );
+    });
   });
 
   group('automatic resolution', () {

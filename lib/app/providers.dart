@@ -43,6 +43,8 @@ import 'package:nodex_hms/domain/ot/ot_repository.dart';
 import 'package:nodex_hms/domain/ot/ot_use_cases.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
 import 'package:nodex_hms/domain/patients/patient_use_cases.dart';
+import 'package:nodex_hms/domain/physio/physio_repository.dart';
+import 'package:nodex_hms/domain/physio/physio_use_cases.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_use_cases.dart';
 import 'package:nodex_hms/domain/radiology/radiology_repository.dart';
@@ -333,6 +335,76 @@ final Provider<VerifyImagingReportUseCase> verifyImagingReportUseCaseProvider =
     Provider<VerifyImagingReportUseCase>(
       (Ref ref) => VerifyImagingReportUseCase(
         repository: ref.watch(radiologyRepositoryProvider),
+      ),
+    );
+
+/// Physiotherapy repository over the encrypted local projection.
+final Provider<PhysioRepository> physioRepositoryProvider =
+    Provider<PhysioRepository>(
+      (Ref ref) => DefaultPhysioRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Physiotherapy session scheduling.
+final Provider<SchedulePhysioSessionUseCase>
+schedulePhysioSessionUseCaseProvider = Provider<SchedulePhysioSessionUseCase>(
+  (Ref ref) => SchedulePhysioSessionUseCase(
+    repository: ref.watch(physioRepositoryProvider),
+  ),
+);
+
+/// Physiotherapy session start.
+final Provider<StartPhysioSessionUseCase> startPhysioSessionUseCaseProvider =
+    Provider<StartPhysioSessionUseCase>(
+      (Ref ref) => StartPhysioSessionUseCase(
+        repository: ref.watch(physioRepositoryProvider),
+      ),
+    );
+
+/// Physiotherapy session completion.
+final Provider<CompletePhysioSessionUseCase>
+completePhysioSessionUseCaseProvider = Provider<CompletePhysioSessionUseCase>(
+  (Ref ref) => CompletePhysioSessionUseCase(
+    repository: ref.watch(physioRepositoryProvider),
+  ),
+);
+
+/// Physiotherapy session cancellation.
+final Provider<CancelPhysioSessionUseCase> cancelPhysioSessionUseCaseProvider =
+    Provider<CancelPhysioSessionUseCase>(
+      (Ref ref) => CancelPhysioSessionUseCase(
+        repository: ref.watch(physioRepositoryProvider),
+      ),
+    );
+
+/// Exercise regimen prescription.
+final Provider<PrescribePhysioExerciseUseCase>
+prescribePhysioExerciseUseCaseProvider =
+    Provider<PrescribePhysioExerciseUseCase>(
+      (Ref ref) => PrescribePhysioExerciseUseCase(
+        repository: ref.watch(physioRepositoryProvider),
+      ),
+    );
+
+/// Exercise regimen completion or stoppage.
+final Provider<FinishPhysioExercisePlanUseCase>
+finishPhysioExercisePlanUseCaseProvider =
+    Provider<FinishPhysioExercisePlanUseCase>(
+      (Ref ref) => FinishPhysioExercisePlanUseCase(
+        repository: ref.watch(physioRepositoryProvider),
+      ),
+    );
+
+/// Physiotherapy recovery note recording.
+final Provider<RecordPhysioRecoveryNoteUseCase>
+recordPhysioRecoveryNoteUseCaseProvider =
+    Provider<RecordPhysioRecoveryNoteUseCase>(
+      (Ref ref) => RecordPhysioRecoveryNoteUseCase(
+        repository: ref.watch(physioRepositoryProvider),
       ),
     );
 

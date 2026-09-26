@@ -48,7 +48,8 @@ visits), `icu_census` (Module 06, ICU beds, vitals, handover, ventilator),
 `blood_bank` (Module 26, transfusion requests, blood units, transfusions),
 `operation_theatre` (Module 19, bookings, pre-op, anesthesia, procedure and
 post-op records), `radiology` (Module 18, imaging orders, studies and
-reports). Remaining: the rest of the 54-module scope.
+reports), `physiotherapy` (Module 20, sessions, exercise regimens and
+recovery notes). Remaining: the rest of the 54-module scope.
 
 ## Upload path
 

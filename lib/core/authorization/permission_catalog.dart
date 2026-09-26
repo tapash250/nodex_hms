@@ -152,6 +152,15 @@ abstract final class NodexPermissions {
   /// Clinically validate and release imaging reports.
   static const String imagingReportVerify = 'imaging_report.verify';
 
+  /// Schedule, start, complete and cancel physiotherapy sessions.
+  static const String physioSessionWrite = 'physio_session.write';
+
+  /// Prescribe and finish physiotherapy exercise regimens.
+  static const String physioExerciseWrite = 'physio_exercise.write';
+
+  /// Record physiotherapy recovery and progress notes.
+  static const String physioNoteWrite = 'physio_note.write';
+
   /// Dispense against an authorized prescription.
   static const String pharmacyDispense = 'pharmacy.dispense';
 

@@ -379,3 +379,20 @@ sync_rules:
           where o.tenant_id = bucket.tenant_id
         - select r.* from public.imaging_reports r
           where r.tenant_id = bucket.tenant_id
+    physiotherapy:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select * from public.physio_sessions where tenant_id = bucket.tenant_id
+        - select * from public.physio_exercise_plans where tenant_id = bucket.tenant_id
+        - select n.* from public.physio_recovery_notes n
+          join public.physio_sessions s on s.id = n.session_id
+          where s.tenant_id = bucket.tenant_id

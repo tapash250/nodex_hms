@@ -223,6 +223,15 @@ abstract final class ConflictPolicyRegistry {
   /// Radiology imaging report.
   static const String imagingReport = 'imaging_report';
 
+  /// Physiotherapy session.
+  static const String physioSession = 'physio_session';
+
+  /// Physiotherapy exercise regimen.
+  static const String physioExercisePlan = 'physio_exercise_plan';
+
+  /// Physiotherapy recovery note.
+  static const String physioRecoveryNote = 'physio_recovery_note';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -460,6 +469,31 @@ abstract final class ConflictPolicyRegistry {
               'A released report is a clinical fact others may have acted '
               'on. Verified reports are frozen; any future amendment is '
               'additive and explicitly attributed.',
+        ),
+        physioSession: ConflictPolicyEntry(
+          resourceType: physioSession,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'A physiotherapy session is a guarded state machine: '
+              'scheduled, in progress, completed or cancelled. Two devices '
+              'cannot both start, complete or cancel it; the server holds '
+              'the session state and the client reconciles.',
+        ),
+        physioExercisePlan: ConflictPolicyEntry(
+          resourceType: physioExercisePlan,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'An exercise regimen belongs to the prescribing clinician. '
+              'The server arbitrates edits to sets, reps and frequency so '
+              'two devices cannot overwrite each other\'s prescription.',
+        ),
+        physioRecoveryNote: ConflictPolicyEntry(
+          resourceType: physioRecoveryNote,
+          policy: ConflictPolicy.versionedRevision,
+          rationale:
+              'A recovery note is clinical narrative that may be refined as '
+              'the patient progresses. Concurrent refinements become ordered '
+              'revisions; no revision is overwritten.',
         ),
       };
 

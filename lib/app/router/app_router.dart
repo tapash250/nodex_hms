@@ -42,6 +42,7 @@ import 'package:nodex_hms/features/ot/ot_booking_detail_screen.dart';
 import 'package:nodex_hms/features/ot/ot_list_screen.dart';
 import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
 import 'package:nodex_hms/features/patients/patient_search_screen.dart';
+import 'package:nodex_hms/features/physio/physio_session_screen.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_detail_screen.dart';
 import 'package:nodex_hms/features/radiology/radiology_order_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
@@ -195,6 +196,13 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                     builder: (BuildContext context, GoRouterState state) =>
                         ImagingOrderScreen(
                           orderId: state.pathParameters['orderId']!,
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'physio/:sessionId',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        PhysioSessionScreen(
+                          sessionId: state.pathParameters['sessionId']!,
                         ),
                   ),
                   GoRoute(

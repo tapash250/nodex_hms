@@ -28,7 +28,7 @@ void main() {
 
     test(
       'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
-      '17, 18, 19, 23, 25, 26 and 31',
+      '17, 18, 19, 20, 23, 25, 26 and 31',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -91,6 +91,9 @@ void main() {
           LocalTables.imagingOrders,
           LocalTables.imagingStudies,
           LocalTables.imagingReports,
+          LocalTables.physioSessions,
+          LocalTables.physioExercisePlans,
+          LocalTables.physioRecoveryNotes,
         });
       },
     );
@@ -773,6 +776,59 @@ void main() {
           'impression',
           'status',
           'verified_by',
+        }),
+      );
+    });
+
+    test('physiotherapy tables mirror the Module 20 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.physioSessions).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'physiotherapist_id',
+          'session_code',
+          'session_type',
+          'body_area',
+          'status',
+          'scheduled_at',
+          'cancellation_reason',
+          'equipment_used',
+        }),
+      );
+      expect(
+        byName(LocalTables.physioExercisePlans).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'session_id',
+          'prescribed_by',
+          'exercise_name',
+          'sets_count',
+          'reps_count',
+          'frequency_per_week',
+          'duration_weeks',
+          'status',
+        }),
+      );
+      expect(
+        byName(LocalTables.physioRecoveryNotes).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'session_id',
+          'recorded_by',
+          'content',
+          'pain_score',
+          'recorded_at',
         }),
       );
     });
