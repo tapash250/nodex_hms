@@ -191,6 +191,15 @@ abstract final class NodexPermissions {
   /// Issue, administer and record transfusion outcomes.
   static const String transfusionAdminister = 'transfusion.administer';
 
+  /// Schedule, reschedule and cancel operation theatre cases.
+  static const String otSchedule = 'ot.schedule';
+
+  /// Record pre-op, anesthesia, procedure and post-op theatre data.
+  static const String otRecord = 'ot.record';
+
+  /// Complete an operation theatre case after post-op documentation.
+  static const String otFinalize = 'ot.finalize';
+
   /// View invoices, payments and financial summaries.
   static const String billingRead = 'billing.read';
 
@@ -226,6 +235,7 @@ abstract final class NodexPermissions {
     labResultVerify,
     dischargeFinalize,
     transfusionFinalize,
+    otFinalize,
     billingSettle,
 
     icuBedAssign,
@@ -253,6 +263,7 @@ abstract final class NodexPermissions {
     dischargeFinalize,
     transfusionFinalize,
     transfusionAdminister,
+    otFinalize,
     billingSettle,
     icuBedAssign,
     icuVitalsRecord,

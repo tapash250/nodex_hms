@@ -153,6 +153,21 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Operation theatre scheduling and case documentation.
+  static const NavigationDestinationSpec ot = NavigationDestinationSpec(
+    routePath: '/ot',
+    label: 'Theatre',
+    icon: Icons.content_cut_outlined,
+    selectedIcon: Icons.content_cut,
+    requiredPermissions: <String>{
+      NodexPermissions.otSchedule,
+      NodexPermissions.otRecord,
+      NodexPermissions.otFinalize,
+    },
+    moduleCode: 'M19',
+    isPrimary: false,
+  );
+
   /// Inventory management. Phase 2 supplies the implementation.
   static const NavigationDestinationSpec inventory = NavigationDestinationSpec(
     routePath: '/inventory',
@@ -217,6 +232,7 @@ abstract final class NodexDestinations {
         er,
         icu,
         bloodBank,
+        ot,
         inventory,
         syncDiagnostics,
         aiGovernance,

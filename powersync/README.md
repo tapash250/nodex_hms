@@ -45,8 +45,9 @@ assignments), `billing_ledger` (Module 31, invoices, lines, payments, refunds),
 discharges (Module 23) travel inside `emr_encounters` with their encounter.
 Added: `er_triage` (Module 05, triage assessments and ER
 visits), `icu_census` (Module 06, ICU beds, vitals, handover, ventilator),
-`blood_bank` (Module 26, transfusion requests, blood units, transfusions).
-Remaining: OT, radiology and the rest of the 54-module scope.
+`blood_bank` (Module 26, transfusion requests, blood units, transfusions),
+`operation_theatre` (Module 19, bookings, pre-op, anesthesia, procedure and
+post-op records). Remaining: radiology and the rest of the 54-module scope.
 
 ## Upload path
 

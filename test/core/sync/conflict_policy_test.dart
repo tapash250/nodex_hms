@@ -34,6 +34,11 @@ void main() {
         ConflictPolicyRegistry.bloodUnit,
         ConflictPolicyRegistry.transfusionRequest,
         ConflictPolicyRegistry.transfusion,
+        ConflictPolicyRegistry.otBooking,
+        ConflictPolicyRegistry.otPreOpAssessment,
+        ConflictPolicyRegistry.otAnesthesiaRecord,
+        ConflictPolicyRegistry.otProcedureLog,
+        ConflictPolicyRegistry.otPostOpRecord,
       ];
 
       for (final String resourceType in required) {
@@ -227,6 +232,30 @@ void main() {
             .policy,
         ConflictPolicy.eventTransaction,
       );
+    });
+
+    test('theatre bookings are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.otBooking)
+            .policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('theatre records resolve as event transactions', () {
+      const List<String> records = <String>[
+        ConflictPolicyRegistry.otPreOpAssessment,
+        ConflictPolicyRegistry.otAnesthesiaRecord,
+        ConflictPolicyRegistry.otProcedureLog,
+        ConflictPolicyRegistry.otPostOpRecord,
+      ];
+      for (final String resourceType in records) {
+        expect(
+          ConflictPolicyRegistry.policyFor(resourceType).policy,
+          ConflictPolicy.eventTransaction,
+          reason: '$resourceType must deduplicate as an event',
+        );
+      }
     });
   });
 

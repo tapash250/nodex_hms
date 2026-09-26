@@ -344,3 +344,20 @@ sync_rules:
         - select * from public.transfusion_requests where tenant_id = bucket.tenant_id
         - select * from public.blood_units where tenant_id = bucket.tenant_id
         - select * from public.transfusions where tenant_id = bucket.tenant_id
+    operation_theatre:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select * from public.ot_bookings where tenant_id = bucket.tenant_id
+        - select * from public.ot_preop_assessments where tenant_id = bucket.tenant_id
+        - select * from public.ot_anesthesia_records where tenant_id = bucket.tenant_id
+        - select * from public.ot_procedure_logs where tenant_id = bucket.tenant_id
+        - select * from public.ot_postop_records where tenant_id = bucket.tenant_id

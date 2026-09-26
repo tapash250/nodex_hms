@@ -38,6 +38,8 @@ import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
 import 'package:nodex_hms/features/icu/icu_list_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
 import 'package:nodex_hms/features/laboratory/lab_order_screen.dart';
+import 'package:nodex_hms/features/ot/ot_booking_detail_screen.dart';
+import 'package:nodex_hms/features/ot/ot_list_screen.dart';
 import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
 import 'package:nodex_hms/features/patients/patient_search_screen.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_detail_screen.dart';
@@ -298,6 +300,20 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                     TransfusionRequestDetailScreen(
                       transfusionRequestId:
                           state.pathParameters['transfusionRequestId']!,
+                    ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: NodexDestinations.ot.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const OtListScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'bookings/:bookingId',
+                builder: (BuildContext context, GoRouterState state) =>
+                    OtBookingDetailScreen(
+                      bookingId: state.pathParameters['bookingId']!,
                     ),
               ),
             ],

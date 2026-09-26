@@ -39,6 +39,8 @@ import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
 import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
 import 'package:nodex_hms/domain/laboratory/lab_use_cases.dart';
+import 'package:nodex_hms/domain/ot/ot_repository.dart';
+import 'package:nodex_hms/domain/ot/ot_use_cases.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
 import 'package:nodex_hms/domain/patients/patient_use_cases.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
@@ -751,6 +753,71 @@ completeTransfusionRequestUseCaseProvider =
       (Ref ref) => CompleteTransfusionRequestUseCase(
         repository: ref.watch(bloodBankRepositoryProvider),
       ),
+    );
+
+/// Operation theatre repository over the encrypted local projection.
+final Provider<OtRepository> otRepositoryProvider = Provider<OtRepository>(
+  (Ref ref) => DefaultOtRepository(
+    store: PowerSyncPatientStore(database: ref.watch(localDatabaseProvider)),
+    logger: ref.watch(loggerProvider),
+  ),
+);
+
+/// Theatre booking with the room conflict check.
+final Provider<ScheduleOtBookingUseCase> scheduleOtBookingUseCaseProvider =
+    Provider<ScheduleOtBookingUseCase>(
+      (Ref ref) =>
+          ScheduleOtBookingUseCase(repository: ref.watch(otRepositoryProvider)),
+    );
+
+/// Pre-op fitness assessment recording.
+final Provider<RecordPreOpAssessmentUseCase>
+recordPreOpAssessmentUseCaseProvider = Provider<RecordPreOpAssessmentUseCase>(
+  (Ref ref) =>
+      RecordPreOpAssessmentUseCase(repository: ref.watch(otRepositoryProvider)),
+);
+
+/// Case start after a fit pre-op assessment.
+final Provider<StartOtBookingUseCase> startOtBookingUseCaseProvider =
+    Provider<StartOtBookingUseCase>(
+      (Ref ref) =>
+          StartOtBookingUseCase(repository: ref.watch(otRepositoryProvider)),
+    );
+
+/// Anesthesia record recording.
+final Provider<RecordAnesthesiaUseCase> recordAnesthesiaUseCaseProvider =
+    Provider<RecordAnesthesiaUseCase>(
+      (Ref ref) =>
+          RecordAnesthesiaUseCase(repository: ref.watch(otRepositoryProvider)),
+    );
+
+/// Intra-op procedure log recording.
+final Provider<RecordProcedureLogUseCase> recordProcedureLogUseCaseProvider =
+    Provider<RecordProcedureLogUseCase>(
+      (Ref ref) => RecordProcedureLogUseCase(
+        repository: ref.watch(otRepositoryProvider),
+      ),
+    );
+
+/// Post-op recovery record recording.
+final Provider<RecordPostOpUseCase> recordPostOpUseCaseProvider =
+    Provider<RecordPostOpUseCase>(
+      (Ref ref) =>
+          RecordPostOpUseCase(repository: ref.watch(otRepositoryProvider)),
+    );
+
+/// Case completion after post-op documentation.
+final Provider<CompleteOtBookingUseCase> completeOtBookingUseCaseProvider =
+    Provider<CompleteOtBookingUseCase>(
+      (Ref ref) =>
+          CompleteOtBookingUseCase(repository: ref.watch(otRepositoryProvider)),
+    );
+
+/// Case cancellation with a reason.
+final Provider<CancelOtBookingUseCase> cancelOtBookingUseCaseProvider =
+    Provider<CancelOtBookingUseCase>(
+      (Ref ref) =>
+          CancelOtBookingUseCase(repository: ref.watch(otRepositoryProvider)),
     );
 
 /// AI model and routing configuration.

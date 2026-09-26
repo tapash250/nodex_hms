@@ -34,7 +34,10 @@ values
   ('medical_officer', 'icu.handover.record'),
   ('medical_officer', 'ventilator.event.record'),
   ('medical_officer', 'transfusion.request'),
-  ('medical_officer', 'transfusion.administer');
+  ('medical_officer', 'transfusion.administer'),
+  ('medical_officer', 'ot.schedule'),
+  ('medical_officer', 'ot.record'),
+  ('medical_officer', 'ot.finalize');
 
 -- Nursing Staff
 insert into public.role_permissions (role_key, permission_key)
@@ -55,7 +58,8 @@ values
   ('nursing_staff', 'icu.vitals.record'),
   ('nursing_staff', 'icu.handover.record'),
   ('nursing_staff', 'ventilator.event.record'),
-  ('nursing_staff', 'transfusion.administer');
+  ('nursing_staff', 'transfusion.administer'),
+  ('nursing_staff', 'ot.record');
 
 -- Diagnostic / Lab Technician
 insert into public.role_permissions (role_key, permission_key)

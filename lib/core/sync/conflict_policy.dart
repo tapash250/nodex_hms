@@ -199,6 +199,21 @@ abstract final class ConflictPolicyRegistry {
   /// Transfusion administration record.
   static const String transfusion = 'transfusion';
 
+  /// Operation theatre booking.
+  static const String otBooking = 'ot_booking';
+
+  /// Operation theatre pre-op fitness assessment.
+  static const String otPreOpAssessment = 'ot_preop_assessment';
+
+  /// Operation theatre anesthesia record.
+  static const String otAnesthesiaRecord = 'ot_anesthesia_record';
+
+  /// Operation theatre intra-op procedure log.
+  static const String otProcedureLog = 'ot_procedure_log';
+
+  /// Operation theatre post-op recovery record.
+  static const String otPostOpRecord = 'ot_postop_record';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -369,6 +384,47 @@ abstract final class ConflictPolicyRegistry {
               'A transfusion is an event with an identity: a unit given to a '
               'patient at a time by a clinician. Duplicate uploads '
               'deduplicate so a retry cannot record a second administration.',
+        ),
+        otBooking: ConflictPolicyEntry(
+          resourceType: otBooking,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'A theatre slot is a scarce shared resource. Two schedulers '
+              'cannot both book the same room and hour; the server holds the '
+              'booking state and the client reconciles rather than claiming '
+              'the slot.',
+        ),
+        otPreOpAssessment: ConflictPolicyEntry(
+          resourceType: otPreOpAssessment,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'A pre-op assessment is an event with an identity: a fitness '
+              'judgement by a clinician for one booking. Duplicate uploads '
+              'deduplicate so a retry cannot record a second assessment.',
+        ),
+        otAnesthesiaRecord: ConflictPolicyEntry(
+          resourceType: otAnesthesiaRecord,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'An anesthesia record is an event with an identity: one '
+              'anesthetic for one case. Duplicate uploads deduplicate so a '
+              'retry cannot record a second administration.',
+        ),
+        otProcedureLog: ConflictPolicyEntry(
+          resourceType: otProcedureLog,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'A procedure log is an event with an identity: one operation '
+              'performed for one booking. Duplicate uploads deduplicate so a '
+              'retry cannot replay the procedure.',
+        ),
+        otPostOpRecord: ConflictPolicyEntry(
+          resourceType: otPostOpRecord,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'A post-op record is an event with an identity: the recovery '
+              'state of one patient after one case. Duplicate uploads '
+              'deduplicate so a retry cannot record a second recovery note.',
         ),
       };
 

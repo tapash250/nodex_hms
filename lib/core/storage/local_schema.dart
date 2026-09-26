@@ -165,6 +165,21 @@ abstract final class LocalTables {
 
   /// Transfusion administration records (Module 26). Synced.
   static const String transfusions = 'transfusions';
+
+  /// Operation theatre bookings (Module 19). Synced.
+  static const String otBookings = 'ot_bookings';
+
+  /// Operation theatre pre-op assessments (Module 19). Synced.
+  static const String otPreOpAssessments = 'ot_preop_assessments';
+
+  /// Operation theatre anesthesia records (Module 19). Synced.
+  static const String otAnesthesiaRecords = 'ot_anesthesia_records';
+
+  /// Operation theatre procedure logs (Module 19). Synced.
+  static const String otProcedureLogs = 'ot_procedure_logs';
+
+  /// Operation theatre post-op records (Module 19). Synced.
+  static const String otPostOpRecords = 'ot_postop_records';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -222,6 +237,11 @@ abstract final class NodexLocalSchema {
     _transfusionRequests,
     _bloodUnits,
     _transfusions,
+    _otBookings,
+    _otPreOpAssessments,
+    _otAnesthesiaRecords,
+    _otProcedureLogs,
+    _otPostOpRecords,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -1449,6 +1469,146 @@ abstract final class NodexLocalSchema {
       ]),
       Index('transfusions_unit', <IndexedColumn>[
         IndexedColumn('blood_unit_id'),
+      ]),
+    ],
+  );
+
+  /// Operation theatre bookings (Module 19): room allocation with conflict
+  /// checks, server-arbitrated. Mirrors `public.ot_bookings`.
+  static const Table _otBookings = Table(
+    LocalTables.otBookings,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('theatre_room'),
+      Column.text('procedure_name'),
+      Column.text('scheduled_start'),
+      Column.text('scheduled_end'),
+      Column.text('surgeon_id'),
+      Column.text('anesthesiologist_id'),
+      Column.text('status'),
+      Column.text('priority'),
+      Column.text('cancellation_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ot_bookings_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+      Index('ot_bookings_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('scheduled_start'),
+      ]),
+      Index('ot_bookings_room', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('theatre_room'),
+        IndexedColumn('scheduled_start'),
+      ]),
+    ],
+  );
+
+  /// Pre-op fitness assessment (Module 19): one per booking. Mirrors
+  /// `public.ot_preop_assessments`.
+  static const Table _otPreOpAssessments = Table(
+    LocalTables.otPreOpAssessments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('booking_id'),
+      Column.text('patient_id'),
+      Column.text('assessed_by'),
+      Column.text('assessed_at'),
+      Column.text('fitness'),
+      Column.integer('asa_class'),
+      Column.text('notes'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ot_preop_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('assessed_at'),
+      ]),
+    ],
+  );
+
+  /// Anesthesia record (Module 19): one per booking. Mirrors
+  /// `public.ot_anesthesia_records`.
+  static const Table _otAnesthesiaRecords = Table(
+    LocalTables.otAnesthesiaRecords,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('booking_id'),
+      Column.text('patient_id'),
+      Column.text('anesthesia_type'),
+      Column.text('recorded_by'),
+      Column.text('started_at'),
+      Column.text('ended_at'),
+      Column.text('notes'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ot_anesthesia_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('started_at'),
+      ]),
+    ],
+  );
+
+  /// Intra-op procedure log (Module 19): one per booking. Mirrors
+  /// `public.ot_procedure_logs`.
+  static const Table _otProcedureLogs = Table(
+    LocalTables.otProcedureLogs,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('booking_id'),
+      Column.text('patient_id'),
+      Column.text('procedure_name'),
+      Column.text('performed_by'),
+      Column.text('started_at'),
+      Column.text('completed_at'),
+      Column.text('findings'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ot_procedure_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('started_at'),
+      ]),
+    ],
+  );
+
+  /// Post-op recovery record (Module 19): one per booking. Mirrors
+  /// `public.ot_postop_records`.
+  static const Table _otPostOpRecords = Table(
+    LocalTables.otPostOpRecords,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('booking_id'),
+      Column.text('patient_id'),
+      Column.text('recorded_by'),
+      Column.text('recorded_at'),
+      Column.text('condition'),
+      Column.integer('pain_score'),
+      Column.text('complications'),
+      Column.text('notes'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ot_postop_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('recorded_at'),
       ]),
     ],
   );

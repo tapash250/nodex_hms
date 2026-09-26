@@ -28,7 +28,7 @@ void main() {
 
     test(
       'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
-      '17, 23, 25, 26 and 31',
+      '17, 19, 23, 25, 26 and 31',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -83,6 +83,11 @@ void main() {
           LocalTables.transfusionRequests,
           LocalTables.bloodUnits,
           LocalTables.transfusions,
+          LocalTables.otBookings,
+          LocalTables.otPreOpAssessments,
+          LocalTables.otAnesthesiaRecords,
+          LocalTables.otProcedureLogs,
+          LocalTables.otPostOpRecords,
         });
       },
     );
@@ -647,6 +652,79 @@ void main() {
       );
     });
 
+    test('operation theatre tables mirror the Module 19 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.otBookings).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'theatre_room',
+          'procedure_name',
+          'scheduled_start',
+          'scheduled_end',
+          'surgeon_id',
+          'status',
+          'priority',
+          'cancellation_reason',
+        }),
+      );
+      expect(
+        byName(LocalTables.otPreOpAssessments).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'booking_id',
+          'assessed_by',
+          'fitness',
+          'asa_class',
+          'notes',
+        }),
+      );
+      expect(
+        byName(LocalTables.otAnesthesiaRecords).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'booking_id',
+          'anesthesia_type',
+          'started_at',
+          'ended_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.otProcedureLogs).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'booking_id',
+          'procedure_name',
+          'performed_by',
+          'completed_at',
+          'findings',
+        }),
+      );
+      expect(
+        byName(LocalTables.otPostOpRecords).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'booking_id',
+          'condition',
+          'pain_score',
+          'complications',
+        }),
+      );
+    });
+
     test('appointment table mirrors the Module 07 schedule schema', () {
       Table byName(String name) =>
           schema.tables.firstWhere((Table table) => table.name == name);
@@ -860,6 +938,7 @@ void main() {
           NodexPermissions.tenantAdminister,
           NodexPermissions.userAdminister,
           NodexPermissions.transfusionFinalize,
+          NodexPermissions.otFinalize,
           NodexPermissions.billingSettle,
           NodexPermissions.dischargeFinalize,
           NodexPermissions.prescriptionFinalize,
@@ -879,6 +958,7 @@ void main() {
           NodexPermissions.dischargeFinalize,
           NodexPermissions.transfusionFinalize,
           NodexPermissions.transfusionAdminister,
+          NodexPermissions.otFinalize,
           NodexPermissions.billingSettle,
         ]),
       );
