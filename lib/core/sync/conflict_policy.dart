@@ -190,6 +190,15 @@ abstract final class ConflictPolicyRegistry {
   /// Ventilator event.
   static const String ventilatorEvent = 'ventilator_event';
 
+  /// Blood bank unit.
+  static const String bloodUnit = 'blood_unit';
+
+  /// Transfusion request.
+  static const String transfusionRequest = 'transfusion_request';
+
+  /// Transfusion administration record.
+  static const String transfusion = 'transfusion';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -336,6 +345,30 @@ abstract final class ConflictPolicyRegistry {
               'A ventilator event is an event with an identity. Duplicate '
               'uploads deduplicate so a retry cannot record a second '
               'connection or mode change.',
+        ),
+        bloodUnit: ConflictPolicyEntry(
+          resourceType: bloodUnit,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'A blood unit is a scarce shared resource. Two devices cannot '
+              'both reserve or issue the same bag; the server holds the unit '
+              'state and the client reconciles rather than claiming it.',
+        ),
+        transfusionRequest: ConflictPolicyEntry(
+          resourceType: transfusionRequest,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'A transfusion request is a guarded state machine the server '
+              'owns: crossmatch, approval, and completion are arbitrated by '
+              'triggers. The client reconciles to server status.',
+        ),
+        transfusion: ConflictPolicyEntry(
+          resourceType: transfusion,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'A transfusion is an event with an identity: a unit given to a '
+              'patient at a time by a clinician. Duplicate uploads '
+              'deduplicate so a retry cannot record a second administration.',
         ),
       };
 

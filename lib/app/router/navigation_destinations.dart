@@ -138,6 +138,21 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Blood bank inventory and transfusion workflow.
+  static const NavigationDestinationSpec bloodBank = NavigationDestinationSpec(
+    routePath: '/blood-bank',
+    label: 'Blood bank',
+    icon: Icons.bloodtype_outlined,
+    selectedIcon: Icons.bloodtype,
+    requiredPermissions: <String>{
+      NodexPermissions.transfusionRequest,
+      NodexPermissions.bloodUnitWrite,
+      NodexPermissions.transfusionAdminister,
+    },
+    moduleCode: 'M26',
+    isPrimary: false,
+  );
+
   /// Inventory management. Phase 2 supplies the implementation.
   static const NavigationDestinationSpec inventory = NavigationDestinationSpec(
     routePath: '/inventory',
@@ -201,6 +216,7 @@ abstract final class NodexDestinations {
         wards,
         er,
         icu,
+        bloodBank,
         inventory,
         syncDiagnostics,
         aiGovernance,

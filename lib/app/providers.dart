@@ -25,6 +25,8 @@ import 'package:nodex_hms/domain/beds/bed_repository.dart';
 import 'package:nodex_hms/domain/beds/bed_use_cases.dart';
 import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
+import 'package:nodex_hms/domain/blood_bank/blood_bank_repository.dart';
+import 'package:nodex_hms/domain/blood_bank/blood_bank_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_use_cases.dart';
 import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
@@ -656,6 +658,100 @@ recordVentilatorEventUseCaseProvider = Provider<RecordVentilatorEventUseCase>(
     repository: ref.watch(icuRepositoryProvider),
   ),
 );
+
+/// Blood bank repository over the encrypted local projection.
+final Provider<BloodBankRepository> bloodBankRepositoryProvider =
+    Provider<BloodBankRepository>(
+      (Ref ref) => DefaultBloodBankRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Blood unit registration.
+final Provider<CreateBloodUnitUseCase> createBloodUnitUseCaseProvider =
+    Provider<CreateBloodUnitUseCase>(
+      (Ref ref) => CreateBloodUnitUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Transfusion request creation.
+final Provider<RequestTransfusionUseCase> requestTransfusionUseCaseProvider =
+    Provider<RequestTransfusionUseCase>(
+      (Ref ref) => RequestTransfusionUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Crossmatch recording.
+final Provider<RecordCrossmatchUseCase> recordCrossmatchUseCaseProvider =
+    Provider<RecordCrossmatchUseCase>(
+      (Ref ref) => RecordCrossmatchUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Transfusion request approval.
+final Provider<ApproveTransfusionRequestUseCase>
+approveTransfusionRequestUseCaseProvider =
+    Provider<ApproveTransfusionRequestUseCase>(
+      (Ref ref) => ApproveTransfusionRequestUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Blood unit reservation.
+final Provider<ReserveBloodUnitUseCase> reserveBloodUnitUseCaseProvider =
+    Provider<ReserveBloodUnitUseCase>(
+      (Ref ref) => ReserveBloodUnitUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Blood unit issue against an approved request.
+final Provider<IssueBloodUnitUseCase> issueBloodUnitUseCaseProvider =
+    Provider<IssueBloodUnitUseCase>(
+      (Ref ref) => IssueBloodUnitUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Transfusion start.
+final Provider<RecordTransfusionUseCase> recordTransfusionUseCaseProvider =
+    Provider<RecordTransfusionUseCase>(
+      (Ref ref) => RecordTransfusionUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Transfusion outcome recording.
+final Provider<RecordTransfusionOutcomeUseCase>
+recordTransfusionOutcomeUseCaseProvider =
+    Provider<RecordTransfusionOutcomeUseCase>(
+      (Ref ref) => RecordTransfusionOutcomeUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Blood unit discard.
+final Provider<DiscardBloodUnitUseCase> discardBloodUnitUseCaseProvider =
+    Provider<DiscardBloodUnitUseCase>(
+      (Ref ref) => DiscardBloodUnitUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
+
+/// Transfusion request completion.
+final Provider<CompleteTransfusionRequestUseCase>
+completeTransfusionRequestUseCaseProvider =
+    Provider<CompleteTransfusionRequestUseCase>(
+      (Ref ref) => CompleteTransfusionRequestUseCase(
+        repository: ref.watch(bloodBankRepositoryProvider),
+      ),
+    );
 
 /// AI model and routing configuration.
 ///

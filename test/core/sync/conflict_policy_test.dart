@@ -31,6 +31,9 @@ void main() {
         ConflictPolicyRegistry.icuVitals,
         ConflictPolicyRegistry.icuHandover,
         ConflictPolicyRegistry.ventilatorEvent,
+        ConflictPolicyRegistry.bloodUnit,
+        ConflictPolicyRegistry.transfusionRequest,
+        ConflictPolicyRegistry.transfusion,
       ];
 
       for (final String resourceType in required) {
@@ -196,6 +199,31 @@ void main() {
     test('ventilator events resolve as event transactions', () {
       expect(
         ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.ventilatorEvent)
+            .policy,
+        ConflictPolicy.eventTransaction,
+      );
+    });
+
+    test('blood units are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.bloodUnit)
+            .policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('transfusion requests are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.transfusionRequest,
+        ).policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('transfusions resolve as event transactions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.transfusion)
             .policy,
         ConflictPolicy.eventTransaction,
       );

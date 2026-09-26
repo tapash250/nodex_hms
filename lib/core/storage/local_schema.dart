@@ -156,6 +156,15 @@ abstract final class LocalTables {
 
   /// Ventilator event log (Module 06). Synced, append-only.
   static const String ventilatorEvents = 'ventilator_events';
+
+  /// Blood bank unit inventory (Module 26). Synced.
+  static const String bloodUnits = 'blood_units';
+
+  /// Transfusion requests (Module 26). Synced.
+  static const String transfusionRequests = 'transfusion_requests';
+
+  /// Transfusion administration records (Module 26). Synced.
+  static const String transfusions = 'transfusions';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -210,6 +219,9 @@ abstract final class NodexLocalSchema {
     _icuVitals,
     _icuNursingHandover,
     _ventilatorEvents,
+    _transfusionRequests,
+    _bloodUnits,
+    _transfusions,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -1332,6 +1344,111 @@ abstract final class NodexLocalSchema {
       ]),
       Index('ventilator_event_bed', <IndexedColumn>[
         IndexedColumn('icu_bed_id'),
+      ]),
+    ],
+  );
+
+  /// Transfusion requests (Module 26): ordered flow, server-arbitrated.
+  /// Mirrors `public.transfusion_requests`.
+  static const Table _transfusionRequests = Table(
+    LocalTables.transfusionRequests,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('requested_by'),
+      Column.text('requested_blood_group'),
+      Column.text('component'),
+      Column.integer('units_requested'),
+      Column.text('indication'),
+      Column.text('urgency'),
+      Column.text('status'),
+      Column.text('crossmatch_result'),
+      Column.text('requested_at'),
+      Column.text('approved_by'),
+      Column.text('approved_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('transfusion_requests_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+      Index('transfusion_requests_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('requested_at'),
+      ]),
+    ],
+  );
+
+  /// Blood bank unit inventory (Module 26): reserved-for-patient lifecycle.
+  /// Mirrors `public.blood_units`.
+  static const Table _bloodUnits = Table(
+    LocalTables.bloodUnits,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('unit_number'),
+      Column.text('blood_group'),
+      Column.text('component'),
+      Column.integer('volume_ml'),
+      Column.text('collected_at'),
+      Column.text('expires_at'),
+      Column.text('status'),
+      Column.text('location_id'),
+      Column.text('patient_id'),
+      Column.text('transfusion_request_id'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('blood_units_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+      Index('blood_units_group', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('blood_group'),
+        IndexedColumn('status'),
+      ]),
+      Index('blood_units_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+      ]),
+    ],
+  );
+
+  /// Transfusion administration records (Module 26): started to finished or
+  /// reaction. Mirrors `public.transfusions`.
+  static const Table _transfusions = Table(
+    LocalTables.transfusions,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('transfusion_request_id'),
+      Column.text('blood_unit_id'),
+      Column.text('patient_id'),
+      Column.text('recorded_by'),
+      Column.text('started_at'),
+      Column.text('finished_at'),
+      Column.text('status'),
+      Column.integer('volume_ml'),
+      Column.text('reaction_notes'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('transfusions_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('started_at'),
+      ]),
+      Index('transfusion_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('started_at'),
+      ]),
+      Index('transfusions_unit', <IndexedColumn>[
+        IndexedColumn('blood_unit_id'),
       ]),
     ],
   );

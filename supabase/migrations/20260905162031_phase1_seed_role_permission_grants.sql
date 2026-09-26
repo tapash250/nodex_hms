@@ -32,7 +32,9 @@ values
   ('medical_officer', 'icu.bed.assign'),
   ('medical_officer', 'icu.vitals.record'),
   ('medical_officer', 'icu.handover.record'),
-  ('medical_officer', 'ventilator.event.record');
+  ('medical_officer', 'ventilator.event.record'),
+  ('medical_officer', 'transfusion.request'),
+  ('medical_officer', 'transfusion.administer');
 
 -- Nursing Staff
 insert into public.role_permissions (role_key, permission_key)
@@ -52,7 +54,8 @@ values
   ('nursing_staff', 'ai_output.review'),
   ('nursing_staff', 'icu.vitals.record'),
   ('nursing_staff', 'icu.handover.record'),
-  ('nursing_staff', 'ventilator.event.record');
+  ('nursing_staff', 'ventilator.event.record'),
+  ('nursing_staff', 'transfusion.administer');
 
 -- Diagnostic / Lab Technician
 insert into public.role_permissions (role_key, permission_key)
@@ -61,7 +64,8 @@ values
   ('lab_technician', 'lab_order.write'),
   ('lab_technician', 'lab_result.enter'),
   ('lab_technician', 'inventory.movement'),
-  ('lab_technician', 'appointment.read');
+  ('lab_technician', 'appointment.read'),
+  ('lab_technician', 'blood_unit.write');
 
 -- Pharmacist
 insert into public.role_permissions (role_key, permission_key)
@@ -109,4 +113,5 @@ insert into public.role_permissions (role_key, permission_key)
 values
   ('integration_service', 'patient.read'),
   ('integration_service', 'lab_result.enter'),
-  ('integration_service', 'inventory.movement');
+  ('integration_service', 'inventory.movement'),
+  ('integration_service', 'blood_unit.write');

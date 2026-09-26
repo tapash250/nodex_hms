@@ -182,6 +182,15 @@ abstract final class NodexPermissions {
   /// Authorize blood component issue and transfusion.
   static const String transfusionFinalize = 'transfusion.finalize';
 
+  /// Register, label, reserve, quarantine and discard blood units.
+  static const String bloodUnitWrite = 'blood_unit.write';
+
+  /// Raise transfusion requests and record crossmatch results.
+  static const String transfusionRequest = 'transfusion.request';
+
+  /// Issue, administer and record transfusion outcomes.
+  static const String transfusionAdminister = 'transfusion.administer';
+
   /// View invoices, payments and financial summaries.
   static const String billingRead = 'billing.read';
 
@@ -243,6 +252,7 @@ abstract final class NodexPermissions {
 
     dischargeFinalize,
     transfusionFinalize,
+    transfusionAdminister,
     billingSettle,
     icuBedAssign,
     icuVitalsRecord,

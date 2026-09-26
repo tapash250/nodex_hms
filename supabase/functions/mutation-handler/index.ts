@@ -732,6 +732,76 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'ventilator.event.recorded',
     auditActionPatch: 'ventilator.event.recorded',
   },
+  // Module 26 (blood bank). Requests are server-arbitrated status flows
+  // (ConflictPolicy.serverAuthoritative), so crossmatch, approval and
+  // completion all land as patches.
+  transfusion_requests: {
+    columns: {
+      tenant_id: 'uuid',
+      patient_id: 'uuid',
+      encounter_id: 'uuid',
+      requested_by: 'uuid',
+      requested_blood_group: 'text',
+      component: 'text',
+      units_requested: 'integer',
+      indication: 'text',
+      urgency: 'text',
+      status: 'text',
+      crossmatch_result: 'text',
+      requested_at: 'timestamp',
+      approved_by: 'uuid',
+      approved_at: 'timestamp',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'transfusion.request.created',
+    auditActionPatch: 'transfusion.request.updated',
+  },
+  // Blood units carry the reserved-for-patient lifecycle; status transitions
+  // are patched in place and frozen by the guard trigger once terminal.
+  blood_units: {
+    columns: {
+      tenant_id: 'uuid',
+      unit_number: 'text',
+      blood_group: 'text',
+      component: 'text',
+      volume_ml: 'integer',
+      collected_at: 'timestamp',
+      expires_at: 'timestamp',
+      status: 'text',
+      location_id: 'uuid',
+      patient_id: 'uuid',
+      transfusion_request_id: 'uuid',
+      created_by: 'uuid',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'blood_unit.created',
+    auditActionPatch: 'blood_unit.updated',
+  },
+  // Transfusion records are append-then-outcome: started on upsert, finished
+  // or reacted on patch (ConflictPolicy.eventTransaction).
+  transfusions: {
+    columns: {
+      tenant_id: 'uuid',
+      transfusion_request_id: 'uuid',
+      blood_unit_id: 'uuid',
+      patient_id: 'uuid',
+      recorded_by: 'uuid',
+      started_at: 'timestamp',
+      finished_at: 'timestamp',
+      status: 'text',
+      volume_ml: 'integer',
+      reaction_notes: 'text',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'transfusion.recorded',
+    auditActionPatch: 'transfusion.updated',
+  },
 }
 
 // ---------------------------------------------------------------------------

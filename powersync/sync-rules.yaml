@@ -324,3 +324,23 @@ sync_rules:
         - select v.* from public.er_visits v
           join public.triage_assessments t on t.id = v.triage_id
           where t.tenant_id = bucket.tenant_id
+
+    # Module 26 (blood bank): transfusion requests, blood units, and
+    # transfusion records for the caller's patient-read tenants. All three
+    # tables carry tenant_id, so the workflow travels together: a device that
+    # shows a reserved unit must also hold the request it was reserved for.
+    blood_bank:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select * from public.transfusion_requests where tenant_id = bucket.tenant_id
+        - select * from public.blood_units where tenant_id = bucket.tenant_id
+        - select * from public.transfusions where tenant_id = bucket.tenant_id

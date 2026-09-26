@@ -28,7 +28,7 @@ void main() {
 
     test(
       'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
-      '17, 23, 25 and 31',
+      '17, 23, 25, 26 and 31',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -80,6 +80,9 @@ void main() {
           LocalTables.icuVitals,
           LocalTables.icuNursingHandover,
           LocalTables.ventilatorEvents,
+          LocalTables.transfusionRequests,
+          LocalTables.bloodUnits,
+          LocalTables.transfusions,
         });
       },
     );
@@ -583,6 +586,67 @@ void main() {
       );
     });
 
+    test('blood bank tables mirror the Module 26 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.transfusionRequests).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'requested_by',
+          'requested_blood_group',
+          'component',
+          'units_requested',
+          'urgency',
+          'status',
+          'crossmatch_result',
+          'requested_at',
+          'approved_by',
+          'approved_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.bloodUnits).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'unit_number',
+          'blood_group',
+          'component',
+          'volume_ml',
+          'collected_at',
+          'expires_at',
+          'status',
+          'location_id',
+          'patient_id',
+          'transfusion_request_id',
+          'created_by',
+        }),
+      );
+      expect(
+        byName(LocalTables.transfusions).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'transfusion_request_id',
+          'blood_unit_id',
+          'patient_id',
+          'recorded_by',
+          'started_at',
+          'finished_at',
+          'status',
+          'volume_ml',
+          'reaction_notes',
+        }),
+      );
+    });
+
     test('appointment table mirrors the Module 07 schedule schema', () {
       Table byName(String name) =>
           schema.tables.firstWhere((Table table) => table.name == name);
@@ -814,19 +878,22 @@ void main() {
           NodexPermissions.triageEscalate,
           NodexPermissions.dischargeFinalize,
           NodexPermissions.transfusionFinalize,
+          NodexPermissions.transfusionAdminister,
           NodexPermissions.billingSettle,
         ]),
       );
     });
 
     test('bedside high-risk actions remain available offline', () {
-      // Medication administration, dispensing and triage escalation happen at the
-      // bedside, where connectivity cannot be assumed. They are high-risk but not
-      // online-only; the audit trail records that they occurred offline.
+      // Medication administration, dispensing, triage escalation and
+      // transfusion administration happen at the bedside, where connectivity
+      // cannot be assumed. They are high-risk but not online-only; the audit
+      // trail records that they occurred offline.
       for (final String permission in <String>[
         NodexPermissions.medicationAdminister,
         NodexPermissions.pharmacyDispense,
         NodexPermissions.triageEscalate,
+        NodexPermissions.transfusionAdminister,
       ]) {
         expect(
           NodexPermissions.highRisk.contains(permission),
