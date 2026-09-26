@@ -45,6 +45,8 @@ import 'package:nodex_hms/domain/patients/patient_repository.dart';
 import 'package:nodex_hms/domain/patients/patient_use_cases.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_use_cases.dart';
+import 'package:nodex_hms/domain/radiology/radiology_repository.dart';
+import 'package:nodex_hms/domain/radiology/radiology_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -273,6 +275,65 @@ final Provider<CorrectLabResultUseCase> correctLabResultUseCaseProvider =
     Provider<CorrectLabResultUseCase>(
       (Ref ref) =>
           CorrectLabResultUseCase(repository: ref.watch(labRepositoryProvider)),
+    );
+
+/// Radiology repository over the encrypted local projection.
+final Provider<RadiologyRepository> radiologyRepositoryProvider =
+    Provider<RadiologyRepository>(
+      (Ref ref) => DefaultRadiologyRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Imaging order creation.
+final Provider<OrderImagingUseCase> orderImagingUseCaseProvider =
+    Provider<OrderImagingUseCase>(
+      (Ref ref) => OrderImagingUseCase(
+        repository: ref.watch(radiologyRepositoryProvider),
+      ),
+    );
+
+/// Imaging order cancellation.
+final Provider<CancelImagingOrderUseCase> cancelImagingOrderUseCaseProvider =
+    Provider<CancelImagingOrderUseCase>(
+      (Ref ref) => CancelImagingOrderUseCase(
+        repository: ref.watch(radiologyRepositoryProvider),
+      ),
+    );
+
+/// Imaging study acquisition recording.
+final Provider<RecordImagingStudyUseCase> recordImagingStudyUseCaseProvider =
+    Provider<RecordImagingStudyUseCase>(
+      (Ref ref) => RecordImagingStudyUseCase(
+        repository: ref.watch(radiologyRepositoryProvider),
+      ),
+    );
+
+/// Imaging report drafting.
+final Provider<EnterImagingReportUseCase> enterImagingReportUseCaseProvider =
+    Provider<EnterImagingReportUseCase>(
+      (Ref ref) => EnterImagingReportUseCase(
+        repository: ref.watch(radiologyRepositoryProvider),
+      ),
+    );
+
+/// Imaging report revision.
+final Provider<ReviseImagingReportUseCase> reviseImagingReportUseCaseProvider =
+    Provider<ReviseImagingReportUseCase>(
+      (Ref ref) => ReviseImagingReportUseCase(
+        repository: ref.watch(radiologyRepositoryProvider),
+      ),
+    );
+
+/// Imaging report verification and release.
+final Provider<VerifyImagingReportUseCase> verifyImagingReportUseCaseProvider =
+    Provider<VerifyImagingReportUseCase>(
+      (Ref ref) => VerifyImagingReportUseCase(
+        repository: ref.watch(radiologyRepositoryProvider),
+      ),
     );
 
 /// Prescription repository over the encrypted local projection.

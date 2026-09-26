@@ -39,6 +39,9 @@ void main() {
         ConflictPolicyRegistry.otAnesthesiaRecord,
         ConflictPolicyRegistry.otProcedureLog,
         ConflictPolicyRegistry.otPostOpRecord,
+        ConflictPolicyRegistry.imagingOrder,
+        ConflictPolicyRegistry.imagingStudy,
+        ConflictPolicyRegistry.imagingReport,
       ];
 
       for (final String resourceType in required) {
@@ -257,6 +260,33 @@ void main() {
         );
       }
     });
+
+    test('imaging orders are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.imagingOrder)
+            .policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('imaging studies resolve as event transactions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.imagingStudy)
+            .policy,
+        ConflictPolicy.eventTransaction,
+      );
+    });
+
+    test(
+      'verified imaging reports carry the immutable-with-correction policy',
+      () {
+        expect(
+          ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.imagingReport)
+              .policy,
+          ConflictPolicy.immutableWithCorrection,
+        );
+      },
+    );
   });
 
   group('automatic resolution', () {

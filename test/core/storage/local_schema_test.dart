@@ -28,7 +28,7 @@ void main() {
 
     test(
       'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
-      '17, 19, 23, 25, 26 and 31',
+      '17, 18, 19, 23, 25, 26 and 31',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -88,6 +88,9 @@ void main() {
           LocalTables.otAnesthesiaRecords,
           LocalTables.otProcedureLogs,
           LocalTables.otPostOpRecords,
+          LocalTables.imagingOrders,
+          LocalTables.imagingStudies,
+          LocalTables.imagingReports,
         });
       },
     );
@@ -725,6 +728,55 @@ void main() {
       );
     });
 
+    test('radiology tables mirror the Module 18 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.imagingOrders).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'ordered_by',
+          'order_code',
+          'modality',
+          'body_region',
+          'priority',
+          'status',
+          'cancelled_reason',
+        }),
+      );
+      expect(
+        byName(LocalTables.imagingStudies).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'imaging_order_id',
+          'study_uid',
+          'modality',
+          'performed_by',
+          'performed_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.imagingReports).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'imaging_order_id',
+          'study_id',
+          'findings',
+          'impression',
+          'status',
+          'verified_by',
+        }),
+      );
+    });
+
     test('appointment table mirrors the Module 07 schedule schema', () {
       Table byName(String name) =>
           schema.tables.firstWhere((Table table) => table.name == name);
@@ -939,6 +991,7 @@ void main() {
           NodexPermissions.userAdminister,
           NodexPermissions.transfusionFinalize,
           NodexPermissions.otFinalize,
+          NodexPermissions.imagingReportVerify,
           NodexPermissions.billingSettle,
           NodexPermissions.dischargeFinalize,
           NodexPermissions.prescriptionFinalize,
@@ -959,6 +1012,7 @@ void main() {
           NodexPermissions.transfusionFinalize,
           NodexPermissions.transfusionAdminister,
           NodexPermissions.otFinalize,
+          NodexPermissions.imagingReportVerify,
           NodexPermissions.billingSettle,
         ]),
       );

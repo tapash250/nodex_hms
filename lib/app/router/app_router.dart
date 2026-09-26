@@ -43,6 +43,7 @@ import 'package:nodex_hms/features/ot/ot_list_screen.dart';
 import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
 import 'package:nodex_hms/features/patients/patient_search_screen.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_detail_screen.dart';
+import 'package:nodex_hms/features/radiology/radiology_order_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/settings_screen.dart';
@@ -186,6 +187,13 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                     path: 'lab/:orderId',
                     builder: (BuildContext context, GoRouterState state) =>
                         LabOrderScreen(
+                          orderId: state.pathParameters['orderId']!,
+                        ),
+                  ),
+                  GoRoute(
+                    path: 'imaging/:orderId',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        ImagingOrderScreen(
                           orderId: state.pathParameters['orderId']!,
                         ),
                   ),

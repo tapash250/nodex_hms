@@ -214,6 +214,15 @@ abstract final class ConflictPolicyRegistry {
   /// Operation theatre post-op recovery record.
   static const String otPostOpRecord = 'ot_postop_record';
 
+  /// Radiology imaging order.
+  static const String imagingOrder = 'imaging_order';
+
+  /// Radiology imaging study acquisition.
+  static const String imagingStudy = 'imaging_study';
+
+  /// Radiology imaging report.
+  static const String imagingReport = 'imaging_report';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -425,6 +434,32 @@ abstract final class ConflictPolicyRegistry {
               'A post-op record is an event with an identity: the recovery '
               'state of one patient after one case. Duplicate uploads '
               'deduplicate so a retry cannot record a second recovery note.',
+        ),
+        imagingOrder: ConflictPolicyEntry(
+          resourceType: imagingOrder,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'An imaging order is a shared request with a lifecycle: '
+              'ordered, completed or cancelled. Two devices cannot both '
+              'cancel or complete it; the server holds the order state and '
+              'the client reconciles rather than resurrecting it.',
+        ),
+        imagingStudy: ConflictPolicyEntry(
+          resourceType: imagingStudy,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'An imaging study is an event with an identity: an acquisition '
+              'performed at a time by a performer under one PACS study '
+              'identifier. Duplicate uploads deduplicate so a retry cannot '
+              'register a second study.',
+        ),
+        imagingReport: ConflictPolicyEntry(
+          resourceType: imagingReport,
+          policy: ConflictPolicy.immutableWithCorrection,
+          rationale:
+              'A released report is a clinical fact others may have acted '
+              'on. Verified reports are frozen; any future amendment is '
+              'additive and explicitly attributed.',
         ),
       };
 

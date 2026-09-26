@@ -140,6 +140,18 @@ abstract final class NodexPermissions {
   /// Clinically validate and release laboratory results.
   static const String labResultVerify = 'lab_result.verify';
 
+  /// Raise radiology imaging orders.
+  static const String imagingOrderWrite = 'imaging_order.write';
+
+  /// Record imaging study acquisition.
+  static const String imagingStudyRecord = 'imaging_study.record';
+
+  /// Draft imaging reports prior to verification.
+  static const String imagingReportEnter = 'imaging_report.enter';
+
+  /// Clinically validate and release imaging reports.
+  static const String imagingReportVerify = 'imaging_report.verify';
+
   /// Dispense against an authorized prescription.
   static const String pharmacyDispense = 'pharmacy.dispense';
 
@@ -236,6 +248,7 @@ abstract final class NodexPermissions {
     dischargeFinalize,
     transfusionFinalize,
     otFinalize,
+    imagingReportVerify,
     billingSettle,
 
     icuBedAssign,
@@ -264,6 +277,7 @@ abstract final class NodexPermissions {
     transfusionFinalize,
     transfusionAdminister,
     otFinalize,
+    imagingReportVerify,
     billingSettle,
     icuBedAssign,
     icuVitalsRecord,

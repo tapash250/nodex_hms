@@ -35,6 +35,9 @@ values
   ('medical_officer', 'ventilator.event.record'),
   ('medical_officer', 'transfusion.request'),
   ('medical_officer', 'transfusion.administer'),
+  ('medical_officer', 'imaging_order.write'),
+  ('medical_officer', 'imaging_report.enter'),
+  ('medical_officer', 'imaging_report.verify'),
   ('medical_officer', 'ot.schedule'),
   ('medical_officer', 'ot.record'),
   ('medical_officer', 'ot.finalize');
@@ -59,6 +62,7 @@ values
   ('nursing_staff', 'icu.handover.record'),
   ('nursing_staff', 'ventilator.event.record'),
   ('nursing_staff', 'transfusion.administer'),
+  ('nursing_staff', 'imaging_order.write'),
   ('nursing_staff', 'ot.record');
 
 -- Diagnostic / Lab Technician
@@ -69,6 +73,9 @@ values
   ('lab_technician', 'lab_result.enter'),
   ('lab_technician', 'inventory.movement'),
   ('lab_technician', 'appointment.read'),
+  ('lab_technician', 'imaging_order.write'),
+  ('lab_technician', 'imaging_study.record'),
+  ('lab_technician', 'imaging_report.enter'),
   ('lab_technician', 'blood_unit.write');
 
 -- Pharmacist
@@ -118,4 +125,6 @@ values
   ('integration_service', 'patient.read'),
   ('integration_service', 'lab_result.enter'),
   ('integration_service', 'inventory.movement'),
+  ('integration_service', 'imaging_study.record'),
+  ('integration_service', 'imaging_report.enter'),
   ('integration_service', 'blood_unit.write');

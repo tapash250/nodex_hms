@@ -180,6 +180,15 @@ abstract final class LocalTables {
 
   /// Operation theatre post-op records (Module 19). Synced.
   static const String otPostOpRecords = 'ot_postop_records';
+
+  /// Radiology imaging orders (Module 18). Synced.
+  static const String imagingOrders = 'imaging_orders';
+
+  /// Radiology imaging studies (Module 18). Synced.
+  static const String imagingStudies = 'imaging_studies';
+
+  /// Radiology imaging reports (Module 18). Synced.
+  static const String imagingReports = 'imaging_reports';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -242,6 +251,9 @@ abstract final class NodexLocalSchema {
     _otAnesthesiaRecords,
     _otProcedureLogs,
     _otPostOpRecords,
+    _imagingOrders,
+    _imagingStudies,
+    _imagingReports,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -1610,6 +1622,92 @@ abstract final class NodexLocalSchema {
         IndexedColumn('patient_id'),
         IndexedColumn('recorded_at'),
       ]),
+    ],
+  );
+
+  /// Radiology imaging orders (Module 18): order -> complete or cancel.
+  /// Mirrors `public.imaging_orders`.
+  static const Table _imagingOrders = Table(
+    LocalTables.imagingOrders,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('ordered_by'),
+      Column.text('order_code'),
+      Column.text('modality'),
+      Column.text('body_region'),
+      Column.text('priority'),
+      Column.text('status'),
+      Column.text('clinical_indication'),
+      Column.text('ordered_at'),
+      Column.text('cancelled_at'),
+      Column.text('cancelled_reason'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('imaging_order_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('ordered_at'),
+      ]),
+      Index('imaging_order_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Acquired imaging studies with PACS/DICOM metadata references (Module 18).
+  /// Mirrors `public.imaging_studies`.
+  static const Table _imagingStudies = Table(
+    LocalTables.imagingStudies,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('imaging_order_id'),
+      Column.text('study_uid'),
+      Column.text('modality'),
+      Column.text('body_region'),
+      Column.text('performed_by'),
+      Column.text('performed_at'),
+      Column.text('acquisition_notes'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('imaging_study_order', <IndexedColumn>[
+        IndexedColumn('imaging_order_id'),
+      ]),
+      Index('imaging_study_uid', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('study_uid'),
+      ]),
+    ],
+  );
+
+  /// Imaging reports: verified reports are immutable (Module 18). Mirrors
+  /// `public.imaging_reports`.
+  static const Table _imagingReports = Table(
+    LocalTables.imagingReports,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('imaging_order_id'),
+      Column.text('study_id'),
+      Column.text('findings'),
+      Column.text('impression'),
+      Column.text('status'),
+      Column.text('entered_by'),
+      Column.text('entered_at'),
+      Column.text('verified_by'),
+      Column.text('verified_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('imaging_report_order', <IndexedColumn>[
+        IndexedColumn('imaging_order_id'),
+      ]),
+      Index('imaging_report_study', <IndexedColumn>[IndexedColumn('study_id')]),
     ],
   );
 

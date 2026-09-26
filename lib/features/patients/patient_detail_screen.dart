@@ -25,6 +25,7 @@ import 'package:nodex_hms/features/laboratory/lab_patient_section.dart';
 import 'package:nodex_hms/features/ot/ot_patient_section.dart';
 import 'package:nodex_hms/features/patients/patients_controller.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_patient_section.dart';
+import 'package:nodex_hms/features/radiology/radiology_patient_section.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
 /// Detail screen for one patient.
@@ -189,6 +190,8 @@ class _DetailBody extends ConsumerWidget {
         EncounterListSection(patient: bundle.patient),
         const SizedBox(height: 16),
         LabPatientSection(patientId: bundle.patient.id),
+        const SizedBox(height: 16),
+        RadiologyPatientSection(patientId: bundle.patient.id),
         const SizedBox(height: 16),
         PrescriptionPatientSection(patientId: bundle.patient.id),
         const SizedBox(height: 16),
