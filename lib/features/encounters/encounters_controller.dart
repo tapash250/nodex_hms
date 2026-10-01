@@ -10,6 +10,7 @@ import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/encounters/encounter.dart';
 import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
+import 'package:nodex_hms/domain/encounters/problem_list.dart';
 
 /// Encounter detail bundle for the editor screen.
 final class EncounterDetail {
@@ -53,3 +54,27 @@ final encounterDetailProvider = FutureProvider.autoDispose
           .listAmendments(encounterId);
       return EncounterDetail(encounter: encounter, amendments: amendments);
     });
+
+/// Problems on one patient's longitudinal list.
+final problemsForPatientProvider = FutureProvider.autoDispose
+    .family<List<ClinicalProblem>, String>(
+      (Ref ref, String patientId) => ref
+          .watch(problemListRepositoryProvider)
+          .problemsForPatient(patientId),
+    );
+
+/// Active problems on one patient's list, for the quick banner.
+final activeProblemsProvider = FutureProvider.autoDispose
+    .family<List<ClinicalProblem>, String>(
+      (Ref ref, String patientId) => ref
+          .watch(problemListRepositoryProvider)
+          .problemsForPatient(patientId, activeOnly: true),
+    );
+
+/// Scribe drafts raised against one encounter, newest first.
+final scribeDraftsForEncounterProvider = FutureProvider.autoDispose
+    .family<List<ScribeDraft>, String>(
+      (Ref ref, String encounterId) => ref
+          .watch(problemListRepositoryProvider)
+          .draftsForEncounter(encounterId),
+    );

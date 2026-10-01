@@ -15,6 +15,7 @@ import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/encounters/encounter.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
 import 'package:nodex_hms/features/encounters/encounters_controller.dart';
+import 'package:nodex_hms/features/encounters/problem_list_panels.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
 /// Editor for one encounter.
@@ -342,6 +343,14 @@ class _EditorBody extends ConsumerWidget {
             prefixIcon: Icon(Icons.tag_outlined),
           ),
           enabled: editable,
+        ),
+        const SizedBox(height: 24),
+        ScribeDraftPanel(encounter: encounter),
+        const SizedBox(height: 24),
+        ProblemListPanel(
+          patientId: encounter.patientId,
+          encounterId: encounter.id,
+          editable: editable,
         ),
         if (errorMessage != null) ...<Widget>[
           const SizedBox(height: 16),
