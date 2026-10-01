@@ -192,6 +192,12 @@ abstract final class NodexPermissions {
   /// Accept or reject an AI-generated discharge summary.
   static const String dischargeSummaryReview = 'discharge_summary.review';
 
+  /// View floor layouts, room capacity and live patient locations.
+  static const String wardFloorRead = 'ward_floor.read';
+
+  /// Register rooms and maintain floor layout capacity.
+  static const String wardRoomWrite = 'ward_room.write';
+
   /// Dispense against an authorized prescription.
   static const String pharmacyDispense = 'pharmacy.dispense';
 

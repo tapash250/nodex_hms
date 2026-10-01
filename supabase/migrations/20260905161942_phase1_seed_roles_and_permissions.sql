@@ -81,6 +81,8 @@ values
   ('discharge_clearance.write', 'Clear for discharge',        'Record and grant clinical clearance before a patient leaves.','M23', 'elevated',  false),
   ('discharge_reconciliation.write', 'Reconcile medications', 'Record the discharge medication review and its decisions.',     'M23', 'elevated',  false),
   ('discharge_summary.review',  'Review discharge summaries',  'Accept or reject an AI-generated discharge summary.',           'M23', 'high_risk', true),
+  ('ward_floor.read',           'Read floor maps',            'View floor layouts, room capacity and live patient locations.','M24', 'standard',  false),
+  ('ward_room.write',           'Write ward rooms',           'Register rooms and maintain floor layout capacity.',           'M24', 'elevated',  false),
   ('pharmacy.dispense',        'Dispense medication',         'Dispense against an authorized prescription.',                 'M25', 'high_risk', false),
   ('inventory.movement',       'Record stock movement',       'Record inventory transactions and adjustments.',               'M28', 'elevated',  false),
   ('bed.assign',               'Assign beds',                 'Allocate and transfer inpatient beds.',                       'M11', 'elevated',  false),

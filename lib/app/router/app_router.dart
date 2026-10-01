@@ -33,6 +33,7 @@ import 'package:nodex_hms/features/er/er_list_screen.dart';
 import 'package:nodex_hms/features/er/er_visit_detail_screen.dart';
 import 'package:nodex_hms/features/er/triage_detail_screen.dart';
 import 'package:nodex_hms/features/er/triage_intake_screen.dart';
+import 'package:nodex_hms/features/floormap/floor_map_screen.dart';
 import 'package:nodex_hms/features/home/home_screen.dart';
 import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
 import 'package:nodex_hms/features/icu/icu_list_screen.dart';
@@ -264,6 +265,21 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.wards.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WardCensusScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.floorMap.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const FloorMapScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'rooms',
+                builder: (BuildContext context, GoRouterState state) =>
+                    WardRoomAdminScreen(
+                      floorLabel:
+                          state.uri.queryParameters['floor'] ?? 'Ground',
+                    ),
+              ),
+            ],
           ),
           GoRoute(
             path: NodexDestinations.er.routePath,

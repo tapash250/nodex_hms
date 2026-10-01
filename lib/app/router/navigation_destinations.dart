@@ -168,6 +168,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Hospital floor map: rooms, capacity and live patient locations.
+  static const NavigationDestinationSpec floorMap = NavigationDestinationSpec(
+    routePath: '/floor-map',
+    label: 'Floor map',
+    icon: Icons.grid_view_outlined,
+    selectedIcon: Icons.grid_view,
+    requiredPermissions: <String>{NodexPermissions.wardFloorRead},
+    moduleCode: 'M24',
+    isPrimary: false,
+  );
+
   /// Inventory management. Phase 2 supplies the implementation.
   static const NavigationDestinationSpec inventory = NavigationDestinationSpec(
     routePath: '/inventory',
@@ -233,6 +244,7 @@ abstract final class NodexDestinations {
         icu,
         bloodBank,
         ot,
+        floorMap,
         inventory,
         syncDiagnostics,
         aiGovernance,

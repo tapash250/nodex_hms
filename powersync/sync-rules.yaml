@@ -465,3 +465,20 @@ sync_rules:
         - select a.* from public.discharge_ai_summaries a
           join public.discharges d on d.id = a.discharge_id
           where d.tenant_id = bucket.tenant_id
+    # Module 24 (floor map): room layout and the floors it is drawn on. Beds
+    # and their live assignments already travel in ward_census, which is what
+    # occupancy is derived from.
+    floor_map:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'ward_floor.read'
+      data:
+        - select * from public.ward_rooms where tenant_id = bucket.tenant_id
+        - select * from public.wards where tenant_id = bucket.tenant_id

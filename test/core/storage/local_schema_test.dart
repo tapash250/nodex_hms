@@ -106,6 +106,7 @@ void main() {
           LocalTables.dischargeReconciliationItems,
           LocalTables.dischargeSettlements,
           LocalTables.dischargeAiSummaries,
+          LocalTables.wardRooms,
         });
       },
     );
@@ -965,6 +966,31 @@ void main() {
           'transcript_reference',
           'consent_recorded',
           'archived_at',
+        }),
+      );
+    });
+
+    test('ward rooms mirror the Module 24 floor layout schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.wardRooms).columns.map((Column c) => c.name).toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'facility_id',
+          'ward_id',
+          'room_code',
+          'room_name',
+          'room_type',
+          'floor_label',
+          'capacity',
+          'grid_x',
+          'grid_y',
+          'grid_span_x',
+          'grid_span_y',
+          'status',
+          'retirement_reason',
         }),
       );
     });

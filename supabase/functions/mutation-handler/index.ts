@@ -1231,6 +1231,34 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'discharge.settlement.recorded',
     auditActionPatch: 'discharge.settlement.updated',
   },
+  // Module 24 (floor map). Room geometry is facility-scoped layout data and
+  // is never deleted: a room leaves the plan by retiring it with a reason, so
+  // the floors already drawn on a client stay interpretable.
+  ward_rooms: {
+    columns: {
+      tenant_id: 'uuid',
+      facility_id: 'uuid',
+      ward_id: 'uuid',
+      room_code: 'text',
+      room_name: 'text',
+      room_type: 'text',
+      floor_label: 'text',
+      capacity: 'integer',
+      grid_x: 'integer',
+      grid_y: 'integer',
+      grid_span_x: 'integer',
+      grid_span_y: 'integer',
+      status: 'text',
+      retired_by: 'uuid',
+      retired_at: 'timestamp',
+      retirement_reason: 'text',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'ward.room.registered',
+    auditActionPatch: 'ward.room.updated',
+  },
   discharge_ai_summaries: {
     columns: {
       tenant_id: 'uuid',

@@ -236,6 +236,9 @@ abstract final class LocalTables {
 
   /// AI-generated discharge summaries (Module 23). Synced.
   static const String dischargeAiSummaries = 'discharge_ai_summaries';
+
+  /// Ward rooms that make up the floor layout (Module 24). Synced.
+  static const String wardRooms = 'ward_rooms';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -316,6 +319,7 @@ abstract final class NodexLocalSchema {
     _dischargeReconciliationItems,
     _dischargeSettlements,
     _dischargeAiSummaries,
+    _wardRooms,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -2162,6 +2166,43 @@ abstract final class NodexLocalSchema {
     indexes: <Index>[
       Index('discharge_ai_summary_discharge', <IndexedColumn>[
         IndexedColumn('discharge_id'),
+      ]),
+    ],
+  );
+
+  /// Ward rooms: the layout unit the floor map draws (Module 24). Mirrors
+  /// `public.ward_rooms`.
+  static const Table _wardRooms = Table(
+    LocalTables.wardRooms,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('ward_id'),
+      Column.text('room_code'),
+      Column.text('room_name'),
+      Column.text('room_type'),
+      Column.text('floor_label'),
+      Column.integer('capacity'),
+      Column.integer('grid_x'),
+      Column.integer('grid_y'),
+      Column.integer('grid_span_x'),
+      Column.integer('grid_span_y'),
+      Column.text('status'),
+      Column.text('retired_by'),
+      Column.text('retired_at'),
+      Column.text('retirement_reason'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ward_room_floor', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('floor_label'),
+        IndexedColumn('room_code'),
+      ]),
+      Index('ward_room_ward', <IndexedColumn>[
+        IndexedColumn('ward_id'),
+        IndexedColumn('floor_label'),
       ]),
     ],
   );

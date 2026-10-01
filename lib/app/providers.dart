@@ -35,6 +35,8 @@ import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
 import 'package:nodex_hms/domain/encounters/encounter_use_cases.dart';
 import 'package:nodex_hms/domain/er/er_repository.dart';
 import 'package:nodex_hms/domain/er/er_use_cases.dart';
+import 'package:nodex_hms/domain/floormap/floormap_repository.dart';
+import 'package:nodex_hms/domain/floormap/floormap_use_cases.dart';
 import 'package:nodex_hms/domain/icu/icu_repository.dart';
 import 'package:nodex_hms/domain/icu/icu_use_cases.dart';
 import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
@@ -557,6 +559,49 @@ archiveTeleConsultationUseCaseProvider =
     Provider<ArchiveTeleConsultationUseCase>(
       (Ref ref) => ArchiveTeleConsultationUseCase(
         repository: ref.watch(telemedicineRepositoryProvider),
+      ),
+    );
+
+/// Floor map repository over the encrypted local projection.
+final Provider<FloorMapRepository> floorMapRepositoryProvider =
+    Provider<FloorMapRepository>(
+      (Ref ref) => DefaultFloorMapRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Ward room registration.
+final Provider<RegisterWardRoomUseCase> registerWardRoomUseCaseProvider =
+    Provider<RegisterWardRoomUseCase>(
+      (Ref ref) => RegisterWardRoomUseCase(
+        repository: ref.watch(floorMapRepositoryProvider),
+      ),
+    );
+
+/// Ward room layout and capacity updates.
+final Provider<UpdateWardRoomUseCase> updateWardRoomUseCaseProvider =
+    Provider<UpdateWardRoomUseCase>(
+      (Ref ref) => UpdateWardRoomUseCase(
+        repository: ref.watch(floorMapRepositoryProvider),
+      ),
+    );
+
+/// Ward room retirement.
+final Provider<RetireWardRoomUseCase> retireWardRoomUseCaseProvider =
+    Provider<RetireWardRoomUseCase>(
+      (Ref ref) => RetireWardRoomUseCase(
+        repository: ref.watch(floorMapRepositoryProvider),
+      ),
+    );
+
+/// Floor occupancy composition.
+final Provider<FloorOccupancyUseCase> floorOccupancyUseCaseProvider =
+    Provider<FloorOccupancyUseCase>(
+      (Ref ref) => FloorOccupancyUseCase(
+        repository: ref.watch(floorMapRepositoryProvider),
       ),
     );
 

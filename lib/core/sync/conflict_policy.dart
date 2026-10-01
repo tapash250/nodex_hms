@@ -269,6 +269,9 @@ abstract final class ConflictPolicyRegistry {
   /// AI-generated discharge summary.
   static const String dischargeAiSummary = 'discharge_ai_summary';
 
+  /// Ward room in the floor layout.
+  static const String wardRoom = 'ward_room';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -636,6 +639,16 @@ abstract final class ConflictPolicyRegistry {
               'signed off, and machine output must not rewrite itself. Any '
               'future correction is additive and explicitly attributed to a '
               'human reviewer.',
+        ),
+        wardRoom: ConflictPolicyEntry(
+          resourceType: wardRoom,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'A room\'s identity, capacity and position on the floor plan are '
+              'shared hospital configuration. Two devices cannot both claim a '
+              'room code or disagree about a capacity the ward is staffed '
+              'against, so the server holds the layout and the client '
+              'reconciles.',
         ),
       };
 

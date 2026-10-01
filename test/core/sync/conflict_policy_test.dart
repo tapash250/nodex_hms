@@ -57,6 +57,7 @@ void main() {
         ConflictPolicyRegistry.dischargeReconciliationItem,
         ConflictPolicyRegistry.dischargeSettlement,
         ConflictPolicyRegistry.dischargeAiSummary,
+        ConflictPolicyRegistry.wardRoom,
       ];
 
       for (final String resourceType in required) {
@@ -430,6 +431,14 @@ void main() {
           ConflictPolicyRegistry.dischargeAiSummary,
         ).policy,
         ConflictPolicy.immutableWithCorrection,
+      );
+    });
+
+    test('ward rooms are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.wardRoom)
+            .policy,
+        ConflictPolicy.serverAuthoritative,
       );
     });
   });

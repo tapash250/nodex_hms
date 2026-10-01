@@ -53,7 +53,9 @@ recovery notes), `nutrition` (Module 21, assessments, seven-day meal plans,
 day menus and intake logs), `telemedicine` (Module 22, consultations, live
 vitals overlays and consented archives), `discharge_management` (Module 23,
 clearances, medication reconciliations and their decisions, settlements and AI
-summaries). Remaining: the rest of the 54-module scope.
+summaries), `floor_map` (Module 24, room layout and the floors it is drawn
+on; occupancy derives from `ward_census`). Remaining: the rest of the 54-module
+scope.
 
 ## Upload path
 

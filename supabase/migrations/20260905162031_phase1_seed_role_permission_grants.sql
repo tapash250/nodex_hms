@@ -50,6 +50,8 @@ values
   ('medical_officer', 'discharge_clearance.write'),
   ('medical_officer', 'discharge_reconciliation.write'),
   ('medical_officer', 'discharge_summary.review'),
+  ('medical_officer', 'ward_floor.read'),
+  ('medical_officer', 'ward_room.write'),
   ('medical_officer', 'ot.schedule'),
   ('medical_officer', 'ot.record'),
   ('medical_officer', 'ot.finalize');
@@ -80,6 +82,8 @@ values
   ('nursing_staff', 'diet_intake.record'),
   ('nursing_staff', 'tele_vitals.record'),
   ('nursing_staff', 'discharge_reconciliation.write'),
+  ('nursing_staff', 'ward_floor.read'),
+  ('nursing_staff', 'ward_room.write'),
   ('nursing_staff', 'ot.record');
 
 -- Diagnostic / Lab Technician
