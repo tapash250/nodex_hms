@@ -529,4 +529,119 @@ void main() {
       expect(ConflictPolicy.fieldLevelMerge.isAutomatic, isFalse);
     });
   });
+
+  group('table-name resolution', () {
+    // The sync connector learns a conflict from the server as a table name,
+    // while the registry is keyed by the singular resource it governs. Every
+    // writable table must therefore resolve, or a real conflict would raise
+    // `unregistered_conflict_policy` at the moment the policy was needed.
+    const List<String> writableTables = <String>[
+      'appointments',
+      'bed_assignments',
+      'beds',
+      'blood_units',
+      'clinical_encounters',
+      'diet_assessments',
+      'diet_intake_logs',
+      'diet_meal_plan_days',
+      'diet_meal_plans',
+      'discharge_ai_summaries',
+      'discharge_clearances',
+      'discharge_medication_reconciliation_items',
+      'discharge_medication_reconciliations',
+      'discharge_settlements',
+      'discharges',
+      'encounter_amendments',
+      'er_visits',
+      'icu_beds',
+      'icu_nursing_handover',
+      'icu_vitals',
+      'imaging_orders',
+      'imaging_reports',
+      'imaging_studies',
+      'invoice_lines',
+      'invoices',
+      'lab_orders',
+      'lab_results',
+      'lab_specimens',
+      'medication_administrations',
+      'ot_anesthesia_records',
+      'ot_bookings',
+      'ot_postop_records',
+      'ot_preop_assessments',
+      'ot_procedure_logs',
+      'patient_allergies',
+      'patient_merge_history',
+      'patients',
+      'payments',
+      'pharmacy_dispenses',
+      'physio_exercise_plans',
+      'physio_recovery_notes',
+      'physio_sessions',
+      'prescription_items',
+      'prescriptions',
+      'refunds',
+      'stock_batches',
+      'stock_items',
+      'stock_locations',
+      'stock_movements',
+      'tele_consultation_archives',
+      'tele_consultations',
+      'tele_vitals_overlays',
+      'transfusion_requests',
+      'transfusions',
+      'triage_assessments',
+      'ventilator_events',
+      'ward_rooms',
+    ];
+
+    test('every writable table resolves to a registered policy', () {
+      for (final String table in writableTables) {
+        expect(
+          () => ConflictPolicyRegistry.policyFor(table),
+          returnsNormally,
+          reason: '"$table" has no registered conflict policy',
+        );
+      }
+    });
+
+    test('a table resolves to the policy of the resource it stores', () {
+      expect(
+        ConflictPolicyRegistry.policyFor('ward_rooms').policy,
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.wardRoom)
+            .policy,
+      );
+      expect(
+        ConflictPolicyRegistry.policyFor('encounter_amendments').policy,
+        ConflictPolicy.appendOnly,
+      );
+      expect(
+        ConflictPolicyRegistry.resourceTypeFor('clinical_encounters'),
+        ConflictPolicyRegistry.encounter,
+      );
+    });
+
+    test('isRegistered accepts table names as well as resource types', () {
+      expect(ConflictPolicyRegistry.isRegistered('invoices'), isTrue);
+      expect(ConflictPolicyRegistry.isRegistered('beds'), isTrue);
+      expect(
+        ConflictPolicyRegistry.isRegistered(ConflictPolicyRegistry.invoice),
+        isTrue,
+      );
+      expect(ConflictPolicyRegistry.isRegistered('not_a_table'), isFalse);
+    });
+
+    test('an undeclared entity still fails loudly', () {
+      expect(
+        () => ConflictPolicyRegistry.policyFor('not_a_table'),
+        throwsA(
+          isA<IntegrityError>().having(
+            (IntegrityError error) => error.code,
+            'code',
+            'unregistered_conflict_policy',
+          ),
+        ),
+      );
+    });
+  });
 }
