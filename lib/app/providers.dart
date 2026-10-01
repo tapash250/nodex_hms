@@ -27,6 +27,8 @@ import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_repository.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_use_cases.dart';
+import 'package:nodex_hms/domain/discharge/discharge_management_repository.dart';
+import 'package:nodex_hms/domain/discharge/discharge_management_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_use_cases.dart';
 import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
@@ -736,6 +738,105 @@ final Provider<FinalizeDischargeUseCase> finalizeDischargeUseCaseProvider =
     Provider<FinalizeDischargeUseCase>(
       (Ref ref) => FinalizeDischargeUseCase(
         repository: ref.watch(dischargeRepositoryProvider),
+        managementRepository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// Discharge readiness artifacts over the encrypted local projection.
+final Provider<DischargeManagementRepository>
+dischargeManagementRepositoryProvider = Provider<DischargeManagementRepository>(
+  (Ref ref) => DefaultDischargeManagementRepository(
+    store: PowerSyncPatientStore(database: ref.watch(localDatabaseProvider)),
+    logger: ref.watch(loggerProvider),
+  ),
+);
+
+/// Clinical clearance recording.
+final Provider<RecordDischargeClearanceUseCase>
+recordDischargeClearanceUseCaseProvider =
+    Provider<RecordDischargeClearanceUseCase>(
+      (Ref ref) => RecordDischargeClearanceUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// Clinical clearance granting.
+final Provider<GrantDischargeClearanceUseCase>
+grantDischargeClearanceUseCaseProvider =
+    Provider<GrantDischargeClearanceUseCase>(
+      (Ref ref) => GrantDischargeClearanceUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// Medication reconciliation start.
+final Provider<StartDischargeReconciliationUseCase>
+startDischargeReconciliationUseCaseProvider =
+    Provider<StartDischargeReconciliationUseCase>(
+      (Ref ref) => StartDischargeReconciliationUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// Medication decision recording.
+final Provider<RecordDischargeMedicationUseCase>
+recordDischargeMedicationUseCaseProvider =
+    Provider<RecordDischargeMedicationUseCase>(
+      (Ref ref) => RecordDischargeMedicationUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// Medication reconciliation sign-off.
+final Provider<CompleteDischargeReconciliationUseCase>
+completeDischargeReconciliationUseCaseProvider =
+    Provider<CompleteDischargeReconciliationUseCase>(
+      (Ref ref) => CompleteDischargeReconciliationUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// Episode billing settlement.
+final Provider<SettleDischargeBillingUseCase>
+settleDischargeBillingUseCaseProvider = Provider<SettleDischargeBillingUseCase>(
+  (Ref ref) => SettleDischargeBillingUseCase(
+    repository: ref.watch(dischargeManagementRepositoryProvider),
+  ),
+);
+
+/// AI summary filing.
+final Provider<RecordDischargeAiSummaryUseCase>
+recordDischargeAiSummaryUseCaseProvider =
+    Provider<RecordDischargeAiSummaryUseCase>(
+      (Ref ref) => RecordDischargeAiSummaryUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// AI summary acceptance.
+final Provider<AcceptDischargeAiSummaryUseCase>
+acceptDischargeAiSummaryUseCaseProvider =
+    Provider<AcceptDischargeAiSummaryUseCase>(
+      (Ref ref) => AcceptDischargeAiSummaryUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// AI summary rejection.
+final Provider<RejectDischargeAiSummaryUseCase>
+rejectDischargeAiSummaryUseCaseProvider =
+    Provider<RejectDischargeAiSummaryUseCase>(
+      (Ref ref) => RejectDischargeAiSummaryUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
+      ),
+    );
+
+/// Discharge readiness inspection.
+final Provider<CheckDischargeReadinessUseCase>
+checkDischargeReadinessUseCaseProvider =
+    Provider<CheckDischargeReadinessUseCase>(
+      (Ref ref) => CheckDischargeReadinessUseCase(
+        repository: ref.watch(dischargeManagementRepositoryProvider),
       ),
     );
 

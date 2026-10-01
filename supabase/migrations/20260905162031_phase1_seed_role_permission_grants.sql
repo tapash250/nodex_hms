@@ -47,6 +47,9 @@ values
   ('medical_officer', 'tele_consultation.write'),
   ('medical_officer', 'tele_vitals.record'),
   ('medical_officer', 'tele_archive.write'),
+  ('medical_officer', 'discharge_clearance.write'),
+  ('medical_officer', 'discharge_reconciliation.write'),
+  ('medical_officer', 'discharge_summary.review'),
   ('medical_officer', 'ot.schedule'),
   ('medical_officer', 'ot.record'),
   ('medical_officer', 'ot.finalize');
@@ -76,6 +79,7 @@ values
   ('nursing_staff', 'physio_note.write'),
   ('nursing_staff', 'diet_intake.record'),
   ('nursing_staff', 'tele_vitals.record'),
+  ('nursing_staff', 'discharge_reconciliation.write'),
   ('nursing_staff', 'ot.record');
 
 -- Diagnostic / Lab Technician

@@ -51,8 +51,9 @@ post-op records), `radiology` (Module 18, imaging orders, studies and
 reports), `physiotherapy` (Module 20, sessions, exercise regimens and
 recovery notes), `nutrition` (Module 21, assessments, seven-day meal plans,
 day menus and intake logs), `telemedicine` (Module 22, consultations, live
-vitals overlays and consented archives). Remaining: the rest of the 54-module
-scope.
+vitals overlays and consented archives), `discharge_management` (Module 23,
+clearances, medication reconciliations and their decisions, settlements and AI
+summaries). Remaining: the rest of the 54-module scope.
 
 ## Upload path
 

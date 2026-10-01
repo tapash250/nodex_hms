@@ -219,6 +219,23 @@ abstract final class LocalTables {
 
   /// Archived virtual consultations (Module 22). Synced.
   static const String teleConsultationArchives = 'tele_consultation_archives';
+
+  /// Clinical clearance before discharge (Module 23). Synced.
+  static const String dischargeClearances = 'discharge_clearances';
+
+  /// Discharge medication reconciliation headers (Module 23). Synced.
+  static const String dischargeReconciliations =
+      'discharge_medication_reconciliations';
+
+  /// Discharge medication reconciliation decisions (Module 23). Synced.
+  static const String dischargeReconciliationItems =
+      'discharge_medication_reconciliation_items';
+
+  /// Episode billing settlement at discharge (Module 23). Synced.
+  static const String dischargeSettlements = 'discharge_settlements';
+
+  /// AI-generated discharge summaries (Module 23). Synced.
+  static const String dischargeAiSummaries = 'discharge_ai_summaries';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -294,6 +311,11 @@ abstract final class NodexLocalSchema {
     _teleConsultations,
     _teleVitalsOverlays,
     _teleConsultationArchives,
+    _dischargeClearances,
+    _dischargeReconciliations,
+    _dischargeReconciliationItems,
+    _dischargeSettlements,
+    _dischargeAiSummaries,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -2023,6 +2045,123 @@ abstract final class NodexLocalSchema {
       Index('tele_archive_consultation', <IndexedColumn>[
         IndexedColumn('consultation_id'),
         IndexedColumn('archived_at'),
+      ]),
+    ],
+  );
+
+  /// Clinical clearance before a patient may leave (Module 23). Mirrors
+  /// `public.discharge_clearances`.
+  static const Table _dischargeClearances = Table(
+    LocalTables.dischargeClearances,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('discharge_id'),
+      Column.text('reviewed_by'),
+      Column.text('status'),
+      Column.integer('outstanding_items'),
+      Column.text('notes'),
+      Column.text('cleared_by'),
+      Column.text('cleared_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('discharge_clearance_discharge', <IndexedColumn>[
+        IndexedColumn('discharge_id'),
+      ]),
+    ],
+  );
+
+  /// Medication reconciliation header: how many drugs were reviewed and how
+  /// many discrepancies surfaced (Module 23). Mirrors
+  /// `public.discharge_medication_reconciliations`.
+  static const Table _dischargeReconciliations = Table(
+    LocalTables.dischargeReconciliations,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('discharge_id'),
+      Column.text('status'),
+      Column.integer('medications_reviewed'),
+      Column.integer('discrepancies_found'),
+      Column.text('reviewed_by'),
+      Column.text('reviewed_at'),
+      Column.text('notes'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('discharge_reconciliation_discharge', <IndexedColumn>[
+        IndexedColumn('discharge_id'),
+      ]),
+    ],
+  );
+
+  /// One decision per medication within a reconciliation (Module 23). Mirrors
+  /// `public.discharge_medication_reconciliation_items`.
+  static const Table _dischargeReconciliationItems = Table(
+    LocalTables.dischargeReconciliationItems,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('reconciliation_id'),
+      Column.text('medication_name'),
+      Column.text('action'),
+      Column.integer('discrepancy'),
+      Column.text('detail'),
+      Column.text('recorded_by'),
+      Column.text('recorded_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('discharge_reconciliation_item_parent', <IndexedColumn>[
+        IndexedColumn('reconciliation_id'),
+        IndexedColumn('recorded_at'),
+      ]),
+    ],
+  );
+
+  /// Episode billing settlement, recorded once per discharge (Module 23).
+  /// Mirrors `public.discharge_settlements`.
+  static const Table _dischargeSettlements = Table(
+    LocalTables.dischargeSettlements,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('discharge_id'),
+      Column.text('invoice_id'),
+      Column.text('amount_minor'),
+      Column.text('settled_by'),
+      Column.text('settled_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('discharge_settlement_discharge', <IndexedColumn>[
+        IndexedColumn('discharge_id'),
+      ]),
+    ],
+  );
+
+  /// AI-generated discharge summary with its review decision (Module 23).
+  /// Mirrors `public.discharge_ai_summaries`.
+  static const Table _dischargeAiSummaries = Table(
+    LocalTables.dischargeAiSummaries,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('discharge_id'),
+      Column.text('model_id'),
+      Column.text('summary_text'),
+      Column.text('status'),
+      Column.text('safety_decision'),
+      Column.text('requested_by'),
+      Column.text('reviewed_by'),
+      Column.text('reviewed_at'),
+      Column.text('rejection_reason'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('discharge_ai_summary_discharge', <IndexedColumn>[
+        IndexedColumn('discharge_id'),
       ]),
     ],
   );

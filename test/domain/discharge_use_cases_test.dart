@@ -12,6 +12,9 @@ import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
 import 'package:nodex_hms/domain/discharge/discharge.dart';
+import 'package:nodex_hms/domain/discharge/discharge_management.dart';
+import 'package:nodex_hms/domain/discharge/discharge_management_repository.dart';
+import 'package:nodex_hms/domain/discharge/discharge_management_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_use_cases.dart';
 
@@ -44,13 +47,27 @@ AuthorizationPolicy policyWith(Set<String> permissions) {
 void main() {
   late FakeDischargeStore store;
   late DefaultDischargeRepository repository;
+  late DefaultDischargeManagementRepository management;
   late DraftDischargeUseCase draft;
   late FinalizeDischargeUseCase finalize;
   late CancelDischargeUseCase cancel;
+  late RecordDischargeClearanceUseCase recordClearance;
+  late GrantDischargeClearanceUseCase grantClearance;
+  late StartDischargeReconciliationUseCase startReconciliation;
+  late RecordDischargeMedicationUseCase recordMedication;
+  late CompleteDischargeReconciliationUseCase completeReconciliation;
+  late SettleDischargeBillingUseCase settle;
 
   const Set<String> writer = <String>{NodexPermissions.encounterWrite};
   const Set<String> finalizer = <String>{NodexPermissions.dischargeFinalize};
   const Set<String> reader = <String>{NodexPermissions.encounterRead};
+  const Set<String> clinician = <String>{
+    NodexPermissions.dischargeClearanceWrite,
+  };
+  const Set<String> pharmacist = <String>{
+    NodexPermissions.dischargeReconciliationWrite,
+  };
+  const Set<String> accounts = <String>{NodexPermissions.billingSettle};
 
   setUp(() {
     store = FakeDischargeStore();
@@ -61,9 +78,29 @@ void main() {
         minimumLevel: NodexLogLevel.trace,
       ),
     );
+    management = DefaultDischargeManagementRepository(
+      store: store,
+      logger: NodexLogger(
+        sinks: <NodexLogSink>[InMemoryLogSink()],
+        minimumLevel: NodexLogLevel.trace,
+      ),
+    );
     draft = DraftDischargeUseCase(repository: repository);
-    finalize = FinalizeDischargeUseCase(repository: repository);
+    finalize = FinalizeDischargeUseCase(
+      repository: repository,
+      managementRepository: management,
+    );
     cancel = CancelDischargeUseCase(repository: repository);
+    recordClearance = RecordDischargeClearanceUseCase(repository: management);
+    grantClearance = GrantDischargeClearanceUseCase(repository: management);
+    startReconciliation = StartDischargeReconciliationUseCase(
+      repository: management,
+    );
+    recordMedication = RecordDischargeMedicationUseCase(repository: management);
+    completeReconciliation = CompleteDischargeReconciliationUseCase(
+      repository: management,
+    );
+    settle = SettleDischargeBillingUseCase(repository: management);
   });
 
   Future<Discharge> seedDraft({String encounterId = 'enc-1'}) async {
@@ -77,6 +114,44 @@ void main() {
       dischargeType: DischargeType.routine,
     );
     return (await repository.getDischarge(id))!;
+  }
+
+  /// Satisfies the three readiness gates so a discharge can be authorized.
+  Future<void> satisfyReadiness(Discharge record) async {
+    await recordClearance.call(
+      policy: policyWith(clinician),
+      discharge: record,
+      reviewedBy: 'doctor-1',
+      outstandingItems: 0,
+    );
+    await grantClearance.call(
+      policy: policyWith(clinician),
+      discharge: record,
+      clearedBy: 'doctor-1',
+    );
+    await startReconciliation.call(
+      policy: policyWith(pharmacist),
+      discharge: record,
+    );
+    await recordMedication.call(
+      policy: policyWith(pharmacist),
+      discharge: record,
+      medicationName: 'Paracetamol',
+      action: DischargeMedicationAction.continueMedication,
+      recordedBy: 'nurse-1',
+    );
+    await completeReconciliation.call(
+      policy: policyWith(pharmacist),
+      discharge: record,
+      reviewedBy: 'nurse-1',
+    );
+    await settle.call(
+      policy: policyWith(accounts),
+      discharge: record,
+      invoiceId: 'invoice-1',
+      amountMinor: 450000,
+      settledBy: 'accounts-1',
+    );
   }
 
   group('authorization gates', () {
@@ -108,9 +183,104 @@ void main() {
     });
   });
 
-  group('lifecycle', () {
-    test('draft to finalized', () async {
+  group('readiness gate', () {
+    test('finalizing without clearance is refused', () async {
       final Discharge record = await seedDraft();
+      await expectLater(
+        finalize.call(
+          policy: policyWith(finalizer),
+          discharge: record,
+          finalizerId: 'doctor-1',
+        ),
+        throwsA(
+          isA<AuthorizationError>().having(
+            (AuthorizationError error) => error.code,
+            'code',
+            'discharge_clearance_required',
+          ),
+        ),
+      );
+    });
+
+    test('finalizing without reconciliation is refused', () async {
+      final Discharge record = await seedDraft();
+      await recordClearance.call(
+        policy: policyWith(clinician),
+        discharge: record,
+        reviewedBy: 'doctor-1',
+        outstandingItems: 0,
+      );
+      await grantClearance.call(
+        policy: policyWith(clinician),
+        discharge: record,
+        clearedBy: 'doctor-1',
+      );
+      await expectLater(
+        finalize.call(
+          policy: policyWith(finalizer),
+          discharge: record,
+          finalizerId: 'doctor-1',
+        ),
+        throwsA(
+          isA<AuthorizationError>().having(
+            (AuthorizationError error) => error.code,
+            'code',
+            'discharge_reconciliation_required',
+          ),
+        ),
+      );
+    });
+
+    test('finalizing without settlement is refused', () async {
+      final Discharge record = await seedDraft();
+      await recordClearance.call(
+        policy: policyWith(clinician),
+        discharge: record,
+        reviewedBy: 'doctor-1',
+        outstandingItems: 0,
+      );
+      await grantClearance.call(
+        policy: policyWith(clinician),
+        discharge: record,
+        clearedBy: 'doctor-1',
+      );
+      await startReconciliation.call(
+        policy: policyWith(pharmacist),
+        discharge: record,
+      );
+      await recordMedication.call(
+        policy: policyWith(pharmacist),
+        discharge: record,
+        medicationName: 'Paracetamol',
+        action: DischargeMedicationAction.continueMedication,
+        recordedBy: 'nurse-1',
+      );
+      await completeReconciliation.call(
+        policy: policyWith(pharmacist),
+        discharge: record,
+        reviewedBy: 'nurse-1',
+      );
+      await expectLater(
+        finalize.call(
+          policy: policyWith(finalizer),
+          discharge: record,
+          finalizerId: 'doctor-1',
+        ),
+        throwsA(
+          isA<AuthorizationError>().having(
+            (AuthorizationError error) => error.code,
+            'code',
+            'discharge_settlement_required',
+          ),
+        ),
+      );
+    });
+  });
+
+  group('lifecycle', () {
+    test('draft to finalized once the discharge is ready', () async {
+      final Discharge record = await seedDraft();
+      await satisfyReadiness(record);
       await finalize.call(
         policy: policyWith(finalizer),
         discharge: record,
@@ -139,6 +309,7 @@ void main() {
 
     test('finalized records refuse finalizing again', () async {
       final Discharge record = await seedDraft();
+      await satisfyReadiness(record);
       await finalize.call(
         policy: policyWith(finalizer),
         discharge: record,

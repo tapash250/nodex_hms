@@ -50,6 +50,19 @@ final class FakeDischargeStore implements PatientLocalStore {
           .where((Map<String, Object?> r) => r['patient_id'] == patientId)
           .toList(growable: false);
     }
+    // The discharge-management artifacts are read through the same store.
+    for (final (String table, String column) in <(String, String)>[
+      (LocalTables.dischargeClearances, 'discharge_id'),
+      (LocalTables.dischargeReconciliations, 'discharge_id'),
+      (LocalTables.dischargeReconciliationItems, 'reconciliation_id'),
+      (LocalTables.dischargeSettlements, 'discharge_id'),
+      (LocalTables.dischargeAiSummaries, 'discharge_id'),
+    ]) {
+      if (!sql.contains(table)) continue;
+      return _table(table).values
+          .where((Map<String, Object?> r) => r[column] == parameters[0])
+          .toList(growable: false);
+    }
     throw UnimplementedError('FakeDischargeStore cannot run: $sql');
   }
 

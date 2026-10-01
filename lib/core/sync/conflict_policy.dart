@@ -253,6 +253,22 @@ abstract final class ConflictPolicyRegistry {
   /// Archived telemedicine consultation.
   static const String teleConsultationArchive = 'tele_consultation_archive';
 
+  /// Clinical discharge clearance.
+  static const String dischargeClearance = 'discharge_clearance';
+
+  /// Discharge medication reconciliation.
+  static const String dischargeReconciliation = 'discharge_reconciliation';
+
+  /// One discharge medication decision.
+  static const String dischargeReconciliationItem =
+      'discharge_reconciliation_item';
+
+  /// Discharge billing settlement.
+  static const String dischargeSettlement = 'discharge_settlement';
+
+  /// AI-generated discharge summary.
+  static const String dischargeAiSummary = 'discharge_ai_summary';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -576,6 +592,50 @@ abstract final class ConflictPolicyRegistry {
               'including the consent that justified keeping it. It must '
               'remain readable exactly as archived; a correction is a new '
               'version, never a rewrite.',
+        ),
+        dischargeClearance: ConflictPolicyEntry(
+          resourceType: dischargeClearance,
+          policy: ConflictPolicy.versionedRevision,
+          rationale:
+              'Clearance is refined while outstanding items remain and is '
+              'frozen once granted, because a granted clearance is what '
+              'authorizes the patient to leave. Concurrent refinements '
+              'become ordered revisions rather than overwriting each other.',
+        ),
+        dischargeReconciliation: ConflictPolicyEntry(
+          resourceType: dischargeReconciliation,
+          policy: ConflictPolicy.immutableVersion,
+          rationale:
+              'A completed reconciliation is the authorized account of which '
+              'medications were reviewed before discharge. It stays readable '
+              'exactly as signed off; a later correction is a new '
+              'reconciliation, not a rewrite.',
+        ),
+        dischargeReconciliationItem: ConflictPolicyEntry(
+          resourceType: dischargeReconciliationItem,
+          policy: ConflictPolicy.versionedRevision,
+          rationale:
+              'Each medication decision is clinical narrative reviewed during '
+              'a reconciliation. Decisions are appended as they are made and '
+              'freeze with the reconciliation they belong to.',
+        ),
+        dischargeSettlement: ConflictPolicyEntry(
+          resourceType: dischargeSettlement,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'Settlement records money actually collected and is a financial '
+              'fact the server arbitrates. Two devices cannot both settle an '
+              'episode, so the server holds the settlement and the client '
+              'reconciles rather than claiming it.',
+        ),
+        dischargeAiSummary: ConflictPolicyEntry(
+          resourceType: dischargeAiSummary,
+          policy: ConflictPolicy.immutableWithCorrection,
+          rationale:
+              'A reviewed AI summary is a clinical narrative a clinician has '
+              'signed off, and machine output must not rewrite itself. Any '
+              'future correction is additive and explicitly attributed to a '
+              'human reviewer.',
         ),
       };
 

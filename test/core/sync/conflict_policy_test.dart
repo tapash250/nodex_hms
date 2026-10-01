@@ -52,6 +52,11 @@ void main() {
         ConflictPolicyRegistry.teleConsultation,
         ConflictPolicyRegistry.teleVitalsOverlay,
         ConflictPolicyRegistry.teleConsultationArchive,
+        ConflictPolicyRegistry.dischargeClearance,
+        ConflictPolicyRegistry.dischargeReconciliation,
+        ConflictPolicyRegistry.dischargeReconciliationItem,
+        ConflictPolicyRegistry.dischargeSettlement,
+        ConflictPolicyRegistry.dischargeAiSummary,
       ];
 
       for (final String resourceType in required) {
@@ -380,6 +385,51 @@ void main() {
           ConflictPolicyRegistry.teleConsultationArchive,
         ).policy,
         ConflictPolicy.immutableVersion,
+      );
+    });
+
+    test('discharge clearance resolves as versioned revisions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.dischargeClearance,
+        ).policy,
+        ConflictPolicy.versionedRevision,
+      );
+    });
+
+    test('a completed reconciliation is an immutable version', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.dischargeReconciliation,
+        ).policy,
+        ConflictPolicy.immutableVersion,
+      );
+    });
+
+    test('medication decisions resolve as versioned revisions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.dischargeReconciliationItem,
+        ).policy,
+        ConflictPolicy.versionedRevision,
+      );
+    });
+
+    test('discharge settlement is server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.dischargeSettlement,
+        ).policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('a reviewed AI summary is immutable with correction', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.dischargeAiSummary,
+        ).policy,
+        ConflictPolicy.immutableWithCorrection,
       );
     });
   });

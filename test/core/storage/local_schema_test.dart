@@ -101,6 +101,11 @@ void main() {
           LocalTables.teleConsultations,
           LocalTables.teleVitalsOverlays,
           LocalTables.teleConsultationArchives,
+          LocalTables.dischargeClearances,
+          LocalTables.dischargeReconciliations,
+          LocalTables.dischargeReconciliationItems,
+          LocalTables.dischargeSettlements,
+          LocalTables.dischargeAiSummaries,
         });
       },
     );
@@ -964,6 +969,83 @@ void main() {
       );
     });
 
+    test('discharge management tables mirror the Module 23 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.dischargeClearances).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'discharge_id',
+          'reviewed_by',
+          'status',
+          'outstanding_items',
+          'cleared_by',
+          'cleared_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.dischargeReconciliations).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'discharge_id',
+          'status',
+          'medications_reviewed',
+          'discrepancies_found',
+          'reviewed_by',
+          'reviewed_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.dischargeReconciliationItems).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'reconciliation_id',
+          'medication_name',
+          'action',
+          'discrepancy',
+          'recorded_by',
+          'recorded_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.dischargeSettlements).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'discharge_id',
+          'invoice_id',
+          'amount_minor',
+          'settled_by',
+          'settled_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.dischargeAiSummaries).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'discharge_id',
+          'model_id',
+          'summary_text',
+          'status',
+          'safety_decision',
+          'requested_by',
+          'reviewed_by',
+          'rejection_reason',
+        }),
+      );
+    });
+
     test('appointment table mirrors the Module 07 schedule schema', () {
       Table byName(String name) =>
           schema.tables.firstWhere((Table table) => table.name == name);
@@ -1181,6 +1263,7 @@ void main() {
           NodexPermissions.imagingReportVerify,
           NodexPermissions.dietPlanApprove,
           NodexPermissions.teleArchiveWrite,
+          NodexPermissions.dischargeSummaryReview,
           NodexPermissions.billingSettle,
           NodexPermissions.dischargeFinalize,
           NodexPermissions.prescriptionFinalize,
@@ -1204,6 +1287,7 @@ void main() {
           NodexPermissions.imagingReportVerify,
           NodexPermissions.dietPlanApprove,
           NodexPermissions.teleArchiveWrite,
+          NodexPermissions.dischargeSummaryReview,
           NodexPermissions.billingSettle,
         ]),
       );

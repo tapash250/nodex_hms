@@ -12,6 +12,7 @@ import 'package:nodex_hms/domain/discharge/discharge.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
 import 'package:nodex_hms/features/beds/bed_controller.dart';
 import 'package:nodex_hms/features/discharge/discharge_controller.dart';
+import 'package:nodex_hms/features/discharge/discharge_readiness_section.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
 /// Detail screen for one discharge record.
@@ -96,6 +97,9 @@ class _DischargeBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
+        const SizedBox(height: 16),
+        DischargeReadinessSection(discharge: value),
+        const SizedBox(height: 16),
         Wrap(
           spacing: 8,
           runSpacing: 8,

@@ -436,3 +436,32 @@ sync_rules:
         - select a.* from public.tele_consultation_archives a
           join public.tele_consultations c on c.id = a.consultation_id
           where c.tenant_id = bucket.tenant_id
+    discharge_management:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select c.* from public.discharge_clearances c
+          join public.discharges d on d.id = c.discharge_id
+          where d.tenant_id = bucket.tenant_id
+        - select r.* from public.discharge_medication_reconciliations r
+          join public.discharges d on d.id = r.discharge_id
+          where d.tenant_id = bucket.tenant_id
+        - select i.* from public.discharge_medication_reconciliation_items i
+          join public.discharge_medication_reconciliations r
+            on r.id = i.reconciliation_id
+          join public.discharges d on d.id = r.discharge_id
+          where d.tenant_id = bucket.tenant_id
+        - select s.* from public.discharge_settlements s
+          join public.discharges d on d.id = s.discharge_id
+          where d.tenant_id = bucket.tenant_id
+        - select a.* from public.discharge_ai_summaries a
+          join public.discharges d on d.id = a.discharge_id
+          where d.tenant_id = bucket.tenant_id

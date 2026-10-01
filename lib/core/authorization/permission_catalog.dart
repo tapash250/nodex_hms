@@ -182,6 +182,16 @@ abstract final class NodexPermissions {
   /// Archive a completed virtual consultation with recorded consent.
   static const String teleArchiveWrite = 'tele_archive.write';
 
+  /// Record and grant clinical clearance before a patient leaves.
+  static const String dischargeClearanceWrite = 'discharge_clearance.write';
+
+  /// Record the discharge medication review and its decisions.
+  static const String dischargeReconciliationWrite =
+      'discharge_reconciliation.write';
+
+  /// Accept or reject an AI-generated discharge summary.
+  static const String dischargeSummaryReview = 'discharge_summary.review';
+
   /// Dispense against an authorized prescription.
   static const String pharmacyDispense = 'pharmacy.dispense';
 
@@ -281,6 +291,7 @@ abstract final class NodexPermissions {
     imagingReportVerify,
     dietPlanApprove,
     teleArchiveWrite,
+    dischargeSummaryReview,
     billingSettle,
 
     icuBedAssign,
@@ -312,6 +323,7 @@ abstract final class NodexPermissions {
     imagingReportVerify,
     dietPlanApprove,
     teleArchiveWrite,
+    dischargeSummaryReview,
     billingSettle,
     icuBedAssign,
     icuVitalsRecord,
