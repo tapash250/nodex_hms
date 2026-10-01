@@ -58,6 +58,8 @@ void main() {
         ConflictPolicyRegistry.dischargeSettlement,
         ConflictPolicyRegistry.dischargeAiSummary,
         ConflictPolicyRegistry.wardRoom,
+        ConflictPolicyRegistry.clinicalProblem,
+        ConflictPolicyRegistry.scribeDraft,
       ];
 
       for (final String resourceType in required) {
@@ -430,6 +432,22 @@ void main() {
         ConflictPolicyRegistry.policyFor(
           ConflictPolicyRegistry.dischargeAiSummary,
         ).policy,
+        ConflictPolicy.immutableWithCorrection,
+      );
+    });
+
+    test('a problem list entry is corrected, never rewritten', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.clinicalProblem)
+            .policy,
+        ConflictPolicy.immutableWithCorrection,
+      );
+    });
+
+    test('a reviewed dictation is corrected, never rewritten', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.scribeDraft)
+            .policy,
         ConflictPolicy.immutableWithCorrection,
       );
     });

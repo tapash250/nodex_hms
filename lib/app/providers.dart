@@ -33,6 +33,8 @@ import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_use_cases.dart';
 import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
 import 'package:nodex_hms/domain/encounters/encounter_use_cases.dart';
+import 'package:nodex_hms/domain/encounters/problem_list_repository.dart';
+import 'package:nodex_hms/domain/encounters/problem_list_use_cases.dart';
 import 'package:nodex_hms/domain/er/er_repository.dart';
 import 'package:nodex_hms/domain/er/er_use_cases.dart';
 import 'package:nodex_hms/domain/floormap/floormap_repository.dart';
@@ -234,6 +236,50 @@ final Provider<AmendEncounterUseCase> amendEncounterUseCaseProvider =
     Provider<AmendEncounterUseCase>(
       (Ref ref) => AmendEncounterUseCase(
         repository: ref.watch(encounterRepositoryProvider),
+      ),
+    );
+
+/// Problem-list and scribe-draft repository over the local projection.
+final Provider<ProblemListRepository> problemListRepositoryProvider =
+    Provider<ProblemListRepository>(
+      (Ref ref) => DefaultProblemListRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Problem recording use case.
+final Provider<RecordProblemUseCase> recordProblemUseCaseProvider =
+    Provider<RecordProblemUseCase>(
+      (Ref ref) => RecordProblemUseCase(
+        repository: ref.watch(problemListRepositoryProvider),
+      ),
+    );
+
+/// Problem resolution use case.
+final Provider<ResolveProblemUseCase> resolveProblemUseCaseProvider =
+    Provider<ResolveProblemUseCase>(
+      (Ref ref) => ResolveProblemUseCase(
+        repository: ref.watch(problemListRepositoryProvider),
+      ),
+    );
+
+/// Ambient dictation recording use case.
+final Provider<RequestScribeDraftUseCase> requestScribeDraftUseCaseProvider =
+    Provider<RequestScribeDraftUseCase>(
+      (Ref ref) => RequestScribeDraftUseCase(
+        repository: ref.watch(problemListRepositoryProvider),
+      ),
+    );
+
+/// Ambient dictation review use case.
+final Provider<ReviewScribeDraftUseCase> reviewScribeDraftUseCaseProvider =
+    Provider<ReviewScribeDraftUseCase>(
+      (Ref ref) => ReviewScribeDraftUseCase(
+        repository: ref.watch(problemListRepositoryProvider),
+        encounters: ref.watch(encounterRepositoryProvider),
       ),
     );
 

@@ -186,6 +186,58 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
   // Amendments are append-only: upsert only. The encounter's move to `amended`
   // travels as a separate patch on clinical_encounters, itself gated by the
   // freeze trigger's single permitted transition.
+  // Module 16 (problem list). A problem is resolved by recording when and by
+  // whom it resolved; the row is never deleted and never reopened, which the
+  // clinical_problems guard trigger enforces.
+  clinical_problems: {
+    columns: {
+      tenant_id: 'uuid',
+      patient_id: 'uuid',
+      encounter_id: 'uuid',
+      problem_code: 'text',
+      description: 'text',
+      clinical_status: 'text',
+      onset_date: 'timestamp',
+      resolved_at: 'timestamp',
+      resolution_note: 'text',
+      recorded_by: 'uuid',
+      resolved_by: 'uuid',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'problem.recorded',
+    auditActionPatch: 'problem.resolved',
+  },
+  // Module 16 (ambient scribe). Recording a dictation is authoring the
+  // encounter, so upsert is permitted; the decision to accept or reject is a
+  // review event that travels as a patch, and the server's review guard keeps
+  // reviewed machine output immutable.
+  encounter_scribe_drafts: {
+    columns: {
+      tenant_id: 'uuid',
+      encounter_id: 'uuid',
+      model_id: 'text',
+      transcript_text: 'text',
+      subjective_note: 'text',
+      objective_findings: 'text',
+      assessment: 'text',
+      plan_description: 'text',
+      confidence: 'number',
+      safety_decision: 'text',
+      status: 'text',
+      requested_by: 'uuid',
+      reviewed_by: 'uuid',
+      reviewed_at: 'timestamp',
+      rejection_reason: 'text',
+      accepted_fields: 'json',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'scribe.dictated',
+    auditActionPatch: 'scribe.reviewed',
+  },
   encounter_amendments: {
     columns: {
       tenant_id: 'uuid',

@@ -82,6 +82,12 @@ abstract final class LocalTables {
   /// Encounter amendments (Module 16). Synced, append-only.
   static const String encounterAmendments = 'encounter_amendments';
 
+  /// Longitudinal problem list (Module 16). Synced, tenant-scoped.
+  static const String clinicalProblems = 'clinical_problems';
+
+  /// Ambient AI scribe drafts (Module 16). Synced, review-gated.
+  static const String encounterScribeDrafts = 'encounter_scribe_drafts';
+
   /// Laboratory orders (Module 17).
   static const String labOrders = 'lab_orders';
 
@@ -268,6 +274,8 @@ abstract final class NodexLocalSchema {
     _patientMergeHistory,
     _clinicalEncounters,
     _encounterAmendments,
+    _clinicalProblems,
+    _encounterScribeDrafts,
     _labOrders,
     _labSpecimens,
     _labResults,
@@ -765,6 +773,82 @@ abstract final class NodexLocalSchema {
     indexes: <Index>[
       Index('amendment_encounter', <IndexedColumn>[
         IndexedColumn('encounter_id'),
+      ]),
+    ],
+  );
+
+  /// Longitudinal problem list (Module 16).
+  ///
+  /// Mirrors `public.clinical_problems`. A problem is closed by recording when
+  /// it resolved, never by deleting the row, so the list stays a faithful
+  /// account of what the patient has and has had.
+  static const Table _clinicalProblems = Table(
+    LocalTables.clinicalProblems,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('problem_code'),
+      Column.text('description'),
+      Column.text('clinical_status'),
+      Column.text('onset_date'),
+      Column.text('resolved_at'),
+      Column.text('resolution_note'),
+      Column.text('recorded_by'),
+      Column.text('resolved_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('problem_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('clinical_status'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('problem_encounter', <IndexedColumn>[
+        IndexedColumn('encounter_id'),
+      ]),
+    ],
+  );
+
+  /// Ambient AI scribe drafts (Module 16).
+  ///
+  /// Mirrors `public.encounter_scribe_drafts`. `confidence` is a decimal and
+  /// `accepted_fields` a text array, so both travel encoded as text. What a
+  /// clinician accepted is stored explicitly rather than inferred from the
+  /// machine text, so the record cannot imply a section was signed off when it
+  /// was not.
+  static const Table _encounterScribeDrafts = Table(
+    LocalTables.encounterScribeDrafts,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('encounter_id'),
+      Column.text('model_id'),
+      Column.text('transcript_text'),
+      Column.text('subjective_note'),
+      Column.text('objective_findings'),
+      Column.text('assessment'),
+      Column.text('plan_description'),
+      Column.text('confidence'),
+      Column.text('safety_decision'),
+      Column.text('status'),
+      Column.text('requested_by'),
+      Column.text('reviewed_by'),
+      Column.text('reviewed_at'),
+      Column.text('rejection_reason'),
+      Column.text('accepted_fields'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('scribe_draft_encounter', <IndexedColumn>[
+        IndexedColumn('encounter_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('scribe_draft_pending', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
       ]),
     ],
   );

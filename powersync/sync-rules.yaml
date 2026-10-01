@@ -137,6 +137,17 @@ sync_rules:
         - select e.* from public.clinical_encounters e
           join public.patients p on p.id = e.patient_id
           where p.tenant_id = bucket.tenant_id
+        # Module 16 (problem list). The list is longitudinal and belongs to the
+        # patient rather than the encounter, so it travels with the patient.
+        - select pb.* from public.clinical_problems pb
+          join public.patients p on p.id = pb.patient_id
+          where p.tenant_id = bucket.tenant_id
+        # A dictation travels with its encounter: a device that can see the note
+        # must also see the machine output and the clinician's decision on it.
+        - select sd.* from public.encounter_scribe_drafts sd
+          join public.clinical_encounters e on e.id = sd.encounter_id
+          join public.patients p on p.id = e.patient_id
+          where p.tenant_id = bucket.tenant_id
         - select am.* from public.encounter_amendments am
           join public.clinical_encounters e on e.id = am.encounter_id
           join public.patients p on p.id = e.patient_id

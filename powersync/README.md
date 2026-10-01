@@ -54,8 +54,10 @@ day menus and intake logs), `telemedicine` (Module 22, consultations, live
 vitals overlays and consented archives), `discharge_management` (Module 23,
 clearances, medication reconciliations and their decisions, settlements and AI
 summaries), `floor_map` (Module 24, room layout and the floors it is drawn
-on; occupancy derives from `ward_census`). Remaining: the rest of the 54-module
-scope.
+on; occupancy derives from `ward_census`). The `emr_encounters` bucket also
+carries the Module 16 problem list and ambient scribe drafts, so a device holding
+a note also holds the machine output behind it and the clinician's decision on
+it. Remaining: the rest of the 54-module scope.
 
 ## Upload path
 

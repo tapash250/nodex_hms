@@ -278,6 +278,12 @@ abstract final class ConflictPolicyRegistry {
   /// Append-only correction against a signed encounter.
   static const String encounterAmendment = 'encounter_amendment';
 
+  /// Entry on a patient's longitudinal problem list.
+  static const String clinicalProblem = 'clinical_problem';
+
+  /// Ambient AI scribe draft awaiting review.
+  static const String scribeDraft = 'scribe_draft';
+
   /// Invoice header.
   static const String invoice = 'invoice';
 
@@ -716,6 +722,24 @@ abstract final class ConflictPolicyRegistry {
           'encounter. It is an event in the record\'s history, so it is '
           'appended and never rewritten or reordered.',
     ),
+    clinicalProblem: ConflictPolicyEntry(
+      resourceType: clinicalProblem,
+      policy: ConflictPolicy.immutableWithCorrection,
+      rationale:
+          'A recorded problem is a clinical assertion about a patient that '
+          'other clinicians have already acted on. It is never rewritten: '
+          'ending it appends an attributed resolution, so the history of what '
+          'the patient has had survives every sync.',
+    ),
+    scribeDraft: ConflictPolicyEntry(
+      resourceType: scribeDraft,
+      policy: ConflictPolicy.immutableWithCorrection,
+      rationale:
+          'A reviewed dictation is the record of what machine output was shown '
+          'to a clinician and what they signed off. It is never rewritten, by '
+          'the model or by a later device; a dictation the clinician disliked '
+          'is superseded by a new one rather than edited.',
+    ),
     invoice: ConflictPolicyEntry(
       resourceType: invoice,
       policy: ConflictPolicy.serverAuthoritative,
@@ -843,6 +867,7 @@ abstract final class ConflictPolicyRegistry {
     'beds': bed,
     'blood_units': bloodUnit,
     'clinical_encounters': encounter,
+    'clinical_problems': clinicalProblem,
     'diet_assessments': dietAssessment,
     'diet_intake_logs': dietIntakeLog,
     'diet_meal_plan_days': dietMealPlanDay,
@@ -855,6 +880,7 @@ abstract final class ConflictPolicyRegistry {
     'discharge_settlements': dischargeSettlement,
     'discharges': discharge,
     'encounter_amendments': encounterAmendment,
+    'encounter_scribe_drafts': scribeDraft,
     'er_visits': erVisit,
     'icu_beds': icuBed,
     'icu_nursing_handover': icuHandover,

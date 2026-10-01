@@ -107,6 +107,8 @@ void main() {
           LocalTables.dischargeSettlements,
           LocalTables.dischargeAiSummaries,
           LocalTables.wardRooms,
+          LocalTables.clinicalProblems,
+          LocalTables.encounterScribeDrafts,
         });
       },
     );
@@ -966,6 +968,59 @@ void main() {
           'transcript_reference',
           'consent_recorded',
           'archived_at',
+        }),
+      );
+    });
+
+    test('the problem list mirrors the PostgreSQL schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.clinicalProblems).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'encounter_id',
+          'problem_code',
+          'description',
+          'clinical_status',
+          'onset_date',
+          'resolved_at',
+          'resolution_note',
+          'recorded_by',
+          'resolved_by',
+        }),
+      );
+    });
+
+    test('scribe drafts mirror the PostgreSQL schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.encounterScribeDrafts).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'encounter_id',
+          'model_id',
+          'transcript_text',
+          'subjective_note',
+          'objective_findings',
+          'assessment',
+          'plan_description',
+          'confidence',
+          'safety_decision',
+          'status',
+          'requested_by',
+          'reviewed_by',
+          'reviewed_at',
+          'rejection_reason',
+          'accepted_fields',
         }),
       );
     });
