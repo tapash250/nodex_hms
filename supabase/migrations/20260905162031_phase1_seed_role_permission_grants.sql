@@ -41,6 +41,9 @@ values
   ('medical_officer', 'physio_session.write'),
   ('medical_officer', 'physio_exercise.write'),
   ('medical_officer', 'physio_note.write'),
+  ('medical_officer', 'diet_assessment.write'),
+  ('medical_officer', 'diet_plan.write'),
+  ('medical_officer', 'diet_plan.approve'),
   ('medical_officer', 'ot.schedule'),
   ('medical_officer', 'ot.record'),
   ('medical_officer', 'ot.finalize');
@@ -68,6 +71,7 @@ values
   ('nursing_staff', 'imaging_order.write'),
   ('nursing_staff', 'physio_session.write'),
   ('nursing_staff', 'physio_note.write'),
+  ('nursing_staff', 'diet_intake.record'),
   ('nursing_staff', 'ot.record');
 
 -- Diagnostic / Lab Technician

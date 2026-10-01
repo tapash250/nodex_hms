@@ -38,6 +38,7 @@ import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
 import 'package:nodex_hms/features/icu/icu_list_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
 import 'package:nodex_hms/features/laboratory/lab_order_screen.dart';
+import 'package:nodex_hms/features/nutrition/nutrition_meal_plan_screen.dart';
 import 'package:nodex_hms/features/ot/ot_booking_detail_screen.dart';
 import 'package:nodex_hms/features/ot/ot_list_screen.dart';
 import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
@@ -204,6 +205,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                         PhysioSessionScreen(
                           sessionId: state.pathParameters['sessionId']!,
                         ),
+                  ),
+                  GoRoute(
+                    path: 'nutrition/:planId',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        MealPlanScreen(planId: state.pathParameters['planId']!),
                   ),
                   GoRoute(
                     path: 'rx/:prescriptionId',

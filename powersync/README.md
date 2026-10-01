@@ -49,7 +49,8 @@ visits), `icu_census` (Module 06, ICU beds, vitals, handover, ventilator),
 `operation_theatre` (Module 19, bookings, pre-op, anesthesia, procedure and
 post-op records), `radiology` (Module 18, imaging orders, studies and
 reports), `physiotherapy` (Module 20, sessions, exercise regimens and
-recovery notes). Remaining: the rest of the 54-module scope.
+recovery notes), `nutrition` (Module 21, assessments, seven-day meal plans,
+day menus and intake logs). Remaining: the rest of the 54-module scope.
 
 ## Upload path
 

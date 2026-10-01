@@ -28,7 +28,7 @@ void main() {
 
     test(
       'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
-      '17, 18, 19, 20, 23, 25, 26 and 31',
+      '17, 18, 19, 20, 21, 23, 25, 26 and 31',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -94,6 +94,10 @@ void main() {
           LocalTables.physioSessions,
           LocalTables.physioExercisePlans,
           LocalTables.physioRecoveryNotes,
+          LocalTables.dietAssessments,
+          LocalTables.dietMealPlans,
+          LocalTables.dietMealPlanDays,
+          LocalTables.dietIntakeLogs,
         });
       },
     );
@@ -833,6 +837,74 @@ void main() {
       );
     });
 
+    test('nutrition tables mirror the Module 21 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.dietAssessments).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'assessed_by',
+          'assessment_type',
+          'weight_kg',
+          'height_cm',
+          'nutrition_diagnosis',
+          'restrictions',
+          'status',
+          'finalized_by',
+        }),
+      );
+      expect(
+        byName(LocalTables.dietMealPlans).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'assessment_id',
+          'name',
+          'plan_source',
+          'cycle_days',
+          'status',
+          'approved_by',
+          'rejection_reason',
+        }),
+      );
+      expect(
+        byName(LocalTables.dietMealPlanDays).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'meal_plan_id',
+          'day_number',
+          'breakfast',
+          'lunch',
+          'dinner',
+          'snacks',
+          'calories_kcal',
+        }),
+      );
+      expect(
+        byName(LocalTables.dietIntakeLogs).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'meal_plan_day_id',
+          'meal_slot',
+          'portion_consumed_pct',
+          'recorded_by',
+          'recorded_at',
+        }),
+      );
+    });
+
     test('appointment table mirrors the Module 07 schedule schema', () {
       Table byName(String name) =>
           schema.tables.firstWhere((Table table) => table.name == name);
@@ -1048,6 +1120,7 @@ void main() {
           NodexPermissions.transfusionFinalize,
           NodexPermissions.otFinalize,
           NodexPermissions.imagingReportVerify,
+          NodexPermissions.dietPlanApprove,
           NodexPermissions.billingSettle,
           NodexPermissions.dischargeFinalize,
           NodexPermissions.prescriptionFinalize,
@@ -1069,6 +1142,7 @@ void main() {
           NodexPermissions.transfusionAdminister,
           NodexPermissions.otFinalize,
           NodexPermissions.imagingReportVerify,
+          NodexPermissions.dietPlanApprove,
           NodexPermissions.billingSettle,
         ]),
       );

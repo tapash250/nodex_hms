@@ -39,6 +39,8 @@ import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
 import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
 import 'package:nodex_hms/domain/laboratory/lab_use_cases.dart';
+import 'package:nodex_hms/domain/nutrition/nutrition_repository.dart';
+import 'package:nodex_hms/domain/nutrition/nutrition_use_cases.dart';
 import 'package:nodex_hms/domain/ot/ot_repository.dart';
 import 'package:nodex_hms/domain/ot/ot_use_cases.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
@@ -405,6 +407,73 @@ recordPhysioRecoveryNoteUseCaseProvider =
     Provider<RecordPhysioRecoveryNoteUseCase>(
       (Ref ref) => RecordPhysioRecoveryNoteUseCase(
         repository: ref.watch(physioRepositoryProvider),
+      ),
+    );
+
+/// Clinical nutrition repository over the encrypted local projection.
+final Provider<NutritionRepository> nutritionRepositoryProvider =
+    Provider<NutritionRepository>(
+      (Ref ref) => DefaultNutritionRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Nutrition assessment recording.
+final Provider<RecordDietAssessmentUseCase>
+recordDietAssessmentUseCaseProvider = Provider<RecordDietAssessmentUseCase>(
+  (Ref ref) => RecordDietAssessmentUseCase(
+    repository: ref.watch(nutritionRepositoryProvider),
+  ),
+);
+
+/// Nutrition assessment finalization.
+final Provider<FinalizeDietAssessmentUseCase>
+finalizeDietAssessmentUseCaseProvider = Provider<FinalizeDietAssessmentUseCase>(
+  (Ref ref) => FinalizeDietAssessmentUseCase(
+    repository: ref.watch(nutritionRepositoryProvider),
+  ),
+);
+
+/// Meal plan authoring.
+final Provider<DraftDietMealPlanUseCase> draftDietMealPlanUseCaseProvider =
+    Provider<DraftDietMealPlanUseCase>(
+      (Ref ref) => DraftDietMealPlanUseCase(
+        repository: ref.watch(nutritionRepositoryProvider),
+      ),
+    );
+
+/// Meal plan day authoring.
+final Provider<AddDietMealPlanDayUseCase> addDietMealPlanDayUseCaseProvider =
+    Provider<AddDietMealPlanDayUseCase>(
+      (Ref ref) => AddDietMealPlanDayUseCase(
+        repository: ref.watch(nutritionRepositoryProvider),
+      ),
+    );
+
+/// Meal plan approval.
+final Provider<ApproveDietMealPlanUseCase> approveDietMealPlanUseCaseProvider =
+    Provider<ApproveDietMealPlanUseCase>(
+      (Ref ref) => ApproveDietMealPlanUseCase(
+        repository: ref.watch(nutritionRepositoryProvider),
+      ),
+    );
+
+/// Meal plan rejection.
+final Provider<RejectDietMealPlanUseCase> rejectDietMealPlanUseCaseProvider =
+    Provider<RejectDietMealPlanUseCase>(
+      (Ref ref) => RejectDietMealPlanUseCase(
+        repository: ref.watch(nutritionRepositoryProvider),
+      ),
+    );
+
+/// Dietary intake recording.
+final Provider<RecordDietIntakeLogUseCase> recordDietIntakeLogUseCaseProvider =
+    Provider<RecordDietIntakeLogUseCase>(
+      (Ref ref) => RecordDietIntakeLogUseCase(
+        repository: ref.watch(nutritionRepositoryProvider),
       ),
     );
 

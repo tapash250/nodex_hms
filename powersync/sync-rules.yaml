@@ -396,3 +396,24 @@ sync_rules:
         - select n.* from public.physio_recovery_notes n
           join public.physio_sessions s on s.id = n.session_id
           where s.tenant_id = bucket.tenant_id
+    nutrition:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'patient.read'
+      data:
+        - select * from public.diet_assessments where tenant_id = bucket.tenant_id
+        - select * from public.diet_meal_plans where tenant_id = bucket.tenant_id
+        - select d.* from public.diet_meal_plan_days d
+          join public.diet_meal_plans p on p.id = d.meal_plan_id
+          where p.tenant_id = bucket.tenant_id
+        - select l.* from public.diet_intake_logs l
+          join public.diet_meal_plan_days d on d.id = l.meal_plan_day_id
+          join public.diet_meal_plans p on p.id = d.meal_plan_id
+          where p.tenant_id = bucket.tenant_id

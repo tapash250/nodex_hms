@@ -232,6 +232,18 @@ abstract final class ConflictPolicyRegistry {
   /// Physiotherapy recovery note.
   static const String physioRecoveryNote = 'physio_recovery_note';
 
+  /// Clinical nutrition assessment.
+  static const String dietAssessment = 'diet_assessment';
+
+  /// Clinical nutrition meal plan.
+  static const String dietMealPlan = 'diet_meal_plan';
+
+  /// Meal plan day menu.
+  static const String dietMealPlanDay = 'diet_meal_plan_day';
+
+  /// Recorded dietary intake.
+  static const String dietIntakeLog = 'diet_intake_log';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -494,6 +506,39 @@ abstract final class ConflictPolicyRegistry {
               'A recovery note is clinical narrative that may be refined as '
               'the patient progresses. Concurrent refinements become ordered '
               'revisions; no revision is overwritten.',
+        ),
+        dietAssessment: ConflictPolicyEntry(
+          resourceType: dietAssessment,
+          policy: ConflictPolicy.versionedRevision,
+          rationale:
+              'A nutrition assessment is refined until it is finalized. '
+              'Concurrent refinements become ordered revisions; once '
+              'finalized the server freezes it and the client reconciles.',
+        ),
+        dietMealPlan: ConflictPolicyEntry(
+          resourceType: dietMealPlan,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'A meal plan is a decision, not a draft: generated or '
+              'authored, it takes effect only once approved or rejected. '
+              'Two devices cannot both decide a plan, so the server holds '
+              'the plan status and the client reconciles.',
+        ),
+        dietMealPlanDay: ConflictPolicyEntry(
+          resourceType: dietMealPlanDay,
+          policy: ConflictPolicy.immutableVersion,
+          rationale:
+              'Day menus are authored as a seven-day set and frozen with '
+              'their plan. A change is a new plan rather than an edit to a '
+              'menu the ward may already be administering.',
+        ),
+        dietIntakeLog: ConflictPolicyEntry(
+          resourceType: dietIntakeLog,
+          policy: ConflictPolicy.eventTransaction,
+          rationale:
+              'Intake is an event with an identity: a portion of a meal '
+              'taken at a time by a nurse. Duplicate uploads deduplicate so '
+              'a retry cannot record a second meal.',
         ),
       };
 

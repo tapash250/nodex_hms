@@ -198,6 +198,18 @@ abstract final class LocalTables {
 
   /// Physiotherapy recovery notes (Module 20). Synced.
   static const String physioRecoveryNotes = 'physio_recovery_notes';
+
+  /// Clinical nutrition assessments (Module 21). Synced.
+  static const String dietAssessments = 'diet_assessments';
+
+  /// Clinical nutrition meal plans (Module 21). Synced.
+  static const String dietMealPlans = 'diet_meal_plans';
+
+  /// Meal plan day menus (Module 21). Synced.
+  static const String dietMealPlanDays = 'diet_meal_plan_days';
+
+  /// Actual dietary intake logs (Module 21). Synced.
+  static const String dietIntakeLogs = 'diet_intake_logs';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -266,6 +278,10 @@ abstract final class NodexLocalSchema {
     _physioSessions,
     _physioExercisePlans,
     _physioRecoveryNotes,
+    _dietAssessments,
+    _dietMealPlans,
+    _dietMealPlanDays,
+    _dietIntakeLogs,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -1801,6 +1817,115 @@ abstract final class NodexLocalSchema {
     indexes: <Index>[
       Index('physio_note_session', <IndexedColumn>[
         IndexedColumn('session_id'),
+      ]),
+    ],
+  );
+
+  /// Clinical nutrition assessments: draft -> finalized, then frozen
+  /// (Module 21). Mirrors `public.diet_assessments`.
+  static const Table _dietAssessments = Table(
+    LocalTables.dietAssessments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('assessed_by'),
+      Column.text('assessment_type'),
+      Column.text('weight_kg'),
+      Column.text('height_cm'),
+      Column.text('nutrition_diagnosis'),
+      Column.text('restrictions'),
+      Column.text('status'),
+      Column.text('assessed_at'),
+      Column.text('finalized_at'),
+      Column.text('finalized_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('diet_assessment_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('assessed_at'),
+      ]),
+    ],
+  );
+
+  /// Seven-day meal plans: draft -> approved or rejected, then frozen
+  /// (Module 21). Mirrors `public.diet_meal_plans`.
+  static const Table _dietMealPlans = Table(
+    LocalTables.dietMealPlans,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('assessment_id'),
+      Column.text('name'),
+      Column.text('plan_source'),
+      Column.integer('cycle_days'),
+      Column.text('status'),
+      Column.text('generated_by'),
+      Column.text('generated_at'),
+      Column.text('approved_by'),
+      Column.text('approved_at'),
+      Column.text('rejected_by'),
+      Column.text('rejected_at'),
+      Column.text('rejection_reason'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('diet_plan_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('diet_plan_assessment', <IndexedColumn>[
+        IndexedColumn('assessment_id'),
+      ]),
+    ],
+  );
+
+  /// Day menus within a seven-day meal plan (Module 21). Mirrors
+  /// `public.diet_meal_plan_days`.
+  static const Table _dietMealPlanDays = Table(
+    LocalTables.dietMealPlanDays,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('meal_plan_id'),
+      Column.integer('day_number'),
+      Column.text('breakfast'),
+      Column.text('lunch'),
+      Column.text('dinner'),
+      Column.text('snacks'),
+      Column.integer('calories_kcal'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('diet_plan_day_plan', <IndexedColumn>[
+        IndexedColumn('meal_plan_id'),
+        IndexedColumn('day_number'),
+      ]),
+    ],
+  );
+
+  /// Recorded dietary intake against a plan day (Module 21). Mirrors
+  /// `public.diet_intake_logs`.
+  static const Table _dietIntakeLogs = Table(
+    LocalTables.dietIntakeLogs,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('meal_plan_day_id'),
+      Column.text('meal_slot'),
+      Column.integer('portion_consumed_pct'),
+      Column.text('recorded_by'),
+      Column.text('recorded_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('diet_intake_day', <IndexedColumn>[
+        IndexedColumn('meal_plan_day_id'),
+        IndexedColumn('recorded_at'),
       ]),
     ],
   );

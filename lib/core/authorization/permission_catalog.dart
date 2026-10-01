@@ -161,6 +161,18 @@ abstract final class NodexPermissions {
   /// Record physiotherapy recovery and progress notes.
   static const String physioNoteWrite = 'physio_note.write';
 
+  /// Record and finalize clinical nutrition assessments.
+  static const String dietAssessmentWrite = 'diet_assessment.write';
+
+  /// Author seven-day meal plans and their daily menus.
+  static const String dietPlanWrite = 'diet_plan.write';
+
+  /// Approve or reject generated and authored meal plans.
+  static const String dietPlanApprove = 'diet_plan.approve';
+
+  /// Record the portion of planned meals actually taken.
+  static const String dietIntakeRecord = 'diet_intake.record';
+
   /// Dispense against an authorized prescription.
   static const String pharmacyDispense = 'pharmacy.dispense';
 
@@ -258,6 +270,7 @@ abstract final class NodexPermissions {
     transfusionFinalize,
     otFinalize,
     imagingReportVerify,
+    dietPlanApprove,
     billingSettle,
 
     icuBedAssign,
@@ -287,6 +300,7 @@ abstract final class NodexPermissions {
     transfusionAdminister,
     otFinalize,
     imagingReportVerify,
+    dietPlanApprove,
     billingSettle,
     icuBedAssign,
     icuVitalsRecord,

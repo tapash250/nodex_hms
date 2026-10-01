@@ -45,6 +45,10 @@ void main() {
         ConflictPolicyRegistry.physioSession,
         ConflictPolicyRegistry.physioExercisePlan,
         ConflictPolicyRegistry.physioRecoveryNote,
+        ConflictPolicyRegistry.dietAssessment,
+        ConflictPolicyRegistry.dietMealPlan,
+        ConflictPolicyRegistry.dietMealPlanDay,
+        ConflictPolicyRegistry.dietIntakeLog,
       ];
 
       for (final String resourceType in required) {
@@ -314,6 +318,38 @@ void main() {
           ConflictPolicyRegistry.physioRecoveryNote,
         ).policy,
         ConflictPolicy.versionedRevision,
+      );
+    });
+
+    test('nutrition assessments resolve as versioned revisions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.dietAssessment)
+            .policy,
+        ConflictPolicy.versionedRevision,
+      );
+    });
+
+    test('meal plans are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.dietMealPlan)
+            .policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('meal plan day menus are immutable versions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.dietMealPlanDay)
+            .policy,
+        ConflictPolicy.immutableVersion,
+      );
+    });
+
+    test('dietary intake resolves as event transactions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.dietIntakeLog)
+            .policy,
+        ConflictPolicy.eventTransaction,
       );
     });
   });
