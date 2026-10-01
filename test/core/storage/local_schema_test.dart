@@ -28,7 +28,7 @@ void main() {
 
     test(
       'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
-      '17, 18, 19, 20, 21, 23, 25, 26 and 31',
+      '17, 18, 19, 20, 21, 22, 23, 25, 26 and 31',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -98,6 +98,9 @@ void main() {
           LocalTables.dietMealPlans,
           LocalTables.dietMealPlanDays,
           LocalTables.dietIntakeLogs,
+          LocalTables.teleConsultations,
+          LocalTables.teleVitalsOverlays,
+          LocalTables.teleConsultationArchives,
         });
       },
     );
@@ -905,6 +908,62 @@ void main() {
       );
     });
 
+    test('telemedicine tables mirror the Module 22 schema', () {
+      Table byName(String name) =>
+          schema.tables.firstWhere((Table table) => table.name == name);
+
+      expect(
+        byName(LocalTables.teleConsultations).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'clinician_id',
+          'booked_by',
+          'visit_code',
+          'channel',
+          'status',
+          'scheduled_at',
+          'waiting_at',
+          'started_at',
+          'completed_at',
+          'cancellation_reason',
+          'no_show_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.teleVitalsOverlays).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'consultation_id',
+          'observed_by',
+          'heart_rate_bpm',
+          'spo2_pct',
+          'temperature_c',
+          'respiratory_rate',
+          'observed_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.teleConsultationArchives).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'consultation_id',
+          'archived_by',
+          'duration_seconds',
+          'recording_reference',
+          'transcript_reference',
+          'consent_recorded',
+          'archived_at',
+        }),
+      );
+    });
+
     test('appointment table mirrors the Module 07 schedule schema', () {
       Table byName(String name) =>
           schema.tables.firstWhere((Table table) => table.name == name);
@@ -1121,6 +1180,7 @@ void main() {
           NodexPermissions.otFinalize,
           NodexPermissions.imagingReportVerify,
           NodexPermissions.dietPlanApprove,
+          NodexPermissions.teleArchiveWrite,
           NodexPermissions.billingSettle,
           NodexPermissions.dischargeFinalize,
           NodexPermissions.prescriptionFinalize,
@@ -1143,6 +1203,7 @@ void main() {
           NodexPermissions.otFinalize,
           NodexPermissions.imagingReportVerify,
           NodexPermissions.dietPlanApprove,
+          NodexPermissions.teleArchiveWrite,
           NodexPermissions.billingSettle,
         ]),
       );

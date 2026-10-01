@@ -173,6 +173,15 @@ abstract final class NodexPermissions {
   /// Record the portion of planned meals actually taken.
   static const String dietIntakeRecord = 'diet_intake.record';
 
+  /// Schedule, admit, run and close virtual consultations.
+  static const String teleConsultationWrite = 'tele_consultation.write';
+
+  /// Record live vitals observed during a virtual consultation.
+  static const String teleVitalsRecord = 'tele_vitals.record';
+
+  /// Archive a completed virtual consultation with recorded consent.
+  static const String teleArchiveWrite = 'tele_archive.write';
+
   /// Dispense against an authorized prescription.
   static const String pharmacyDispense = 'pharmacy.dispense';
 
@@ -271,6 +280,7 @@ abstract final class NodexPermissions {
     otFinalize,
     imagingReportVerify,
     dietPlanApprove,
+    teleArchiveWrite,
     billingSettle,
 
     icuBedAssign,
@@ -301,6 +311,7 @@ abstract final class NodexPermissions {
     otFinalize,
     imagingReportVerify,
     dietPlanApprove,
+    teleArchiveWrite,
     billingSettle,
     icuBedAssign,
     icuVitalsRecord,

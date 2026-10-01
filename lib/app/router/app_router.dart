@@ -49,6 +49,7 @@ import 'package:nodex_hms/features/radiology/radiology_order_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/settings_screen.dart';
+import 'package:nodex_hms/features/telemedicine/telemedicine_consultation_screen.dart';
 
 /// Route paths that do not require an authorized session.
 abstract final class NodexRoutes {
@@ -210,6 +211,14 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                     path: 'nutrition/:planId',
                     builder: (BuildContext context, GoRouterState state) =>
                         MealPlanScreen(planId: state.pathParameters['planId']!),
+                  ),
+                  GoRoute(
+                    path: 'telemedicine/:consultationId',
+                    builder: (BuildContext context, GoRouterState state) =>
+                        TeleConsultationScreen(
+                          consultationId:
+                              state.pathParameters['consultationId']!,
+                        ),
                   ),
                   GoRoute(
                     path: 'rx/:prescriptionId',

@@ -52,6 +52,8 @@ import 'package:nodex_hms/domain/prescriptions/prescription_use_cases.dart';
 import 'package:nodex_hms/domain/radiology/radiology_repository.dart';
 import 'package:nodex_hms/domain/radiology/radiology_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
+import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
+import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The resolved build environment.
@@ -474,6 +476,85 @@ final Provider<RecordDietIntakeLogUseCase> recordDietIntakeLogUseCaseProvider =
     Provider<RecordDietIntakeLogUseCase>(
       (Ref ref) => RecordDietIntakeLogUseCase(
         repository: ref.watch(nutritionRepositoryProvider),
+      ),
+    );
+
+/// Telemedicine repository over the encrypted local projection.
+final Provider<TelemedicineRepository> telemedicineRepositoryProvider =
+    Provider<TelemedicineRepository>(
+      (Ref ref) => DefaultTelemedicineRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Virtual consultation scheduling.
+final Provider<ScheduleTeleConsultationUseCase>
+scheduleTeleConsultationUseCaseProvider =
+    Provider<ScheduleTeleConsultationUseCase>(
+      (Ref ref) => ScheduleTeleConsultationUseCase(
+        repository: ref.watch(telemedicineRepositoryProvider),
+      ),
+    );
+
+/// Waiting room admission.
+final Provider<AdmitToWaitingRoomUseCase> admitToWaitingRoomUseCaseProvider =
+    Provider<AdmitToWaitingRoomUseCase>(
+      (Ref ref) => AdmitToWaitingRoomUseCase(
+        repository: ref.watch(telemedicineRepositoryProvider),
+      ),
+    );
+
+/// Call start.
+final Provider<StartTeleConsultationUseCase>
+startTeleConsultationUseCaseProvider = Provider<StartTeleConsultationUseCase>(
+  (Ref ref) => StartTeleConsultationUseCase(
+    repository: ref.watch(telemedicineRepositoryProvider),
+  ),
+);
+
+/// Call completion.
+final Provider<CompleteTeleConsultationUseCase>
+completeTeleConsultationUseCaseProvider =
+    Provider<CompleteTeleConsultationUseCase>(
+      (Ref ref) => CompleteTeleConsultationUseCase(
+        repository: ref.watch(telemedicineRepositoryProvider),
+      ),
+    );
+
+/// No-show recording.
+final Provider<MarkTeleNoShowUseCase> markTeleNoShowUseCaseProvider =
+    Provider<MarkTeleNoShowUseCase>(
+      (Ref ref) => MarkTeleNoShowUseCase(
+        repository: ref.watch(telemedicineRepositoryProvider),
+      ),
+    );
+
+/// Consultation cancellation.
+final Provider<CancelTeleConsultationUseCase>
+cancelTeleConsultationUseCaseProvider = Provider<CancelTeleConsultationUseCase>(
+  (Ref ref) => CancelTeleConsultationUseCase(
+    repository: ref.watch(telemedicineRepositoryProvider),
+  ),
+);
+
+/// Live vitals overlay recording.
+final Provider<RecordTeleVitalsOverlayUseCase>
+recordTeleVitalsOverlayUseCaseProvider =
+    Provider<RecordTeleVitalsOverlayUseCase>(
+      (Ref ref) => RecordTeleVitalsOverlayUseCase(
+        repository: ref.watch(telemedicineRepositoryProvider),
+      ),
+    );
+
+/// Consultation archiving.
+final Provider<ArchiveTeleConsultationUseCase>
+archiveTeleConsultationUseCaseProvider =
+    Provider<ArchiveTeleConsultationUseCase>(
+      (Ref ref) => ArchiveTeleConsultationUseCase(
+        repository: ref.watch(telemedicineRepositoryProvider),
       ),
     );
 

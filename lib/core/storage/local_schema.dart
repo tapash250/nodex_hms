@@ -210,6 +210,15 @@ abstract final class LocalTables {
 
   /// Actual dietary intake logs (Module 21). Synced.
   static const String dietIntakeLogs = 'diet_intake_logs';
+
+  /// Telemedicine consultations (Module 22). Synced.
+  static const String teleConsultations = 'tele_consultations';
+
+  /// Live vitals observed during a call (Module 22). Synced.
+  static const String teleVitalsOverlays = 'tele_vitals_overlays';
+
+  /// Archived virtual consultations (Module 22). Synced.
+  static const String teleConsultationArchives = 'tele_consultation_archives';
 }
 
 /// Builds the PowerSync schema for the Phase 1 foundation.
@@ -282,6 +291,9 @@ abstract final class NodexLocalSchema {
     _dietMealPlans,
     _dietMealPlanDays,
     _dietIntakeLogs,
+    _teleConsultations,
+    _teleVitalsOverlays,
+    _teleConsultationArchives,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -1926,6 +1938,91 @@ abstract final class NodexLocalSchema {
       Index('diet_intake_day', <IndexedColumn>[
         IndexedColumn('meal_plan_day_id'),
         IndexedColumn('recorded_at'),
+      ]),
+    ],
+  );
+
+  /// Telemedicine consultations: waiting room and call lifecycle
+  /// (Module 22). Mirrors `public.tele_consultations`.
+  static const Table _teleConsultations = Table(
+    LocalTables.teleConsultations,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('clinician_id'),
+      Column.text('booked_by'),
+      Column.text('visit_code'),
+      Column.text('channel'),
+      Column.text('status'),
+      Column.text('reason'),
+      Column.text('scheduled_at'),
+      Column.text('waiting_at'),
+      Column.text('started_at'),
+      Column.text('completed_at'),
+      Column.text('cancelled_at'),
+      Column.text('cancellation_reason'),
+      Column.text('no_show_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('tele_consultation_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('scheduled_at'),
+      ]),
+      Index('tele_consultation_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Live vitals observed while a call is in progress (Module 22). Mirrors
+  /// `public.tele_vitals_overlays`.
+  static const Table _teleVitalsOverlays = Table(
+    LocalTables.teleVitalsOverlays,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('consultation_id'),
+      Column.text('observed_by'),
+      Column.integer('heart_rate_bpm'),
+      Column.text('spo2_pct'),
+      Column.text('temperature_c'),
+      Column.integer('respiratory_rate'),
+      Column.text('notes'),
+      Column.text('observed_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('tele_overlay_consultation', <IndexedColumn>[
+        IndexedColumn('consultation_id'),
+        IndexedColumn('observed_at'),
+      ]),
+    ],
+  );
+
+  /// Archived consultations with recorded consent (Module 22). Mirrors
+  /// `public.tele_consultation_archives`.
+  static const Table _teleConsultationArchives = Table(
+    LocalTables.teleConsultationArchives,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('consultation_id'),
+      Column.text('archived_by'),
+      Column.integer('duration_seconds'),
+      Column.text('recording_reference'),
+      Column.text('transcript_reference'),
+      Column.integer('consent_recorded'),
+      Column.text('archived_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('tele_archive_consultation', <IndexedColumn>[
+        IndexedColumn('consultation_id'),
+        IndexedColumn('archived_at'),
       ]),
     ],
   );

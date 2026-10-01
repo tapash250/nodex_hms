@@ -49,6 +49,9 @@ void main() {
         ConflictPolicyRegistry.dietMealPlan,
         ConflictPolicyRegistry.dietMealPlanDay,
         ConflictPolicyRegistry.dietIntakeLog,
+        ConflictPolicyRegistry.teleConsultation,
+        ConflictPolicyRegistry.teleVitalsOverlay,
+        ConflictPolicyRegistry.teleConsultationArchive,
       ];
 
       for (final String resourceType in required) {
@@ -350,6 +353,33 @@ void main() {
         ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.dietIntakeLog)
             .policy,
         ConflictPolicy.eventTransaction,
+      );
+    });
+
+    test('telemedicine consultations are server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.teleConsultation,
+        ).policy,
+        ConflictPolicy.serverAuthoritative,
+      );
+    });
+
+    test('live vitals overlays are append-only', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.teleVitalsOverlay,
+        ).policy,
+        ConflictPolicy.appendOnly,
+      );
+    });
+
+    test('consultation archives are immutable versions', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.teleConsultationArchive,
+        ).policy,
+        ConflictPolicy.immutableVersion,
       );
     });
   });

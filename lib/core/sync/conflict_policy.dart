@@ -244,6 +244,15 @@ abstract final class ConflictPolicyRegistry {
   /// Recorded dietary intake.
   static const String dietIntakeLog = 'diet_intake_log';
 
+  /// Telemedicine consultation.
+  static const String teleConsultation = 'tele_consultation';
+
+  /// Live vitals observed during a call.
+  static const String teleVitalsOverlay = 'tele_vitals_overlay';
+
+  /// Archived telemedicine consultation.
+  static const String teleConsultationArchive = 'tele_consultation_archive';
+
   static const Map<String, ConflictPolicyEntry> _entries =
       <String, ConflictPolicyEntry>{
         patient: ConflictPolicyEntry(
@@ -539,6 +548,34 @@ abstract final class ConflictPolicyRegistry {
               'Intake is an event with an identity: a portion of a meal '
               'taken at a time by a nurse. Duplicate uploads deduplicate so '
               'a retry cannot record a second meal.',
+        ),
+        teleConsultation: ConflictPolicyEntry(
+          resourceType: teleConsultation,
+          policy: ConflictPolicy.serverAuthoritative,
+          rationale:
+              'A consultation is a guarded state machine: scheduled, waiting, '
+              'in call, then completed, cancelled or a no-show. The waiting '
+              'room and the call are single-occupancy, so two devices cannot '
+              'both admit or close the visit; the server holds the state and '
+              'the client reconciles.',
+        ),
+        teleVitalsOverlay: ConflictPolicyEntry(
+          resourceType: teleVitalsOverlay,
+          policy: ConflictPolicy.appendOnly,
+          rationale:
+              'An overlay reading is a timestamped observation. Two '
+              'clinicians reading vitals during the same call produce two '
+              'observations, not a conflict, and neither overwrites the '
+              'other.',
+        ),
+        teleConsultationArchive: ConflictPolicyEntry(
+          resourceType: teleConsultationArchive,
+          policy: ConflictPolicy.immutableVersion,
+          rationale:
+              'An archive is the retained record of a completed visit, '
+              'including the consent that justified keeping it. It must '
+              'remain readable exactly as archived; a correction is a new '
+              'version, never a rewrite.',
         ),
       };
 
