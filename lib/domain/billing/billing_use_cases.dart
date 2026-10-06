@@ -58,7 +58,7 @@ final class AddInvoiceLineUseCase {
     required int lineTotalMinor,
   }) async {
     policy.require(NodexPermissions.billingSettle);
-    if (!invoice.status.isEditable) {
+    if (invoice.status != InvoiceStatus.draft) {
       throw const AuthorizationError(
         message: 'Lines can only be added to a draft invoice.',
         code: 'invoice_not_editable',
@@ -91,7 +91,7 @@ final class IssueInvoiceUseCase {
     required Invoice invoice,
   }) async {
     policy.require(NodexPermissions.billingSettle);
-    if (!invoice.status.isEditable) {
+    if (invoice.status != InvoiceStatus.draft) {
       throw const AuthorizationError(
         message: 'Only a draft invoice can be issued.',
         code: 'invoice_not_draft',
