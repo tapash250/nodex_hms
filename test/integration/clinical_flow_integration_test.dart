@@ -186,6 +186,8 @@ const Set<String> _clinicalPermissions = <String>{
   NodexPermissions.encounterWrite,
   NodexPermissions.prescriptionDraft,
   NodexPermissions.prescriptionFinalize,
+  NodexPermissions.pharmacyDispense,
+  NodexPermissions.medicationAdminister,
   NodexPermissions.billingSettle,
 };
 
@@ -209,6 +211,8 @@ void main() {
   late DraftPrescriptionUseCase draftPrescription;
   late AddPrescriptionItemUseCase addPrescriptionItem;
   late FinalizePrescriptionUseCase finalizePrescription;
+  late RecordDispenseUseCase recordDispense;
+  late RecordAdministrationUseCase recordAdministration;
   late DraftInvoiceUseCase draftInvoice;
   late AddInvoiceLineUseCase addInvoiceLine;
   late IssueInvoiceUseCase issueInvoice;
@@ -245,6 +249,10 @@ void main() {
       repository: prescriptionRepo,
     );
     finalizePrescription = FinalizePrescriptionUseCase(
+      repository: prescriptionRepo,
+    );
+    recordDispense = RecordDispenseUseCase(repository: prescriptionRepo);
+    recordAdministration = RecordAdministrationUseCase(
       repository: prescriptionRepo,
     );
     draftInvoice = DraftInvoiceUseCase(repository: billingRepo);
@@ -497,4 +505,153 @@ void main() {
     // Nothing was written: the gate fired before the repository.
     expect(await billingRepo.listForPatient(patientId), isEmpty);
   });
+
+  test(
+    'the pharmacy hop carries a dispensed medication into billing',
+    () async {
+      const String pharmacistId = 'pharm-1';
+      const String nurseId = 'nurse-1';
+
+      // Clinical front half: visit, signed encounter, finalized order.
+      final String appointmentId = await bookAppointment.call(
+        policy: clinician,
+        tenantId: tenantId,
+        patientId: patientId,
+        providerId: physicianId,
+        bookedBy: clerkId,
+        appointmentCode: 'APT-HOP',
+        visitType: VisitType.outpatient,
+        priority: AppointmentPriority.routine,
+        scheduledStart: DateTime.utc(2026, 10, 3, 9),
+        scheduledEnd: DateTime.utc(2026, 10, 3, 9, 30),
+      );
+      final String encounterId = await startEncounter.call(
+        policy: clinician,
+        tenantId: tenantId,
+        patientId: patientId,
+        attendingPhysicianId: physicianId,
+        encounterType: EncounterType.outpatient,
+        createdBy: physicianId,
+      );
+      await linkEncounter.call(
+        policy: clinician,
+        appointment: (await appointmentRepo.getAppointment(appointmentId))!,
+        encounterId: encounterId,
+      );
+      final String prescriptionId = await draftPrescription.call(
+        policy: clinician,
+        tenantId: tenantId,
+        patientId: patientId,
+        prescribedBy: physicianId,
+        prescriptionCode: 'RX-HOP',
+        priority: PrescriptionPriority.routine,
+        encounterId: encounterId,
+      );
+      final String itemId = await addPrescriptionItem.call(
+        policy: clinician,
+        prescription: (await prescriptionRepo.getPrescription(prescriptionId))!,
+        lineNumber: 1,
+        drugCode: 'PAR-500',
+        drugName: 'Paracetamol 500mg',
+        dosageText: '1 tablet q8h',
+        quantityPrescribed: 10,
+      );
+      await finalizePrescription.call(
+        policy: clinician,
+        prescription: (await prescriptionRepo.getPrescription(prescriptionId))!,
+        finalizerId: physicianId,
+      );
+
+      // The no-trigger store needs the release cascade the server performs on
+      // finalize before a line is dispensable, exactly as the unit test does.
+      await prescriptionRepo.updateItem(
+        itemId,
+        PrescriptionItem.progressChanges(
+          status: PrescriptionItemStatus.ordered,
+        ),
+      );
+
+      // The pharmacy hop: hand over the medication.
+      final String dispenseId = await recordDispense.call(
+        policy: clinician,
+        item: (await prescriptionRepo.getItem(itemId))!,
+        dispensedBy: pharmacistId,
+        quantityDispensed: 10,
+      );
+      final PrescriptionItem dispensedItem = (await prescriptionRepo.getItem(
+        itemId,
+      ))!;
+      expect(dispensedItem.status, PrescriptionItemStatus.dispensed);
+
+      final List<PharmacyDispense> dispenses = await prescriptionRepo
+          .listDispenses(itemId);
+      expect(dispenses, hasLength(1));
+      expect(dispenses.single.id, dispenseId);
+      expect(dispenses.single.itemId, itemId);
+      expect(dispenses.single.prescriptionId, prescriptionId);
+      expect(dispenses.single.quantityDispensed, 10);
+      expect(dispenses.single.dispensedBy, pharmacistId);
+
+      // The bedside hop rides on the dispense event.
+      final String adminId = await recordAdministration.call(
+        policy: clinician,
+        item: dispensedItem,
+        patientId: patientId,
+        administeredBy: nurseId,
+        doseText: '1 tablet',
+        dispenseId: dispenseId,
+      );
+      final List<MedicationAdministration> administrations =
+          await prescriptionRepo.listAdministrations(itemId);
+      expect(administrations, hasLength(1));
+      expect(administrations.single.id, adminId);
+      expect(administrations.single.dispenseId, dispenseId);
+      expect(administrations.single.prescriptionId, prescriptionId);
+      expect(administrations.single.administeredBy, nurseId);
+
+      // Billing picks up the encounter the medication was ordered against.
+      final String invoiceId = await draftInvoice.call(
+        policy: clinician,
+        tenantId: tenantId,
+        patientId: patientId,
+        createdBy: clerkId,
+        invoiceCode: 'INV-HOP',
+        encounterId: encounterId,
+      );
+      Invoice invoice = (await billingRepo.getInvoice(invoiceId))!;
+      expect(invoice.encounterId, encounterId);
+
+      await addInvoiceLine.call(
+        policy: clinician,
+        invoice: invoice,
+        lineNumber: 1,
+        description: 'Paracetamol 500mg x10',
+        quantity: 10,
+        unitPriceMinor: 300,
+        lineTotalMinor: 3000,
+      );
+      await issueInvoice.call(policy: clinician, invoice: invoice);
+      invoice = (await billingRepo.getInvoice(invoiceId))!;
+      await recordPayment.call(
+        policy: clinician,
+        invoice: invoice,
+        recordedBy: clerkId,
+        amountMinor: 3000,
+        method: PaymentMethod.cash,
+      );
+      await settleInvoice.call(policy: clinician, invoice: invoice);
+      invoice = (await billingRepo.getInvoice(invoiceId))!;
+      expect(invoice.status, InvoiceStatus.settled);
+
+      // The whole chain still threads through the one encounter.
+      final Prescription endToEnd = (await prescriptionRepo.getPrescription(
+        prescriptionId,
+      ))!;
+      expect(endToEnd.encounterId, encounterId);
+      final Appointment endAppointment = (await appointmentRepo.getAppointment(
+        appointmentId,
+      ))!;
+      expect(endAppointment.encounterId, encounterId);
+    },
+  );
 }
