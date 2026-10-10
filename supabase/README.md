@@ -247,7 +247,14 @@ failure class, circuit state and the human review decision.
   (`powersync/SETUP.md`, including why the reader needs BYPASSRLS under FORCE'd
   tables). No instance is provisioned yet; acceptance is a ward-scoped user
   receiving that ward's rows only, verified against the local database.
-- **Storage buckets.** DICOM, PDFs, scans and signatures need tenant-scoped
-  buckets with short-lived signed URLs and checksum validation on upload.
-- **Backup and restore.** RPO/RTO targets defined and a restore actually
-  exercised, not merely documented.
+- **Storage buckets.** Migration `20260917260000_phase3_storage_buckets.sql`
+  defines three private, tenant-scoped buckets (`clinical-images`,
+  `clinical-documents`, `clinical-signatures`) with membership-derived RLS,
+  a SHA-256 checksum required on upload, and no delete policy. Apply with
+  `supabase db push`. Still to do: the app-side client that uploads under
+  `<tenant_id>/…/…` and reads via a 60s `createSignedUrl` (the clinical tables
+  already hold only references).
+- **Backup and restore.** RPO/RTO targets, the restore procedure and the
+  rehearsal checklist are defined in `BACKUP_RESTORE.md`. This closes the
+  "define and document" part; the remaining piece is operational — run the
+  first rehearsal against a scratch project and record the measured RTO.

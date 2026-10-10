@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 410 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1010 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -174,17 +174,25 @@ across all clinical slices.
 
 Deferred deliberately, not overlooked.
 
-- **Release signing is not configured.** The release build type falls back to the
-  debug key so verification builds succeed. Supply real signing material before
-  distributing anything.
-- **No widget or integration tests.** All 332 tests are unit tests. The adaptive
-  shell, route guards and session lifecycle have no widget coverage; the spec's
-  integration flows (appointment → encounter → prescription → pharmacy → billing)
-  have none either.
-- **No storage buckets.** DICOM, PDFs, scans and signatures need tenant-scoped
-  buckets with short-lived signed URLs and checksum validation on upload.
-- **No backup or restore procedure.** RPO/RTO targets must be defined and a
-  restore actually exercised, not merely documented.
+- **Release signing material pending (config wired).** `android/app/build.gradle.kts`
+  now loads a gitignored `android/key.properties` (`key.properties.example` shows
+  the format) and signs release builds with a real upload keystore when present;
+  it still falls back to the debug key when absent so CI verification builds
+  pass. Supplying the keystore + passwords (see the example file) is the step left
+  before distributing anything. No Android toolchain here to build-verify it.
+- ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
+  session-lock widget coverage and the cross-module integration flow
+  (appointment → encounter → prescription → pharmacy → billing) are committed and
+  mutation-verified (1010 tests).
+- ~~**No storage buckets**~~ — **defined; apply pending.** Migration
+  `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
+  buckets with membership-derived RLS, a SHA-256 checksum required on upload, and
+  no delete policy. Apply with `supabase db push`; the app-side signed-URL client
+  is still to build (see `supabase/README.md`).
+- ~~**No backup or restore procedure**~~ — **defined; rehearsal pending.**
+  RPO/RTO targets, the restore procedure and the rehearsal checklist are in
+  `supabase/BACKUP_RESTORE.md`. Only the operational rehearsal (a test restore to
+  a scratch project, measured RTO recorded) is left.
 - ~~**`app_users` rows are not created automatically**~~ — **resolved.**
   `phase1_user_provisioning` adds `user_invites` plus an `AFTER INSERT` trigger
   on `auth.users`: invited emails auto-provision `app_users` + membership on

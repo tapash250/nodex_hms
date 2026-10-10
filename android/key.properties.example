@@ -1,0 +1,23 @@
+# Release signing material for NODEX Android builds.
+#
+# Copy this file to android/key.properties (which is gitignored) and fill in
+# real values. Never commit key.properties or the keystore itself.
+#
+# Provision the upload keystore once, store it somewhere durable and secret
+# (a team password manager + secure storage), and reference it here. Losing it
+# (or its passwords) means an app signed with it can never be updated on Play.
+#
+# storeFile may be absolute, or relative to the android/ directory. It is
+# resolved against android/ when a relative path is given.
+#
+# Generate a keystore (run once, keep the output safe):
+#   keytool -genkey -v -keystore upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# In CI, write this file from repository secrets before `flutter build apk`
+# rather than checking anything in.
+
+storeFile=upload-keystore.jks
+storePassword=REPLACE_WITH_KEYSTORE_PASSWORD
+keyAlias=upload
+keyPassword=REPLACE_WITH_KEY_PASSWORD

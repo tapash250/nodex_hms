@@ -1,7 +1,25 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Release signing material is supplied out-of-band: a gitignored
+// android/key.properties pointing at an upload keystore (see
+// key.properties.example), or CI secrets. When it is absent the release build
+// falls back to the debug key so `flutter build apk --release` still succeeds
+// for verification builds — a distribution build MUST provide a real keystore.
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) {
+        load(FileInputStream(keystorePropertiesFile))
+    }
+}
+val hasReleaseSigning =
+    keystorePropertiesFile.exists() &&
+        keystoreProperties.getProperty("storeFile") != null
 
 android {
     namespace = "com.nodex.nodex_hms"
@@ -27,13 +45,31 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storePassword = keystoreProperties.getProperty("storePassword")
+                storeFile = keystoreProperties.getProperty("storeFile")?.let { path ->
+                    val file = file(path)
+                    if (file.isAbsolute) file else rootProject.file(path)
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // Release signing is supplied by CI or a local key.properties file.
-            // Falls back to the debug key so `flutter build apk --release`
-            // succeeds for verification builds; a distribution build must set
-            // real signing material.
-            signingConfig = signingConfigs.getByName("debug")
+            // A real keystore when one is configured, otherwise the debug key so
+            // verification builds succeed. Never silently ships a debug-signed
+            // artifact as a release distribution: provisioning the keystore is the
+            // step that flips this to a real upload key.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
 
             isMinifyEnabled = true
             isShrinkResources = true
