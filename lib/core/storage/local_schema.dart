@@ -1821,6 +1821,9 @@ abstract final class NodexLocalSchema {
       Column.text('performed_by'),
       Column.text('performed_at'),
       Column.text('acquisition_notes'),
+
+      /// JSON array of {path, sha256} for images in `clinical-images`.
+      Column.text('image_refs'),
       Column.text('created_at'),
       Column.text('updated_at'),
     ],

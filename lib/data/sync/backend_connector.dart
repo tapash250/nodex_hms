@@ -41,17 +41,26 @@ enum UploadOutcome {
 /// Connects PowerSync to Supabase through the authorized mutation path.
 final class NodexBackendConnector extends PowerSyncBackendConnector {
   /// Creates a connector.
+  ///
+  /// [resolveDeviceId] resolves the enrolled device UUID for each upload. It is
+  /// read per batch rather than captured once because the device is enrolled as
+  /// part of snapshot issuance, which happens after this connector is
+  /// constructed. When it resolves to null — the device is not yet enrolled —
+  /// the mutation is uploaded without a device binding, and the server records
+  /// the ledger row with a null device rather than a fabricated one.
   NodexBackendConnector({
     required this._gateway,
     required this._logger,
     required this._powerSyncUrl,
-  });
+    String? Function()? resolveDeviceId,
+  }) : _deviceId = resolveDeviceId;
 
   static const String _module = 'sync.connector';
 
   final SupabaseGateway _gateway;
   final NodexLogger _logger;
   final String _powerSyncUrl;
+  final String? Function()? _deviceId;
 
   @override
   Future<PowerSyncCredentials?> fetchCredentials() async {
@@ -95,32 +104,15 @@ final class NodexBackendConnector extends PowerSyncBackendConnector {
     }
 
     try {
-      final List<Map<String, Object?>> payload = <Map<String, Object?>>[
-        for (final CrudEntry entry in transaction.crud)
-          () {
-            // Stable across retries: PowerSync replays the same transactionId
-            // and clientId after a lost response, so the idempotency ledger
-            // recognises the retry instead of applying it twice.
-            final String stableKey =
-                '${transaction.transactionId ?? 'tx'}-${entry.clientId}';
-            return <String, Object?>{
-              'id': NodexMutationId.forQueueEntry(
-                transactionId: transaction.transactionId,
-                clientId: entry.clientId,
-              ),
-              'operation': entry.op == UpdateType.put ? 'upsert' : 'patch',
-              'table': entry.table,
-              'row_id': entry.id,
-              'idempotency_key': stableKey,
-              'origin': 'online',
-              'client_created_at': DateTime.now().toUtc().toIso8601String(),
-              'data': entry.opData ?? const <String, Object?>{},
-            };
-          }(),
-      ];
+      final String? deviceId = _deviceId?.call();
+      final List<Map<String, Object?>> payload = buildUploadPayload(
+        transaction,
+        deviceId: deviceId,
+      );
 
       final List<MutationDecision> decisions = await _gateway.submitMutations(
         payload,
+        deviceId: deviceId,
       );
 
       // Map every decision before completing the batch. A rejected entry
@@ -257,4 +249,52 @@ final class NodexBackendConnector extends PowerSyncBackendConnector {
     );
     throw error;
   }
+
+  /// Builds the upload payload for [transaction].
+  ///
+  /// Exposed so the payload's shape is testable without a live PowerSync
+  /// database; [uploadData] is the only production caller.
+  List<Map<String, Object?>> buildUploadPayload(
+    CrudTransaction transaction, {
+    String? deviceId,
+  }) => buildMutationPayload(transaction, deviceId: deviceId);
+}
+
+/// Builds the upload payload for [transaction].
+///
+/// [deviceId], when supplied, is attached to every entry in the batch. It is
+/// omitted otherwise rather than sent as null: the ledger records an unbound
+/// mutation as unbound, and identity still rests on
+/// (tenant_id, idempotency_key, actor).
+///
+/// A top-level function rather than a method so it can be exercised directly:
+/// the connector needs a real gateway to construct, and this is pure.
+List<Map<String, Object?>> buildMutationPayload(
+  CrudTransaction transaction, {
+  String? deviceId,
+}) {
+  return <Map<String, Object?>>[
+    for (final CrudEntry entry in transaction.crud)
+      () {
+        // Stable across retries: PowerSync replays the same transactionId
+        // and clientId after a lost response, so the idempotency ledger
+        // recognises the retry instead of applying it twice.
+        final String stableKey =
+            '${transaction.transactionId ?? 'tx'}-${entry.clientId}';
+        return <String, Object?>{
+          'id': NodexMutationId.forQueueEntry(
+            transactionId: transaction.transactionId,
+            clientId: entry.clientId,
+          ),
+          'operation': entry.op == UpdateType.put ? 'upsert' : 'patch',
+          'table': entry.table,
+          'row_id': entry.id,
+          'idempotency_key': stableKey,
+          'origin': 'online',
+          'client_created_at': DateTime.now().toUtc().toIso8601String(),
+          if (deviceId case final String bound) 'device_id': bound,
+          'data': entry.opData ?? const <String, Object?>{},
+        };
+      }(),
+  ];
 }

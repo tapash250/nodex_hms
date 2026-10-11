@@ -6,9 +6,12 @@
 /// completed visit with recorded consent requires `tele_archive.write`.
 library;
 
+import 'dart:typed_data';
+
 import 'package:nodex_hms/core/authorization/authorization_policy.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
+import 'package:nodex_hms/core/storage/storage_service.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:uuid/uuid.dart';
@@ -317,9 +320,18 @@ final class RecordTeleVitalsOverlayUseCase {
 
 /// Archives a completed consultation. Requires `tele_archive.write`.
 final class ArchiveTeleConsultationUseCase {
-  ArchiveTeleConsultationUseCase({required this._repository});
+  ArchiveTeleConsultationUseCase({required this._repository, this._storage});
 
   final TelemedicineRepository _repository;
+
+  /// Object storage for recording and transcript media, when equipped.
+  ///
+  /// When supplied, a caller may pass raw media instead of an already-resolved
+  /// reference: the upload happens here and the archive records the resulting
+  /// object path. A caller that already has a path — or a service instance with
+  /// no storage — passes recordingReference directly and behaves exactly as
+  /// before.
+  final StorageService? _storage;
 
   Future<TeleConsultationArchive> call({
     required AuthorizationPolicy policy,
@@ -329,6 +341,8 @@ final class ArchiveTeleConsultationUseCase {
     required bool consentRecorded,
     String? recordingReference,
     String? transcriptReference,
+    ArchiveRecording? recording,
+    ArchiveRecording? transcript,
   }) async {
     policy.require(NodexPermissions.teleArchiveWrite);
     if (consultation.status != TeleConsultationStatus.completed) {
@@ -361,20 +375,41 @@ final class ArchiveTeleConsultationUseCase {
       );
     }
     final DateTime now = DateTime.now().toUtc();
-    final String? recording = recordingReference?.trim();
-    final String? transcript = transcriptReference?.trim();
+    // Media uploads happen before the archive row: a failed transfer must not
+    // leave an archive claiming a recording it does not have. A path passed in
+    // directly is used as-is, so a caller that already resolved it is unaffected.
+    final String archiveId = const Uuid().v4();
+    final String? recordingPath = await _resolveMedia(
+      storage: _storage,
+      explicit: recordingReference,
+      media: recording,
+      tenantId: consultation.tenantId,
+      consultationId: consultation.id,
+      archiveId: archiveId,
+      objectName: 'recording',
+    );
+    final String? transcriptPath = await _resolveMedia(
+      storage: _storage,
+      explicit: transcriptReference,
+      media: transcript,
+      tenantId: consultation.tenantId,
+      consultationId: consultation.id,
+      archiveId: archiveId,
+      objectName: 'transcript',
+    );
+
     final TeleConsultationArchive archive = TeleConsultationArchive(
-      id: const Uuid().v4(),
+      id: archiveId,
       tenantId: consultation.tenantId,
       consultationId: consultation.id,
       archivedBy: archivedBy,
       durationSeconds: durationSeconds,
-      recordingReference: recording == null || recording.isEmpty
+      recordingReference: recordingPath == null || recordingPath.isEmpty
           ? null
-          : recording,
-      transcriptReference: transcript == null || transcript.isEmpty
+          : recordingPath,
+      transcriptReference: transcriptPath == null || transcriptPath.isEmpty
           ? null
-          : transcript,
+          : transcriptPath,
       consentRecorded: true,
       archivedAt: now,
       createdAt: now,
@@ -382,6 +417,81 @@ final class ArchiveTeleConsultationUseCase {
     );
     return _repository.upsertArchive(archive);
   }
+
+  /// Resolves the object reference for one archived medium.
+  ///
+  /// Returns the explicit reference when one is given, the uploaded object's
+  /// path when raw media is supplied, or null when neither is.
+  Future<String?> _resolveMedia({
+    required StorageService? storage,
+    required String? explicit,
+    required ArchiveRecording? media,
+    required String tenantId,
+    required String consultationId,
+    required String archiveId,
+    required String objectName,
+  }) async {
+    final String? trimmed = explicit?.trim();
+    if (trimmed != null && trimmed.isNotEmpty) {
+      return trimmed;
+    }
+    if (media == null) {
+      return null;
+    }
+    final StorageService? store = storage;
+    if (store == null) {
+      throw const ValidationError(
+        message:
+            'Recording media was supplied but this device has no storage '
+            'configured.',
+        code: 'tele_storage_unavailable',
+      );
+    }
+    final StoredObject stored = await store.uploadFile(
+      tenantId: tenantId,
+      bucket: ClinicalBuckets.documents,
+      objectPath: 'consults/$consultationId/$archiveId/$objectName',
+      bytes: media.bytes,
+      mimeType: media.mimeType,
+    );
+    return stored.path;
+  }
+
+  /// Resolves a short-lived URL for an archived medium, or null when absent.
+  Future<String?> archiveMediaUrl({
+    required TeleConsultationArchive archive,
+    required String reference,
+    int expiresInSeconds = 60,
+  }) async {
+    final StorageService? store = _storage;
+    if (store == null) {
+      return null;
+    }
+    return store.getSecureUrlForPath(
+      bucket: ClinicalBuckets.documents,
+      path: reference,
+      expiresInSeconds: expiresInSeconds,
+    );
+  }
+}
+
+/// A medium to upload on archive, before its reference is resolved.
+final class ArchiveRecording {
+  /// Creates a pending upload.
+  const ArchiveRecording({
+    required this.name,
+    required this.bytes,
+    required this.mimeType,
+  });
+
+  /// File name within the archive's directory, without a tenant prefix.
+  final String name;
+
+  /// Raw bytes.
+  final Uint8List bytes;
+
+  /// MIME type recorded on the object.
+  final String mimeType;
 }
 
 /// Copies a consultation forward with a new status, preserving every other

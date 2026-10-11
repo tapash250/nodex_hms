@@ -173,6 +173,10 @@ final class DefaultRadiologyRepository implements RadiologyRepository {
         'performed_by': study.performedBy,
         'performed_at': study.performedAt,
         'acquisition_notes': study.acquisitionNotes,
+        // Only written when images are actually attached: a study whose images
+        // stay in PACS must not overwrite an existing reference with null.
+        if (study.imageRefs.isNotEmpty)
+          'image_refs': StudyImageRef.encodeList(study.imageRefs),
         'updated_at': study.updatedAt,
       };
       if (existing == null) {

@@ -57,6 +57,8 @@ interface IncomingMutation {
   origin: 'online' | 'offline'
   client_created_at: string
   conflict_policy?: string
+  /** Originating device, when the connector could bind one. */
+  device_id?: string
   data: Record<string, unknown>
 }
 
@@ -69,6 +71,63 @@ interface MutationResult {
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// ---------------------------------------------------------------------------
+// Ledger integrity helpers
+//
+// payload_digest records exactly what the client asked to apply. It is a real
+// SHA-256 over the canonical JSON of the mutation payload, so a later
+// disagreement about what a mutation contained is detectable rather than
+// argued. The previous value echoed the idempotency key, which identified the
+// mutation but attested nothing about its contents.
+// ---------------------------------------------------------------------------
+
+/// Canonical JSON: object keys sorted recursively, no insignificant whitespace.
+/// `JSON.stringify` with a replacer that re-inserts keys in sorted order gives
+/// the same text for semantically identical payloads regardless of key order,
+/// which is what makes the digest comparable across client versions.
+///
+/// Exported so the digest's invariants are testable without a request; the
+/// ledger's tamper-evidence rests entirely on this being deterministic.
+export function canonicalJson(value: unknown): string {
+  return JSON.stringify(value, (_key: string, val: unknown) => {
+    if (val === null || typeof val !== 'object' || Array.isArray(val)) {
+      return val
+    }
+    const sorted: Record<string, unknown> = {}
+    for (const key of Object.keys(val as Record<string, unknown>).sort()) {
+      sorted[key] = (val as Record<string, unknown>)[key]
+    }
+    return sorted
+  })
+}
+
+/// Lowercase hex SHA-256 of [text].
+export async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/// Resolves the originating device for a mutation.
+///
+/// The body field is authoritative — the connector sets it per batch — and the
+/// `x-device-id` header is the fallback for a transport that already knows the
+/// device (a retry proxy, a service caller). Anything else stays null: identity
+/// rests on (tenant_id, idempotency_key) plus actor, and a guessed UUID would
+/// lie about provenance in the ledger.
+export function resolveDeviceId(req: Request, m: { device_id?: unknown }): string | null {
+  const fromBody = m.device_id
+  if (typeof fromBody === 'string' && UUID_RE.test(fromBody)) {
+    return fromBody
+  }
+  const fromHeader = req.headers.get('x-device-id')
+  if (fromHeader !== null && UUID_RE.test(fromHeader)) {
+    return fromHeader
+  }
+  return null
+}
 
 // ---------------------------------------------------------------------------
 // Registry: the only place a table becomes writable offline.
@@ -984,6 +1043,9 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
       performed_by: 'uuid',
       performed_at: 'timestamp',
       acquisition_notes: 'text',
+      // JSON array of {path, sha256} for images in clinical-images. Arrives as
+      // a JSON-encoded string because the local projection stores it as TEXT.
+      image_refs: 'json',
       created_at: 'timestamp',
       updated_at: 'timestamp',
     },
@@ -1369,6 +1431,7 @@ function validateMutation(raw: unknown): { ok: true; value: IncomingMutation } |
       origin: m.origin,
       client_created_at: m.client_created_at,
       conflict_policy: typeof m.conflict_policy === 'string' ? m.conflict_policy : undefined,
+      device_id: typeof m.device_id === 'string' ? m.device_id : undefined,
       data: m.data as Record<string, unknown>,
     },
   }
@@ -1541,18 +1604,34 @@ export default {
 
       // Ledger row first, status 'received'. A ledger failure blocks the apply:
       // a successful write with no ledger row would re-apply on retry.
+      //
+      // payload_digest attests the contents: a canonical-JSON SHA-256 over the
+      // mutation's identity and data, so the ledger can later prove what was
+      // asked rather than merely which key it arrived under.
       const { error: ledgerError } = await ctx.supabaseAdmin.from('mutations').insert({
         id: m.id,
         tenant_id: tenantId,
         user_id: userId,
-        device_id: null, // connector does not yet send device_id; see phase-2 follow-up
+        device_id: resolveDeviceId(req, m),
         operation: m.operation,
         resource_type: m.table,
         resource_id: m.row_id,
         idempotency_key: m.idempotency_key,
         client_created_at: m.client_created_at,
         origin: m.origin,
-        payload_digest: String(m.idempotency_key), // connector upgrades this to a real digest in Phase 2
+        payload_digest: await sha256Hex(
+          canonicalJson({
+            id: m.id,
+            operation: m.operation,
+            table: m.table,
+            row_id: m.row_id,
+            idempotency_key: m.idempotency_key,
+            origin: m.origin,
+            client_created_at: m.client_created_at,
+            conflict_policy: m.conflict_policy ?? null,
+            data: m.data,
+          }),
+        ),
         status: 'received',
       })
       if (ledgerError) {

@@ -17,6 +17,7 @@ import 'package:nodex_hms/core/config/nodex_environment.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
 import 'package:nodex_hms/core/security/database_key_manager.dart';
 import 'package:nodex_hms/core/security/secure_key_store.dart';
+import 'package:nodex_hms/core/storage/storage_service.dart';
 import 'package:nodex_hms/data/local/local_database.dart';
 import 'package:nodex_hms/data/remote/supabase_gateway.dart';
 import 'package:nodex_hms/domain/appointments/appointment_repository.dart';
@@ -123,6 +124,12 @@ final Provider<SupabaseGateway> supabaseGatewayProvider =
         client: ref.watch(supabaseClientProvider),
         logger: ref.watch(loggerProvider),
       ),
+    );
+
+/// Clinical object storage: tenant-scoped uploads, checksums, short-lived URLs.
+final Provider<StorageService> storageServiceProvider =
+    Provider<StorageService>(
+      (Ref ref) => GatewayStorageService(ref.watch(supabaseGatewayProvider)),
     );
 
 /// The encrypted local operational projection.
@@ -365,6 +372,7 @@ final Provider<RecordImagingStudyUseCase> recordImagingStudyUseCaseProvider =
     Provider<RecordImagingStudyUseCase>(
       (Ref ref) => RecordImagingStudyUseCase(
         repository: ref.watch(radiologyRepositoryProvider),
+        storage: ref.watch(storageServiceProvider),
       ),
     );
 
@@ -605,6 +613,7 @@ archiveTeleConsultationUseCaseProvider =
     Provider<ArchiveTeleConsultationUseCase>(
       (Ref ref) => ArchiveTeleConsultationUseCase(
         repository: ref.watch(telemedicineRepositoryProvider),
+        storage: ref.watch(storageServiceProvider),
       ),
     );
 

@@ -9,6 +9,7 @@ library;
 import 'package:nodex_hms/core/authorization/authorization_policy.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
+import 'package:nodex_hms/core/storage/storage_service.dart';
 import 'package:nodex_hms/domain/radiology/radiology.dart';
 import 'package:nodex_hms/domain/radiology/radiology_repository.dart';
 import 'package:uuid/uuid.dart';
@@ -130,9 +131,17 @@ final class CancelImagingOrderUseCase {
 /// Records the acquisition of a study for an order. Requires
 /// `imaging_study.record`.
 final class RecordImagingStudyUseCase {
-  RecordImagingStudyUseCase({required this._repository});
+  RecordImagingStudyUseCase({required this._repository, this._storage});
 
   final RadiologyRepository _repository;
+
+  /// Object storage for the acquired images, when equipped.
+  ///
+  /// When supplied, uploaded images are recorded on the study's object
+  /// reference column so a later reader can resolve them without the caller
+  /// having to reconstruct paths. Optional so a metadata-only caller — a study
+  /// whose images stay in PACS — is unaffected.
+  final StorageService? _storage;
 
   Future<ImagingStudy> call({
     required AuthorizationPolicy policy,
@@ -141,6 +150,7 @@ final class RecordImagingStudyUseCase {
     required String performedBy,
     DateTime? performedAt,
     String? acquisitionNotes,
+    List<StudyImage> images = const <StudyImage>[],
   }) async {
     policy.require(NodexPermissions.imagingStudyRecord);
     if (order.isTerminal) {
@@ -171,8 +181,36 @@ final class RecordImagingStudyUseCase {
     }
     final String? notes = acquisitionNotes?.trim();
     final DateTime now = DateTime.now().toUtc();
+    final String studyId = const Uuid().v4();
+
+    // Images upload before the study row is written, so a failed transfer
+    // leaves no study claiming images it does not have. A caller that supplied
+    // no images — or a service instance with no storage — records the
+    // metadata reference exactly as before.
+    final List<StudyImageRef> refs = <StudyImageRef>[];
+    if (images.isNotEmpty) {
+      final StorageService? storage = _storage;
+      if (storage == null) {
+        throw const ValidationError(
+          message:
+              'Images were supplied but this device has no storage configured.',
+          code: 'imaging_storage_unavailable',
+        );
+      }
+      for (final StudyImage image in images) {
+        final StoredObject stored = await storage.uploadFile(
+          tenantId: order.tenantId,
+          bucket: ClinicalBuckets.imagingImages,
+          objectPath: 'studies/$studyId/${image.name}',
+          bytes: image.bytes,
+          mimeType: image.mimeType,
+        );
+        refs.add(StudyImageRef(path: stored.path, sha256: stored.sha256));
+      }
+    }
+
     final ImagingStudy study = ImagingStudy(
-      id: const Uuid().v4(),
+      id: studyId,
       tenantId: order.tenantId,
       imagingOrderId: order.id,
       studyUid: studyUid.trim(),
@@ -181,10 +219,32 @@ final class RecordImagingStudyUseCase {
       performedBy: performedBy,
       performedAt: performedAt ?? now,
       acquisitionNotes: notes == null || notes.isEmpty ? null : notes,
+      imageRefs: refs,
       createdAt: now,
       updatedAt: now,
     );
     return _repository.upsertStudy(study);
+  }
+
+  /// Resolves a short-lived URL for one of a study's images.
+  ///
+  /// Returns null when the object is absent: a study whose images still live
+  /// in PACS resolves nothing rather than failing, which is not an error
+  /// condition for the caller rendering a thumbnails strip.
+  Future<String?> studyImageUrl({
+    required ImagingStudy study,
+    required StudyImageRef image,
+    int expiresInSeconds = 60,
+  }) async {
+    final StorageService? storage = _storage;
+    if (storage == null) {
+      return null;
+    }
+    return storage.getSecureUrlForPath(
+      bucket: ClinicalBuckets.imagingImages,
+      path: image.path,
+      expiresInSeconds: expiresInSeconds,
+    );
   }
 }
 

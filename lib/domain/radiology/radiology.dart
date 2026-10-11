@@ -7,7 +7,12 @@
 // ignore_for_file: sort_constructors_first
 library;
 
+import 'dart:typed_data';
+
 import 'package:meta/meta.dart';
+import 'package:nodex_hms/core/storage/storage_service.dart' show StudyImageRef;
+
+export 'package:nodex_hms/core/storage/storage_service.dart' show StudyImageRef;
 
 /// Imaging modality of an order or study.
 enum ImagingModality {
@@ -193,6 +198,7 @@ final class ImagingStudy {
     required this.createdAt,
     required this.updatedAt,
     this.acquisitionNotes,
+    this.imageRefs = const <StudyImageRef>[],
   });
 
   factory ImagingStudy.fromRow(Map<String, Object?> row) {
@@ -207,10 +213,25 @@ final class ImagingStudy {
       performedBy: row['performed_by']! as String,
       performedAt: row['performed_at']! as DateTime,
       acquisitionNotes: notes is String ? notes : null,
+      imageRefs: StudyImageRef.decodeList(row['image_refs']),
       createdAt: row['created_at']! as DateTime,
       updatedAt: row['updated_at']! as DateTime,
     );
   }
+
+  /// The column map this entity writes back to the local projection.
+  Map<String, Object?> toRow() => <String, Object?>{
+    'tenant_id': tenantId,
+    'imaging_order_id': imagingOrderId,
+    'study_uid': studyUid,
+    'modality': modality.wireValue,
+    'body_region': bodyRegion,
+    'performed_by': performedBy,
+    'performed_at': performedAt,
+    'acquisition_notes': acquisitionNotes,
+    if (imageRefs.isNotEmpty) 'image_refs': StudyImageRef.encodeList(imageRefs),
+    'updated_at': updatedAt,
+  };
 
   final String id;
   final String tenantId;
@@ -221,8 +242,33 @@ final class ImagingStudy {
   final String performedBy;
   final DateTime performedAt;
   final String? acquisitionNotes;
+
+  /// Images stored in the clinical-images bucket for this study.
+  ///
+  /// Non-empty only when the acquisition actually attached images; a study left
+  /// in PACS carries the reference text alone.
+  final List<StudyImageRef> imageRefs;
   final DateTime createdAt;
   final DateTime updatedAt;
+}
+
+/// An image awaiting upload for a study.
+final class StudyImage {
+  /// Creates a pending upload.
+  const StudyImage({
+    required this.name,
+    required this.bytes,
+    required this.mimeType,
+  });
+
+  /// File name within the study's directory, without a tenant prefix.
+  final String name;
+
+  /// Raw image bytes.
+  final Uint8List bytes;
+
+  /// MIME type recorded on the object.
+  final String mimeType;
 }
 
 /// A radiology report for one study, immutable once verified.

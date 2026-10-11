@@ -9,9 +9,12 @@
 /// `PostgrestException`, `AuthException` or `StorageException` escapes.
 library;
 
+import 'dart:typed_data';
+
 import 'package:nodex_hms/core/errors/error_mapper.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
+import 'package:nodex_hms/core/storage/storage_service.dart';
 import 'package:nodex_hms/data/sync/mutation_batch.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide Supabase;
 
@@ -38,7 +41,7 @@ final class SupabaseSessionSnapshot {
 typedef SnapshotIssuanceResult = Map<String, Object?>;
 
 /// Wraps the Supabase client behind a normalized, domain-oriented surface.
-final class SupabaseGateway {
+final class SupabaseGateway implements ObjectStore {
   /// Creates a gateway over a configured Supabase client.
   SupabaseGateway({required this._client, required this._logger});
 
@@ -206,8 +209,9 @@ final class SupabaseGateway {
   /// anything reaches PostgreSQL; the caller trusts only the returned
   /// per-mutation decisions and never assumes a 2xx means every entry applied.
   Future<List<MutationDecision>> submitMutations(
-    List<Map<String, Object?>> mutations,
-  ) async {
+    List<Map<String, Object?>> mutations, {
+    String? deviceId,
+  }) async {
     final SupabaseSessionSnapshot? session = currentSession();
     if (session == null) {
       throw const AuthorizationError(
@@ -220,6 +224,12 @@ final class SupabaseGateway {
       final FunctionResponse response = await _client.functions.invoke(
         'mutation-handler',
         body: <String, Object?>{'mutations': mutations},
+        // Redundant with the per-mutation `device_id` field, which is
+        // authoritative. Sent at transport level too so a caller that already
+        // knows the device (a retry proxy) does not have to rewrite bodies.
+        headers: deviceId == null
+            ? null
+            : <String, String>{'x-device-id': deviceId},
       );
 
       final Object? payload = response.data;
@@ -265,6 +275,100 @@ final class SupabaseGateway {
       );
     } on Object catch (error) {
       throw NodexErrorMapper.map(error, operation: 'sync.submit_mutations');
+    }
+  }
+
+  /// Uploads bytes to object storage.
+  ///
+  /// [bucket] and [path] are passed through to Supabase Storage; the path must
+  /// begin with the tenant UUID because the storage RLS policies scope every
+  /// object on that first segment. [metadata] is stored alongside the object so
+  /// the bucket's required-sha256 policy is satisfied by content the client
+  /// already knows.
+  @override
+  Future<void> upload({
+    required String bucket,
+    required String path,
+    required Uint8List bytes,
+    required String mimeType,
+    Map<String, String>? metadata,
+  }) async {
+    try {
+      await _client.storage
+          .from(bucket)
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions: FileOptions(
+              contentType: mimeType,
+              metadata: metadata ?? const <String, String>{},
+            ),
+          );
+    } on StorageException catch (error) {
+      throw RemoteError(
+        message: error.message,
+        statusCode: int.tryParse(error.statusCode ?? ''),
+        isTransient: (int.tryParse(error.statusCode ?? '') ?? 0) >= 500,
+        code: 'storage_upload_failed',
+      );
+    } on Object catch (error) {
+      throw NodexErrorMapper.map(error, operation: 'storage.upload');
+    }
+  }
+
+  /// Mints a short-lived download URL for an object.
+  ///
+  /// Returns null when the object is absent rather than throwing: a caller
+  /// resolving a study image that has none treats that as "nothing to show",
+  /// which is not an error condition.
+  @override
+  Future<String?> signedUrl({
+    required String bucket,
+    required String path,
+    int expiresInSeconds = 60,
+  }) async {
+    try {
+      return await _client.storage
+          .from(bucket)
+          .createSignedUrl(path, expiresInSeconds);
+    } on StorageException catch (error) {
+      final int status = int.tryParse(error.statusCode ?? '') ?? 0;
+      // A missing object is not an error; anything else is.
+      if (status == 400 ||
+          status == 404 ||
+          error.message.contains('not found')) {
+        return null;
+      }
+      throw RemoteError(
+        message: error.message,
+        statusCode: status,
+        isTransient: status >= 500,
+        code: 'storage_signed_url_failed',
+      );
+    } on Object catch (error) {
+      throw NodexErrorMapper.map(error, operation: 'storage.signed_url');
+    }
+  }
+
+  /// Removes an object.
+  ///
+  /// The storage buckets carry no delete policy, so a caller reaching here is
+  /// asking for something the server will refuse. It is exposed so that refusal
+  /// is explicit and diagnosable rather than silently unavailable.
+  @override
+  Future<void> remove({required String bucket, required String path}) async {
+    try {
+      await _client.storage.from(bucket).remove(<String>[path]);
+    } on StorageException catch (error) {
+      final int status = int.tryParse(error.statusCode ?? '') ?? 0;
+      throw RemoteError(
+        message: error.message,
+        statusCode: status,
+        isTransient: status >= 500,
+        code: 'storage_remove_failed',
+      );
+    } on Object catch (error) {
+      throw NodexErrorMapper.map(error, operation: 'storage.remove');
     }
   }
 
