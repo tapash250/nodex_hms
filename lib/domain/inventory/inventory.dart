@@ -1,4 +1,4 @@
-/// Inventory management entities (Module 13).
+/// Inventory management entities (Module 28).
 ///
 /// Stock items are master data; movements are append-only events that
 /// derive current stock levels (ConflictPolicy.transactional: balances

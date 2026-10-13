@@ -1,4 +1,4 @@
-/// Inventory repository contract and local implementation (Module 13).
+/// Inventory repository contract and local implementation (Module 28).
 library;
 
 import 'package:nodex_hms/core/errors/error_mapper.dart';

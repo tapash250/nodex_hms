@@ -121,7 +121,7 @@ abstract final class NodexDestinations {
       NodexPermissions.triageRead,
       NodexPermissions.erVisitWrite,
     },
-    moduleCode: 'M05',
+    moduleCode: 'M14',
   );
 
   /// ICU bed census and critical-care documentation.
@@ -134,7 +134,7 @@ abstract final class NodexDestinations {
       NodexPermissions.icuBedAssign,
       NodexPermissions.icuVitalsRecord,
     },
-    moduleCode: 'M06',
+    moduleCode: 'M15',
     isPrimary: false,
   );
 

@@ -1,4 +1,4 @@
-/// Inventory management use cases (Module 13).
+/// Inventory management use cases (Module 28).
 library;
 
 import 'package:nodex_hms/core/authorization/authorization_policy.dart';

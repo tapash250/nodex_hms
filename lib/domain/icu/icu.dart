@@ -1,4 +1,4 @@
-/// ICU critical care entities (Module 06).
+/// ICU critical care entities (Module 15).
 ///
 /// ICU beds extend ward beds with ventilator linkage. Vitals, handovers, and
 /// ventilator events are append-only clinical records tied to an ICU bed.

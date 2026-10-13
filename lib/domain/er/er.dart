@@ -1,4 +1,4 @@
-/// Emergency Department and triage entities (Module 05).
+/// Emergency Department and triage entities (Module 14).
 ///
 /// Triage acuity uses the ESI 1-5 scale. Escalation is one-way and requires
 /// `triage.escalate`. ER visits transition through a finite status machine
