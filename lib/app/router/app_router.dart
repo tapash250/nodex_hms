@@ -47,6 +47,7 @@ import 'package:nodex_hms/features/patients/patient_search_screen.dart';
 import 'package:nodex_hms/features/physio/physio_session_screen.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_detail_screen.dart';
 import 'package:nodex_hms/features/radiology/radiology_order_screen.dart';
+import 'package:nodex_hms/features/roster/practitioner_directory_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/settings_screen.dart';
@@ -280,6 +281,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                     ),
               ),
             ],
+          ),
+          GoRoute(
+            path: NodexDestinations.staffDirectory.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const PractitionerDirectoryScreen(),
           ),
           GoRoute(
             path: NodexDestinations.er.routePath,

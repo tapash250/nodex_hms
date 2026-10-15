@@ -272,6 +272,11 @@ abstract final class ConflictPolicyRegistry {
   /// Ward room in the floor layout.
   static const String wardRoom = 'ward_room';
 
+  /// Practitioner directory profile.
+  static const String practitionerProfile = 'practitioner_profile';
+
+  /// Practitioner on-call rotation.
+  static const String practitionerOnCall = 'practitioner_on_call';
   /// Bed registry entry (code, type and lifecycle status).
   static const String bed = 'bed';
 
@@ -705,6 +710,23 @@ abstract final class ConflictPolicyRegistry {
           'against, so the server holds the layout and the client '
           'reconciles.',
     ),
+    practitionerProfile: ConflictPolicyEntry(
+      resourceType: practitionerProfile,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A practitioner\'s directory facts and credential record are '
+          'reconciled against the credentialing authority. Two devices '
+          'cannot both rewrite a retirement or disagree about a specialty, '
+          'so the server holds the registry and the client reconciles.',
+    ),
+    practitionerOnCall: ConflictPolicyEntry(
+      resourceType: practitionerOnCall,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'On-call cover is shared administrative configuration. Two '
+          'devices cannot both claim or rewrite a rotation, so the server '
+          'holds the rota and the client reconciles.',
+    ),
     bed: ConflictPolicyEntry(
       resourceType: bed,
       policy: ConflictPolicy.serverAuthoritative,
@@ -923,6 +945,8 @@ abstract final class ConflictPolicyRegistry {
     'ventilator_events': ventilatorEvent,
     'vital_observations': vitalObservation,
     'ward_rooms': wardRoom,
+    'practitioner_profiles': practitionerProfile,
+    'practitioner_on_calls': practitionerOnCall,
   };
 
   /// Resolves [resourceType], which may be a table name, to its entry.

@@ -492,4 +492,6 @@ sync_rules:
             and rp.permission_key = 'ward_floor.read'
       data:
         - select * from public.ward_rooms where tenant_id = bucket.tenant_id
+        - select * from public.practitioner_profiles where tenant_id = bucket.tenant_id
+        - select * from public.practitioner_on_calls where tenant_id = bucket.tenant_id
         - select * from public.wards where tenant_id = bucket.tenant_id

@@ -83,6 +83,9 @@ abstract final class NodexPermissions {
   /// Browse the staff and specialist directory.
   static const String staffDirectoryRead = 'staff_directory.read';
 
+  /// Create and maintain practitioner directory entries and on-call rota.
+  static const String staffDirectoryAdminister = 'staff_directory.administer';
+
   /// Enrol, suspend, revoke and wipe client devices.
   static const String deviceAdminister = 'device.administer';
 
@@ -304,6 +307,7 @@ abstract final class NodexPermissions {
     icuVitalsRecord,
     icuHandoverRecord,
     ventilatorEventRecord,
+    staffDirectoryAdminister,
   };
 
   /// Permissions classified `high_risk` in the database catalogue.

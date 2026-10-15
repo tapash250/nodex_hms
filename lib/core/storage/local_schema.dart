@@ -112,6 +112,12 @@ abstract final class LocalTables {
   /// Visit bookings (Module 07). Synced, tenant-scoped.
   static const String appointments = 'appointments';
 
+  /// Practitioner directory entries (Module 08). Synced, tenant-scoped.
+  static const String practitionerProfiles = 'practitioner_profiles';
+
+  /// Practitioner on-call rotations (Module 08). Synced, tenant-scoped.
+  static const String practitionerOnCalls = 'practitioner_on_calls';
+
   /// Ward beds (Module 11). Synced, tenant-scoped.
   static const String beds = 'beds';
 
@@ -328,6 +334,8 @@ abstract final class NodexLocalSchema {
     _dischargeSettlements,
     _dischargeAiSummaries,
     _wardRooms,
+    _practitionerProfiles,
+    _practitionerOnCalls,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -2331,6 +2339,69 @@ abstract final class NodexLocalSchema {
       Index('appointment_status', <IndexedColumn>[
         IndexedColumn('tenant_id'),
         IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  static const Table _practitionerProfiles = Table(
+    LocalTables.practitionerProfiles,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('user_id'),
+      Column.text('facility_id'),
+      Column.text('department_id'),
+      Column.text('specialty'),
+      Column.text('sub_specialty'),
+      Column.text('credentials'),
+      Column.text('registration_no'),
+      Column.integer('years_experience'),
+      Column.text('consultation_room_id'),
+      Column.integer('accepting_referrals'),
+      Column.text('status'),
+      Column.text('retired_by'),
+      Column.text('retired_at'),
+      Column.text('retirement_reason'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('practitioner_specialty', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('specialty'),
+      ]),
+      Index('practitioner_user', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('user_id'),
+      ]),
+      Index('practitioner_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  static const Table _practitionerOnCalls = Table(
+    LocalTables.practitionerOnCalls,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('practitioner_id'),
+      Column.text('rotation_type'),
+      Column.text('starts_at'),
+      Column.text('ends_at'),
+      Column.text('location'),
+      Column.text('contact_note'),
+      Column.text('recorded_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('practitioner_on_call_window', <IndexedColumn>[
+        IndexedColumn('practitioner_id'),
+        IndexedColumn('starts_at'),
+      ]),
+      Index('practitioner_on_call_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('starts_at'),
       ]),
     ],
   );

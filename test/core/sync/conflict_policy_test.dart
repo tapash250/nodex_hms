@@ -594,6 +594,8 @@ void main() {
       'payments',
       'pharmacy_dispenses',
       'physio_exercise_plans',
+      'practitioner_on_calls',
+      'practitioner_profiles',
       'physio_recovery_notes',
       'physio_sessions',
       'prescription_items',

@@ -107,8 +107,12 @@ void main() {
           LocalTables.dischargeSettlements,
           LocalTables.dischargeAiSummaries,
           LocalTables.wardRooms,
+          LocalTables.practitionerProfiles,
+          LocalTables.practitionerOnCalls,
           LocalTables.clinicalProblems,
           LocalTables.encounterScribeDrafts,
+          LocalTables.practitionerProfiles,
+          LocalTables.practitionerOnCalls,
         });
       },
     );

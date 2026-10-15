@@ -168,6 +168,18 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Doctor & specialist directory (Module 08).
+  static const NavigationDestinationSpec staffDirectory =
+      NavigationDestinationSpec(
+        routePath: '/staff-directory',
+        label: 'Staff directory',
+        icon: Icons.medical_services_outlined,
+        selectedIcon: Icons.medical_services,
+        requiredPermissions: <String>{NodexPermissions.staffDirectoryRead},
+        moduleCode: 'M08',
+        isPrimary: false,
+      );
+
   /// Hospital floor map: rooms, capacity and live patient locations.
   static const NavigationDestinationSpec floorMap = NavigationDestinationSpec(
     routePath: '/floor-map',
@@ -245,6 +257,7 @@ abstract final class NodexDestinations {
         bloodBank,
         ot,
         floorMap,
+        staffDirectory,
         inventory,
         syncDiagnostics,
         aiGovernance,

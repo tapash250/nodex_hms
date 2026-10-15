@@ -58,6 +58,8 @@ import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_use_cases.dart';
 import 'package:nodex_hms/domain/radiology/radiology_repository.dart';
 import 'package:nodex_hms/domain/radiology/radiology_use_cases.dart';
+import 'package:nodex_hms/domain/roster/practitioner_repository.dart';
+import 'package:nodex_hms/domain/roster/practitioner_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
@@ -657,6 +659,60 @@ final Provider<FloorOccupancyUseCase> floorOccupancyUseCaseProvider =
     Provider<FloorOccupancyUseCase>(
       (Ref ref) => FloorOccupancyUseCase(
         repository: ref.watch(floorMapRepositoryProvider),
+      ),
+    );
+
+/// Practitioner directory repository over the encrypted local projection.
+final Provider<PractitionerRepository> practitionerRepositoryProvider =
+    Provider<PractitionerRepository>(
+      (Ref ref) => DefaultPractitionerRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Register a practitioner into the directory.
+final Provider<RecordPractitionerProfileUseCase>
+recordPractitionerProfileUseCaseProvider =
+    Provider<RecordPractitionerProfileUseCase>(
+      (Ref ref) => RecordPractitionerProfileUseCase(
+        repository: ref.watch(practitionerRepositoryProvider),
+      ),
+    );
+
+/// Update a practitioner's directory facts.
+final Provider<UpdatePractitionerProfileUseCase>
+updatePractitionerProfileUseCaseProvider =
+    Provider<UpdatePractitionerProfileUseCase>(
+      (Ref ref) => UpdatePractitionerProfileUseCase(
+        repository: ref.watch(practitionerRepositoryProvider),
+      ),
+    );
+
+/// Retire a practitioner.
+final Provider<RetirePractitionerProfileUseCase>
+retirePractitionerProfileUseCaseProvider =
+    Provider<RetirePractitionerProfileUseCase>(
+      (Ref ref) => RetirePractitionerProfileUseCase(
+        repository: ref.watch(practitionerRepositoryProvider),
+      ),
+    );
+
+/// Schedule an on-call rotation.
+final Provider<ScheduleOnCallRotationUseCase>
+scheduleOnCallRotationUseCaseProvider = Provider<ScheduleOnCallRotationUseCase>(
+  (Ref ref) => ScheduleOnCallRotationUseCase(
+    repository: ref.watch(practitionerRepositoryProvider),
+  ),
+);
+
+/// Search the directory.
+final Provider<SearchPractitionersUseCase> searchPractitionersUseCaseProvider =
+    Provider<SearchPractitionersUseCase>(
+      (Ref ref) => SearchPractitionersUseCase(
+        repository: ref.watch(practitionerRepositoryProvider),
       ),
     );
 
