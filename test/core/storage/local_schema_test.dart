@@ -111,8 +111,6 @@ void main() {
           LocalTables.practitionerOnCalls,
           LocalTables.clinicalProblems,
           LocalTables.encounterScribeDrafts,
-          LocalTables.practitionerProfiles,
-          LocalTables.practitionerOnCalls,
         });
       },
     );

@@ -1502,8 +1502,12 @@ function validateColumns(
         if (typeof value !== 'string') return { ok: false, error: `column "${key}" must be text` }
         break
       case 'boolean':
-        if (typeof value !== 'boolean') return { ok: false, error: `column "${key}" must be a boolean` }
-        break
+        if (typeof value === 'boolean') break
+        if (typeof value === 'number' && (value === 0 || value === 1)) {
+          clean[key] = value !== 0
+          continue
+        }
+        return { ok: false, error: `column "${key}" must be a boolean` }
       case 'integer':
         if (typeof value !== 'number' || !Number.isInteger(value)) return { ok: false, error: `column "${key}" must be an integer` }
         break
