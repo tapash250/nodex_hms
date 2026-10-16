@@ -305,6 +305,15 @@ abstract final class ConflictPolicyRegistry {
   /// Payslip under a payroll run.
   static const String payslip = 'payslip';
 
+  /// General ward vital sign observation.
+  static const String wardVital = 'ward_vital';
+
+  /// Ward shift nursing handover.
+  static const String wardHandover = 'ward_handover';
+
+  /// Ward nursing task.
+  static const String wardTask = 'ward_task';
+
   /// Bed registry entry (code, type and lifecycle status).
   static const String bed = 'bed';
 
@@ -989,6 +998,30 @@ abstract final class ConflictPolicyRegistry {
           'a merged or overwritten amount cannot produce a payroll that does '
           'not add up.',
     ),
+    wardVital: ConflictPolicyEntry(
+      resourceType: wardVital,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A ward observation is a timestamped fact. Two nurses taking '
+          'observations produce two rows, not a conflict, so nothing is '
+          'merged or overwritten.',
+    ),
+    wardHandover: ConflictPolicyEntry(
+      resourceType: wardHandover,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A shift handover is a record of what was said at handover time. It '
+          'is immutable: a correction is a new handover, not a rewrite of the '
+          'one the incoming shift relied on.',
+    ),
+    wardTask: ConflictPolicyEntry(
+      resourceType: wardTask,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A ward task has one owner and one completion record. The server '
+          'holds it so two devices cannot both claim the task or record two '
+          'different closers for the same piece of work.',
+    ),
   };
 
   /// Maps a replicated table name onto its registered resource type.
@@ -1072,6 +1105,9 @@ abstract final class ConflictPolicyRegistry {
     'hr_holidays': hrHoliday,
     'hr_payroll_periods': payrollPeriod,
     'hr_payslips': payslip,
+    'ward_vitals': wardVital,
+    'ward_handovers': wardHandover,
+    'ward_tasks': wardTask,
   };
 
   /// Resolves [resourceType], which may be a table name, to its entry.

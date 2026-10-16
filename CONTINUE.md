@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 57 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 58 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1085 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1097 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -210,10 +210,25 @@ roster, the `/hr` screen is linked from navigation, and mutation-handler
 registration plus per-table conflict policies (employee and holiday field-level
 merge; leave and both payroll tables server-authoritative) are in place.
 
-Next module: Module 06 (Nurse Ward Station), per the agreed order
-(13 → 06 → 42 → 40). It is the remaining Phase 2 core clinical surface. Beyond
-it, the remaining clinical modules are built one vertical slice at a time.
-Hardware barcode scanning, PowerSync device verification and clinical
+**Nurse Ward Station (module 06)** came next, over `ward_vitals`,
+`ward_handovers` and `ward_tasks`. Beds and the MAR are deliberately not
+duplicated: occupancy is the Module 11 bed assignment and the MAR event is the
+Module 25 medication administration, and the station reads them rather than
+keeping a second copy. Vitals and handovers are append-only facts (a second set
+of observations is a second row, not an edit); the task queue is the one living
+record and is a guarded state machine (open → in_progress → done/cancelled with
+closed tasks frozen). Writing observations reuses the existing `vitals.record`
+key, so no duplicate vitals permission was invented; `nursing.handover.record`
+and `nursing_task.write` are new, and `nursing_station.read` scopes the
+`nursing_station` PowerSync bucket. The `/ward-station` screen shows the open
+task board, recent observations and the last handovers. An observation carries
+an advisory alert band (normal/watch/urgent) derived by a pure function — a
+triage aid for the board, explicitly not a validated early-warning score.
+
+Next module: Module 42 (Hospital Contacts Directory), then Module 40
+(Institutional Calendar & Shift Overlay), per the agreed order (13 → 06 → 42 →
+40). Beyond those, the remaining clinical modules are built one vertical slice
+at a time. Hardware barcode scanning, PowerSync device verification and clinical
 deployment validation remain across all slices.
 
 ---
@@ -231,7 +246,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1085 tests).
+  mutation-verified (1097 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

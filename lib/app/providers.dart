@@ -50,6 +50,8 @@ import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
 import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
 import 'package:nodex_hms/domain/laboratory/lab_use_cases.dart';
+import 'package:nodex_hms/domain/nursing_station/nursing_station_repository.dart';
+import 'package:nodex_hms/domain/nursing_station/nursing_station_use_cases.dart';
 import 'package:nodex_hms/domain/nutrition/nutrition_repository.dart';
 import 'package:nodex_hms/domain/nutrition/nutrition_use_cases.dart';
 import 'package:nodex_hms/domain/ot/ot_repository.dart';
@@ -837,6 +839,73 @@ final Provider<ReadWorkforceUseCase> readWorkforceUseCaseProvider =
     Provider<ReadWorkforceUseCase>(
       (Ref ref) => ReadWorkforceUseCase(
         repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Nurse ward station repository over the encrypted local projection.
+final Provider<NursingStationRepository> nursingStationRepositoryProvider =
+    Provider<NursingStationRepository>(
+      (Ref ref) => DefaultNursingStationRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Record a routine ward observation.
+final Provider<RecordWardVitalsUseCase> recordWardVitalsUseCaseProvider =
+    Provider<RecordWardVitalsUseCase>(
+      (Ref ref) => RecordWardVitalsUseCase(
+        repository: ref.watch(nursingStationRepositoryProvider),
+      ),
+    );
+
+/// Record a shift nursing handover.
+final Provider<RecordWardHandoverUseCase> recordWardHandoverUseCaseProvider =
+    Provider<RecordWardHandoverUseCase>(
+      (Ref ref) => RecordWardHandoverUseCase(
+        repository: ref.watch(nursingStationRepositoryProvider),
+      ),
+    );
+
+/// Create a ward task.
+final Provider<CreateWardTaskUseCase> createWardTaskUseCaseProvider =
+    Provider<CreateWardTaskUseCase>(
+      (Ref ref) => CreateWardTaskUseCase(
+        repository: ref.watch(nursingStationRepositoryProvider),
+      ),
+    );
+
+/// Delegate a ward task.
+final Provider<AssignWardTaskUseCase> assignWardTaskUseCaseProvider =
+    Provider<AssignWardTaskUseCase>(
+      (Ref ref) => AssignWardTaskUseCase(
+        repository: ref.watch(nursingStationRepositoryProvider),
+      ),
+    );
+
+/// Start a ward task.
+final Provider<StartWardTaskUseCase> startWardTaskUseCaseProvider =
+    Provider<StartWardTaskUseCase>(
+      (Ref ref) => StartWardTaskUseCase(
+        repository: ref.watch(nursingStationRepositoryProvider),
+      ),
+    );
+
+/// Close a ward task.
+final Provider<CloseWardTaskUseCase> closeWardTaskUseCaseProvider =
+    Provider<CloseWardTaskUseCase>(
+      (Ref ref) => CloseWardTaskUseCase(
+        repository: ref.watch(nursingStationRepositoryProvider),
+      ),
+    );
+
+/// Read the ward station board.
+final Provider<ReadWardStationUseCase> readWardStationUseCaseProvider =
+    Provider<ReadWardStationUseCase>(
+      (Ref ref) => ReadWardStationUseCase(
+        repository: ref.watch(nursingStationRepositoryProvider),
       ),
     );
 

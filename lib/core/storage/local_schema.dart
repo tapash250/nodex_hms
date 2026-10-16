@@ -142,6 +142,15 @@ abstract final class LocalTables {
   /// Payslips under a payroll run (Module 13). Synced, tenant-scoped.
   static const String hrPayslips = 'hr_payslips';
 
+  /// General ward vital sign observations (Module 06). Synced, append-only.
+  static const String wardVitals = 'ward_vitals';
+
+  /// Shift nursing handovers for a ward (Module 06). Synced, append-only.
+  static const String wardHandovers = 'ward_handovers';
+
+  /// Ward nursing task queue (Module 06). Synced, tenant-scoped.
+  static const String wardTasks = 'ward_tasks';
+
   /// Ward beds (Module 11). Synced, tenant-scoped.
   static const String beds = 'beds';
 
@@ -368,6 +377,9 @@ abstract final class NodexLocalSchema {
     _hrHolidays,
     _hrPayrollPeriods,
     _hrPayslips,
+    _wardVitals,
+    _wardHandovers,
+    _wardTasks,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -2642,6 +2654,104 @@ abstract final class NodexLocalSchema {
       Index('hr_payslip_employee', <IndexedColumn>[
         IndexedColumn('employee_id'),
         IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// General ward vitals (Module 06): append-only observations. Mirrors
+  /// `public.ward_vitals`.
+  static const Table _wardVitals = Table(
+    LocalTables.wardVitals,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('ward_id'),
+      Column.text('bed_id'),
+      Column.text('recorded_by'),
+      Column.text('observed_at'),
+      Column.real('temperature_celsius'),
+      Column.integer('pulse_bpm'),
+      Column.integer('respiratory_rate'),
+      Column.integer('systolic_bp'),
+      Column.integer('diastolic_bp'),
+      Column.integer('spo2'),
+      Column.integer('pain_score'),
+      Column.text('consciousness'),
+      Column.integer('on_oxygen'),
+      Column.text('notes'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('ward_vitals_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('observed_at'),
+      ]),
+      Index('ward_vitals_ward', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('ward_id'),
+        IndexedColumn('observed_at'),
+      ]),
+    ],
+  );
+
+  /// Ward shift handovers (Module 06): append-only shift records. Mirrors
+  /// `public.ward_handovers`.
+  static const Table _wardHandovers = Table(
+    LocalTables.wardHandovers,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('ward_id'),
+      Column.text('shift_id'),
+      Column.text('from_user'),
+      Column.text('to_user'),
+      Column.text('handover_at'),
+      Column.text('summary'),
+      Column.text('pending_items'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('ward_handovers_ward', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('ward_id'),
+        IndexedColumn('handover_at'),
+      ]),
+    ],
+  );
+
+  /// Ward task queue (Module 06). Mirrors `public.ward_tasks`.
+  static const Table _wardTasks = Table(
+    LocalTables.wardTasks,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('ward_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('title'),
+      Column.text('detail'),
+      Column.text('task_type'),
+      Column.text('priority'),
+      Column.text('due_at'),
+      Column.text('assigned_to'),
+      Column.text('status'),
+      Column.text('created_by'),
+      Column.text('completed_by'),
+      Column.text('completed_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ward_tasks_ward', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('ward_id'),
+        IndexedColumn('status'),
+        IndexedColumn('due_at'),
+      ]),
+      Index('ward_tasks_assignee', <IndexedColumn>[
+        IndexedColumn('assigned_to'),
+        IndexedColumn('status'),
+        IndexedColumn('due_at'),
       ]),
     ],
   );

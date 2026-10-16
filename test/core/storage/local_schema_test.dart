@@ -117,6 +117,9 @@ void main() {
           LocalTables.hrHolidays,
           LocalTables.hrPayrollPeriods,
           LocalTables.hrPayslips,
+          LocalTables.wardVitals,
+          LocalTables.wardHandovers,
+          LocalTables.wardTasks,
           LocalTables.clinicalProblems,
           LocalTables.encounterScribeDrafts,
         });

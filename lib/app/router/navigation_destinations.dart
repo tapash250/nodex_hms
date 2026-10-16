@@ -138,6 +138,18 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Nurse ward station: observations, handover and the task board.
+  static const NavigationDestinationSpec wardStation =
+      NavigationDestinationSpec(
+        routePath: '/ward-station',
+        label: 'Ward station',
+        icon: Icons.assignment_outlined,
+        selectedIcon: Icons.assignment,
+        requiredPermissions: <String>{NodexPermissions.nursingStationRead},
+        moduleCode: 'M06',
+        isPrimary: false,
+      );
+
   /// Blood bank inventory and transfusion workflow.
   static const NavigationDestinationSpec bloodBank = NavigationDestinationSpec(
     routePath: '/blood-bank',
@@ -292,6 +304,7 @@ abstract final class NodexDestinations {
         wards,
         er,
         icu,
+        wardStation,
         bloodBank,
         ot,
         floorMap,

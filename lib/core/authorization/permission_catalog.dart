@@ -255,6 +255,15 @@ abstract final class NodexPermissions {
   /// Record ventilator events.
   static const String ventilatorEventRecord = 'ventilator.event.record';
 
+  /// View the ward observation, handover and task board.
+  static const String nursingStationRead = 'nursing_station.read';
+
+  /// Record the shift nursing handover for a ward.
+  static const String nursingHandoverRecord = 'nursing.handover.record';
+
+  /// Create, delegate and close ward nursing tasks.
+  static const String nursingTaskWrite = 'nursing_task.write';
+
   /// Approve and finalize a patient discharge.
   static const String dischargeFinalize = 'discharge.finalize';
 
