@@ -160,13 +160,21 @@ in the migration headers):
   the trigger (RLS cannot distinguish them from draft edits); item release
   rides on the header authorization so prescribers need no dispense permission
 
-Next module: billing (31). The discharge vertical slice is complete at the
-code level (410 tests passing): one finalized record per encounter, draft on
-encounter.write with high-risk online-only finalization enforced in-trigger,
-immutable after finalizing, encounter picker on the patient record, and a
-bed-release shortcut closing the stay loop. Hardware barcode scanning,
-PowerSync device verification and clinical deployment validation remain
-across all clinical slices.
+**Doctor & Specialist Directory (module 08)** landed after that (1,046 tests
+passing): `practitioner_profiles` and `practitioner_on_calls` with a
+retirement-only profile lifecycle and an immutable credential record, the
+`staff_directory.read` / `staff_directory.administer` permission split, the
+directory screen reachable at `/staff-directory`, a dedicated
+`staff_directory` PowerSync bucket, and mutation-handler registration for both
+tables. On-call rotations are never overwritten, so historical cover stays
+answerable offline.
+
+Next module: Module 12 (Clinical Departments Registry) extends the directory
+with the department/head structure that module 08 already references through
+`department_id`, and is the smallest remaining registry slice. Beyond it, the
+dependency order is unchanged: finish the remaining 35 clinical modules one
+vertical slice at a time. Hardware barcode scanning, PowerSync device
+verification and clinical deployment validation remain across all slices.
 
 ---
 

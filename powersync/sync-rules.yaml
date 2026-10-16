@@ -492,6 +492,22 @@ sync_rules:
             and rp.permission_key = 'ward_floor.read'
       data:
         - select * from public.ward_rooms where tenant_id = bucket.tenant_id
+        - select * from public.wards where tenant_id = bucket.tenant_id
+    # Module 08 (doctor & specialist directory): the practitioner registry and
+    # the on-call rota it carries, scoped by its own read permission. The
+    # directory is a read-mostly catalog, so writing it is a separate
+    # administer permission that does not widen what a device holds.
+    staff_directory:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'staff_directory.read'
+      data:
         - select * from public.practitioner_profiles where tenant_id = bucket.tenant_id
         - select * from public.practitioner_on_calls where tenant_id = bucket.tenant_id
-        - select * from public.wards where tenant_id = bucket.tenant_id
