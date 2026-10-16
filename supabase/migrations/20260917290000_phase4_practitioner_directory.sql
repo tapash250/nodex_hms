@@ -127,7 +127,7 @@ create policy practitioner_on_calls_update_admin on public.practitioner_on_calls
 -- staff_directory.read; the specification makes this a read-mostly catalog, so
 -- the write gate is a distinct, separately grantable permission rather than
 -- reuse of user administration.
-insert into public.permissions (key, name, description, module_code, risk_tier, requires_online)
+insert into public.permissions (key, display_name, description, module_code, risk_tier, requires_online)
 values ('staff_directory.administer', 'Administer the staff directory',
         'Create and maintain practitioner directory entries and on-call rotations.',
         'M08', 'elevated', true)

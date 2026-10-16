@@ -350,7 +350,7 @@ create policy hr_payslips_update_manager on public.hr_payslips for update to aut
 
 -- The HR and payroll permissions. Payroll management is the only one that must
 -- not run from an offline snapshot: a finalized payslip is a financial act.
-insert into public.permissions (key, name, description, module_code, risk_tier, requires_online)
+insert into public.permissions (key, display_name, description, module_code, risk_tier, requires_online)
 values
   ('hr.read',         'Read HR records',       'View employee records, leave applications and holidays.', 'M13', 'standard', false),
   ('hr.manage',       'Manage HR records',     'Maintain employee records, decide leave and set holidays.', 'M13', 'elevated', false),

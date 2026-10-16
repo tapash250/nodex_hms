@@ -181,7 +181,7 @@ create policy ward_tasks_update_writer on public.ward_tasks for update to authen
   using (nodex.has_permission(tenant_id, 'nursing_task.write'))
   with check (nodex.has_permission(tenant_id, 'nursing_task.write'));
 
-insert into public.permissions (key, name, description, module_code, risk_tier, requires_online)
+insert into public.permissions (key, display_name, description, module_code, risk_tier, requires_online)
 values
   ('nursing_station.read',     'Read ward station',   'View the ward observation, handover and task board.', 'M06', 'standard', false),
   ('nursing.handover.record',  'Record ward handover','Record the shift nursing handover for a ward.',        'M06', 'elevated', false),

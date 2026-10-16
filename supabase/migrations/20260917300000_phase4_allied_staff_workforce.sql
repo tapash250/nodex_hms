@@ -171,7 +171,7 @@ create policy attendance_logs_insert_manager on public.attendance_logs for inser
 -- The workforce permissions. Read is standard and offline-capable so a ward
 -- always has its roster; manage is elevated but deliberately not online-only,
 -- because an unplanned absence has to be recordable at the bedside.
-insert into public.permissions (key, name, description, module_code, risk_tier, requires_online)
+insert into public.permissions (key, display_name, description, module_code, risk_tier, requires_online)
 values
   ('workforce.read',   'Read workforce rosters',  'View shifts, duty allocations and attendance.',            'M09', 'standard', false),
   ('workforce.manage', 'Manage workforce rosters','Create shifts, allocate duties and record attendance.',    'M09', 'elevated', false)
