@@ -277,6 +277,10 @@ abstract final class ConflictPolicyRegistry {
 
   /// Practitioner on-call rotation.
   static const String practitionerOnCall = 'practitioner_on_call';
+
+  /// Clinical or administrative department.
+  static const String department = 'department';
+
   /// Bed registry entry (code, type and lifecycle status).
   static const String bed = 'bed';
 
@@ -727,6 +731,15 @@ abstract final class ConflictPolicyRegistry {
           'devices cannot both claim or rewrite a rotation, so the server '
           'holds the rota and the client reconciles.',
     ),
+    department: ConflictPolicyEntry(
+      resourceType: department,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A department code and its head are shared hospital '
+          'configuration that scopes wards, staff and reports. Two devices '
+          'cannot disagree about the structure of a department, so the '
+          'server holds the registry and the client reconciles.',
+    ),
     bed: ConflictPolicyEntry(
       resourceType: bed,
       policy: ConflictPolicy.serverAuthoritative,
@@ -947,6 +960,7 @@ abstract final class ConflictPolicyRegistry {
     'ward_rooms': wardRoom,
     'practitioner_profiles': practitionerProfile,
     'practitioner_on_calls': practitionerOnCall,
+    'departments': department,
   };
 
   /// Resolves [resourceType], which may be a table name, to its entry.

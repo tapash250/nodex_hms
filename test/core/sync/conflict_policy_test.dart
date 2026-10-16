@@ -559,6 +559,7 @@ void main() {
       'beds',
       'blood_units',
       'clinical_encounters',
+      'departments',
       'diet_assessments',
       'diet_intake_logs',
       'diet_meal_plan_days',

@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1010 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1056 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -160,7 +160,7 @@ in the migration headers):
   the trigger (RLS cannot distinguish them from draft edits); item release
   rides on the header authorization so prescribers need no dispense permission
 
-**Doctor & Specialist Directory (module 08)** landed after that (1,046 tests
+**Doctor & Specialist Directory (module 08)** landed after that (1,056 tests
 passing): `practitioner_profiles` and `practitioner_on_calls` with a
 retirement-only profile lifecycle and an immutable credential record, the
 `staff_directory.read` / `staff_directory.administer` permission split, the
@@ -169,12 +169,19 @@ directory screen reachable at `/staff-directory`, a dedicated
 tables. On-call rotations are never overwritten, so historical cover stays
 answerable offline.
 
-Next module: Module 12 (Clinical Departments Registry) extends the directory
-with the department/head structure that module 08 already references through
-`department_id`, and is the smallest remaining registry slice. Beyond it, the
-dependency order is unchanged: finish the remaining 35 clinical modules one
-vertical slice at a time. Hardware barcode scanning, PowerSync device
-verification and clinical deployment validation remain across all slices.
+**Clinical Departments Registry (module 12)** followed: the registry over the
+Phase 1 `departments` row, with a register/edit/archive lifecycle (archived
+departments are retained as historical references, never deleted),
+`department.administer`-gated use cases, the `/departments` screen, a
+`department` server-authoritative conflict policy, and mutation-handler
+registration. Departments already replicate in `tenant_master_data`.
+
+Next module: Module 09 (Allied Staff & Workforce Manager) extends the
+directory and department structure with the wider allied-health workforce.
+Beyond it, the dependency order is unchanged: finish the remaining 34 clinical
+modules one vertical slice at a time. Hardware barcode scanning, PowerSync
+device verification and clinical deployment validation remain across all
+slices.
 
 ---
 
@@ -191,7 +198,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1010 tests).
+  mutation-verified (1056 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

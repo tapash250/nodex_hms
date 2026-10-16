@@ -28,6 +28,8 @@ import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_repository.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_use_cases.dart';
+import 'package:nodex_hms/domain/departments/department_repository.dart';
+import 'package:nodex_hms/domain/departments/department_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_management_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_management_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
@@ -659,6 +661,49 @@ final Provider<FloorOccupancyUseCase> floorOccupancyUseCaseProvider =
     Provider<FloorOccupancyUseCase>(
       (Ref ref) => FloorOccupancyUseCase(
         repository: ref.watch(floorMapRepositoryProvider),
+      ),
+    );
+
+/// Department registry repository over the encrypted local projection.
+final Provider<DepartmentRepository> departmentRepositoryProvider =
+    Provider<DepartmentRepository>(
+      (Ref ref) => DefaultDepartmentRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Register a department into the registry.
+final Provider<RegisterDepartmentUseCase> registerDepartmentUseCaseProvider =
+    Provider<RegisterDepartmentUseCase>(
+      (Ref ref) => RegisterDepartmentUseCase(
+        repository: ref.watch(departmentRepositoryProvider),
+      ),
+    );
+
+/// Update a department's registry facts.
+final Provider<UpdateDepartmentUseCase> updateDepartmentUseCaseProvider =
+    Provider<UpdateDepartmentUseCase>(
+      (Ref ref) => UpdateDepartmentUseCase(
+        repository: ref.watch(departmentRepositoryProvider),
+      ),
+    );
+
+/// Archive a department.
+final Provider<ArchiveDepartmentUseCase> archiveDepartmentUseCaseProvider =
+    Provider<ArchiveDepartmentUseCase>(
+      (Ref ref) => ArchiveDepartmentUseCase(
+        repository: ref.watch(departmentRepositoryProvider),
+      ),
+    );
+
+/// Read the department registry.
+final Provider<ListDepartmentsUseCase> listDepartmentsUseCaseProvider =
+    Provider<ListDepartmentsUseCase>(
+      (Ref ref) => ListDepartmentsUseCase(
+        repository: ref.watch(departmentRepositoryProvider),
       ),
     );
 

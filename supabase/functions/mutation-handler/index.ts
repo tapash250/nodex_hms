@@ -1373,6 +1373,23 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'ward.room.registered',
     auditActionPatch: 'ward.room.updated',
   },
+  // Module 12 (clinical departments registry).
+  departments: {
+    columns: {
+      tenant_id: 'uuid',
+      facility_id: 'uuid',
+      code: 'text',
+      display_name: 'text',
+      specialty: 'text',
+      head_user_id: 'uuid',
+      status: 'text',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'directory.department.registered',
+    auditActionPatch: 'directory.department.updated',
+  },
   // Module 08 (doctor & specialist directory).
   practitioner_profiles: {
     columns: {

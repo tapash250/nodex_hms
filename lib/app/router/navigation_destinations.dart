@@ -180,6 +180,18 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Clinical departments registry (Module 12).
+  static const NavigationDestinationSpec departments =
+      NavigationDestinationSpec(
+        routePath: '/departments',
+        label: 'Departments',
+        icon: Icons.account_tree_outlined,
+        selectedIcon: Icons.account_tree,
+        requiredPermissions: <String>{NodexPermissions.departmentAdminister},
+        moduleCode: 'M12',
+        isPrimary: false,
+      );
+
   /// Hospital floor map: rooms, capacity and live patient locations.
   static const NavigationDestinationSpec floorMap = NavigationDestinationSpec(
     routePath: '/floor-map',
@@ -258,6 +270,7 @@ abstract final class NodexDestinations {
         ot,
         floorMap,
         staffDirectory,
+        departments,
         inventory,
         syncDiagnostics,
         aiGovernance,
