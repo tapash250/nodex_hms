@@ -42,6 +42,8 @@ import 'package:nodex_hms/domain/er/er_repository.dart';
 import 'package:nodex_hms/domain/er/er_use_cases.dart';
 import 'package:nodex_hms/domain/floormap/floormap_repository.dart';
 import 'package:nodex_hms/domain/floormap/floormap_use_cases.dart';
+import 'package:nodex_hms/domain/hr/hr_repository.dart';
+import 'package:nodex_hms/domain/hr/hr_use_cases.dart';
 import 'package:nodex_hms/domain/icu/icu_repository.dart';
 import 'package:nodex_hms/domain/icu/icu_use_cases.dart';
 import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
@@ -836,6 +838,110 @@ final Provider<ReadWorkforceUseCase> readWorkforceUseCaseProvider =
       (Ref ref) => ReadWorkforceUseCase(
         repository: ref.watch(workforceRepositoryProvider),
       ),
+    );
+
+/// Human resources & payroll repository over the encrypted local projection.
+final Provider<HrRepository> hrRepositoryProvider = Provider<HrRepository>(
+  (Ref ref) => DefaultHrRepository(
+    store: PowerSyncPatientStore(database: ref.watch(localDatabaseProvider)),
+    logger: ref.watch(loggerProvider),
+  ),
+);
+
+/// Register an employment record.
+final Provider<RegisterEmployeeUseCase> registerEmployeeUseCaseProvider =
+    Provider<RegisterEmployeeUseCase>(
+      (Ref ref) =>
+          RegisterEmployeeUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Edit an employment record.
+final Provider<UpdateEmployeeUseCase> updateEmployeeUseCaseProvider =
+    Provider<UpdateEmployeeUseCase>(
+      (Ref ref) =>
+          UpdateEmployeeUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Confirm an employee in post.
+final Provider<ConfirmEmployeeUseCase> confirmEmployeeUseCaseProvider =
+    Provider<ConfirmEmployeeUseCase>(
+      (Ref ref) =>
+          ConfirmEmployeeUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Separate an employee.
+final Provider<SeparateEmployeeUseCase> separateEmployeeUseCaseProvider =
+    Provider<SeparateEmployeeUseCase>(
+      (Ref ref) =>
+          SeparateEmployeeUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Raise a leave application.
+final Provider<RequestLeaveUseCase> requestLeaveUseCaseProvider =
+    Provider<RequestLeaveUseCase>(
+      (Ref ref) =>
+          RequestLeaveUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Approve or reject a leave application.
+final Provider<DecideLeaveUseCase> decideLeaveUseCaseProvider =
+    Provider<DecideLeaveUseCase>(
+      (Ref ref) =>
+          DecideLeaveUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Cancel a leave application.
+final Provider<CancelLeaveUseCase> cancelLeaveUseCaseProvider =
+    Provider<CancelLeaveUseCase>(
+      (Ref ref) =>
+          CancelLeaveUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Add a holiday to the calendar.
+final Provider<SetHolidayUseCase> setHolidayUseCaseProvider =
+    Provider<SetHolidayUseCase>(
+      (Ref ref) =>
+          SetHolidayUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Open a draft payroll run.
+final Provider<OpenPayrollPeriodUseCase> openPayrollPeriodUseCaseProvider =
+    Provider<OpenPayrollPeriodUseCase>(
+      (Ref ref) =>
+          OpenPayrollPeriodUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Add a payslip to a draft payroll run.
+final Provider<CreatePayslipUseCase> createPayslipUseCaseProvider =
+    Provider<CreatePayslipUseCase>(
+      (Ref ref) =>
+          CreatePayslipUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Finalize a payroll run.
+final Provider<FinalizePayrollPeriodUseCase>
+finalizePayrollPeriodUseCaseProvider = Provider<FinalizePayrollPeriodUseCase>(
+  (Ref ref) =>
+      FinalizePayrollPeriodUseCase(repository: ref.watch(hrRepositoryProvider)),
+);
+
+/// Mark a payroll run paid.
+final Provider<MarkPayrollPaidUseCase> markPayrollPaidUseCaseProvider =
+    Provider<MarkPayrollPaidUseCase>(
+      (Ref ref) =>
+          MarkPayrollPaidUseCase(repository: ref.watch(hrRepositoryProvider)),
+    );
+
+/// Read HR records.
+final Provider<ReadHrUseCase> readHrUseCaseProvider = Provider<ReadHrUseCase>(
+  (Ref ref) => ReadHrUseCase(repository: ref.watch(hrRepositoryProvider)),
+);
+
+/// Read payroll records.
+final Provider<ReadPayrollUseCase> readPayrollUseCaseProvider =
+    Provider<ReadPayrollUseCase>(
+      (Ref ref) =>
+          ReadPayrollUseCase(repository: ref.watch(hrRepositoryProvider)),
     );
 
 /// Prescription repository over the encrypted local projection.

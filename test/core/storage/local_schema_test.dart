@@ -112,6 +112,11 @@ void main() {
           LocalTables.staffShifts,
           LocalTables.dutyAllocations,
           LocalTables.attendanceLogs,
+          LocalTables.hrEmployees,
+          LocalTables.hrLeaveRequests,
+          LocalTables.hrHolidays,
+          LocalTables.hrPayrollPeriods,
+          LocalTables.hrPayslips,
           LocalTables.clinicalProblems,
           LocalTables.encounterScribeDrafts,
         });

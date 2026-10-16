@@ -127,6 +127,21 @@ abstract final class LocalTables {
   /// Appended attendance events (Module 09). Synced, tenant-scoped.
   static const String attendanceLogs = 'attendance_logs';
 
+  /// Employment records (Module 13). Synced, tenant-scoped.
+  static const String hrEmployees = 'hr_employees';
+
+  /// Leave applications and approvals (Module 13). Synced, tenant-scoped.
+  static const String hrLeaveRequests = 'hr_leave_requests';
+
+  /// Holiday calendar (Module 13). Synced, tenant-scoped.
+  static const String hrHolidays = 'hr_holidays';
+
+  /// Monthly payroll runs (Module 13). Synced, tenant-scoped.
+  static const String hrPayrollPeriods = 'hr_payroll_periods';
+
+  /// Payslips under a payroll run (Module 13). Synced, tenant-scoped.
+  static const String hrPayslips = 'hr_payslips';
+
   /// Ward beds (Module 11). Synced, tenant-scoped.
   static const String beds = 'beds';
 
@@ -348,6 +363,11 @@ abstract final class NodexLocalSchema {
     _staffShifts,
     _dutyAllocations,
     _attendanceLogs,
+    _hrEmployees,
+    _hrLeaveRequests,
+    _hrHolidays,
+    _hrPayrollPeriods,
+    _hrPayslips,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -2493,6 +2513,135 @@ abstract final class NodexLocalSchema {
       Index('attendance_log_staff', <IndexedColumn>[
         IndexedColumn('staff_user_id'),
         IndexedColumn('occurred_at'),
+      ]),
+    ],
+  );
+
+  /// Employment records (Module 13). Mirrors `public.hr_employees`.
+  static const Table _hrEmployees = Table(
+    LocalTables.hrEmployees,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('user_id'),
+      Column.text('employee_code'),
+      Column.text('department_id'),
+      Column.text('designation'),
+      Column.text('employment_type'),
+      Column.text('employment_status'),
+      Column.text('grade'),
+      Column.text('reports_to'),
+      Column.text('joined_on'),
+      Column.text('confirmation_on'),
+      Column.text('separated_on'),
+      Column.text('notes'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('hr_employee_department', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('department_id'),
+      ]),
+      Index('hr_employee_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('employment_status'),
+      ]),
+    ],
+  );
+
+  /// Leave applications (Module 13). Mirrors `public.hr_leave_requests`.
+  static const Table _hrLeaveRequests = Table(
+    LocalTables.hrLeaveRequests,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('employee_id'),
+      Column.text('leave_type'),
+      Column.text('starts_on'),
+      Column.text('ends_on'),
+      Column.text('reason'),
+      Column.text('status'),
+      Column.text('requested_by'),
+      Column.text('decided_by'),
+      Column.text('decided_at'),
+      Column.text('decision_note'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('hr_leave_request_employee', <IndexedColumn>[
+        IndexedColumn('employee_id'),
+        IndexedColumn('status'),
+        IndexedColumn('starts_on'),
+      ]),
+    ],
+  );
+
+  /// Holiday calendar (Module 13). Mirrors `public.hr_holidays`.
+  static const Table _hrHolidays = Table(
+    LocalTables.hrHolidays,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('holiday_date'),
+      Column.text('display_name'),
+      Column.text('holiday_type'),
+      Column.integer('is_paid'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('hr_holiday_date', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('holiday_date'),
+      ]),
+    ],
+  );
+
+  /// Monthly payroll runs (Module 13). Mirrors `public.hr_payroll_periods`.
+  static const Table _hrPayrollPeriods = Table(
+    LocalTables.hrPayrollPeriods,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('period_start'),
+      Column.text('period_end'),
+      Column.text('pay_date'),
+      Column.text('currency'),
+      Column.text('status'),
+      Column.text('finalized_by'),
+      Column.text('finalized_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('hr_payroll_period_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('period_start'),
+      ]),
+    ],
+  );
+
+  /// Payslips (Module 13). Mirrors `public.hr_payslips`.
+  static const Table _hrPayslips = Table(
+    LocalTables.hrPayslips,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('period_id'),
+      Column.text('employee_id'),
+      Column.text('gross_minor'),
+      Column.text('deductions_minor'),
+      Column.text('net_minor'),
+      Column.text('status'),
+      Column.text('paid_on'),
+      Column.text('note'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('hr_payslip_employee', <IndexedColumn>[
+        IndexedColumn('employee_id'),
+        IndexedColumn('status'),
       ]),
     ],
   );

@@ -57,7 +57,10 @@ summaries), `floor_map` (Module 24, room layout and the floors it is drawn
 on; occupancy derives from `ward_census`), `staff_directory` (Module 08,
 practitioner profiles and their on-call rota, scoped by `staff_directory.read`),
 `workforce` (Module 09, staff shifts, duty allocations and attendance logs,
-scoped by `workforce.read`). The `emr_encounters` bucket also
+scoped by `workforce.read`), `hr` (Module 13, employment records, leave
+applications and holidays, scoped by `hr.read`) and `payroll` (Module 13,
+payroll runs and payslips, scoped separately by `payroll.read` so salary data
+does not ride along with the HR roster). The `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on
 it. Remaining: the rest of the 54-module scope.

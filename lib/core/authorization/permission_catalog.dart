@@ -92,6 +92,18 @@ abstract final class NodexPermissions {
   /// Create shifts, allocate duties and record attendance.
   static const String workforceManage = 'workforce.manage';
 
+  /// View employee records, leave applications and holidays.
+  static const String hrRead = 'hr.read';
+
+  /// Maintain employee records, decide leave and set holidays.
+  static const String hrManage = 'hr.manage';
+
+  /// View payroll periods and payslips.
+  static const String payrollRead = 'payroll.read';
+
+  /// Create and finalize payroll runs and payslips.
+  static const String payrollManage = 'payroll.manage';
+
   /// Enrol, suspend, revoke and wipe client devices.
   static const String deviceAdminister = 'device.administer';
 
@@ -314,6 +326,7 @@ abstract final class NodexPermissions {
     icuHandoverRecord,
     ventilatorEventRecord,
     staffDirectoryAdminister,
+    payrollManage,
   };
 
   /// Permissions classified `high_risk` in the database catalogue.

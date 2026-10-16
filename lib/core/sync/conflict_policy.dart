@@ -290,6 +290,21 @@ abstract final class ConflictPolicyRegistry {
   /// Appended attendance event.
   static const String attendanceLog = 'attendance_log';
 
+  /// Employment record.
+  static const String hrEmployee = 'hr_employee';
+
+  /// Leave application and its decision.
+  static const String hrLeaveRequest = 'hr_leave_request';
+
+  /// Calendar holiday.
+  static const String hrHoliday = 'hr_holiday';
+
+  /// Monthly payroll run.
+  static const String payrollPeriod = 'payroll_period';
+
+  /// Payslip under a payroll run.
+  static const String payslip = 'payslip';
+
   /// Bed registry entry (code, type and lifecycle status).
   static const String bed = 'bed';
 
@@ -920,6 +935,60 @@ abstract final class ConflictPolicyRegistry {
           'on a specific medication. The decision history is append-only so '
           'the review cannot be quietly rewritten.',
     ),
+    hrEmployee: ConflictPolicyEntry(
+      resourceType: hrEmployee,
+      policy: ConflictPolicy.fieldLevelMerge,
+      rationale:
+          'Two HR clerks may legitimately edit different attributes of the '
+          'same employment record while offline, so non-overlapping field '
+          'changes merge. Lifecycle transitions (confirmation, separation) '
+          'are deliberately outside the mergeable set: they change status and '
+          'must be reviewed rather than merged.',
+      mergeableFields: <String>{
+        'department_id',
+        'designation',
+        'grade',
+        'reports_to',
+        'notes',
+        'employment_type',
+      },
+    ),
+    hrLeaveRequest: ConflictPolicyEntry(
+      resourceType: hrLeaveRequest,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A leave decision is the employer agreeing to a dated absence, and '
+          'the server refuses overlapping live applications. The application '
+          'is therefore server-held so a stale offline copy cannot approve '
+          'leave the roster already conflicts with.',
+    ),
+    hrHoliday: ConflictPolicyEntry(
+      resourceType: hrHoliday,
+      policy: ConflictPolicy.fieldLevelMerge,
+      rationale:
+          'A holiday is shared calendar configuration; renaming it or '
+          'changing its paid flag on one device is not contradicted by an '
+          'edit to a different attribute elsewhere, so those fields merge '
+          'while the date stays fixed.',
+      mergeableFields: <String>{'display_name', 'holiday_type', 'is_paid'},
+    ),
+    payrollPeriod: ConflictPolicyEntry(
+      resourceType: payrollPeriod,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A payroll run is a financial state machine (draft, finalized, '
+          'paid) whose transitions must be singular. The server holds it so '
+          'two devices cannot both finalize or pay the same period.',
+    ),
+    payslip: ConflictPolicyEntry(
+      resourceType: payslip,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A payslip is an exact monetary total that must satisfy '
+          'net = gross - deductions everywhere. The server owns the figure so '
+          'a merged or overwritten amount cannot produce a payroll that does '
+          'not add up.',
+    ),
   };
 
   /// Maps a replicated table name onto its registered resource type.
@@ -998,6 +1067,11 @@ abstract final class ConflictPolicyRegistry {
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,
+    'hr_employees': hrEmployee,
+    'hr_leave_requests': hrLeaveRequest,
+    'hr_holidays': hrHoliday,
+    'hr_payroll_periods': payrollPeriod,
+    'hr_payslips': payslip,
   };
 
   /// Resolves [resourceType], which may be a table name, to its entry.

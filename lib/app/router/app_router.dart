@@ -36,6 +36,7 @@ import 'package:nodex_hms/features/er/triage_detail_screen.dart';
 import 'package:nodex_hms/features/er/triage_intake_screen.dart';
 import 'package:nodex_hms/features/floormap/floor_map_screen.dart';
 import 'package:nodex_hms/features/home/home_screen.dart';
+import 'package:nodex_hms/features/hr/hr_screen.dart';
 import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
 import 'package:nodex_hms/features/icu/icu_list_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
@@ -298,6 +299,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.workforce.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WorkforceScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.humanResources.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const HrScreen(),
           ),
           GoRoute(
             path: NodexDestinations.er.routePath,

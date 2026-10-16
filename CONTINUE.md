@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 21 files. Statement content verified against `supabase_migrations.schema_migrations`. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 57 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1069 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1085 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -54,7 +54,7 @@ all three.
 
 ```bash
 supabase link --project-ref neoernavfntxsotwvmwq
-supabase migration list     # local and remote should agree on all 19
+supabase migration list     # compare local and remote; unapplied slices are expected until `db push` runs
 ```
 
 ---
@@ -190,9 +190,30 @@ permissions gate the `/workforce` screen, a dedicated `workforce` PowerSync
 bucket scopes the rosters to `workforce.read`, and each table has a conflict
 policy (shifts and allocations server-authoritative, attendance append-only).
 
-Next module: Module 10 (Master Patient Index & Timeline) is the dependency-order
-successor. Beyond it, the remaining clinical modules are built one vertical slice
-at a time. Hardware barcode scanning, PowerSync device verification and clinical
+**Human Resources & Payroll Suite (module 13)** followed, over `hr_employees`,
+`hr_leave_requests`, `hr_holidays`, `hr_payroll_periods` and `hr_payslips`.
+Attendance is deliberately not duplicated: Module 09 already owns
+`attendance_logs`, and HR reads those facts. The slice keeps three kinds of
+record distinct: the employment record (a lifecycle over an `app_users`
+identity, retained on separation rather than deleted), the leave *workflow* (an
+application and its decision, with overlapping live applications refused by a
+trigger and an approved window frozen except for cancellation — distinct from
+the roster block the approval produces in Module 09), and the payroll run (a
+draft → finalized → paid state machine whose financials freeze when it leaves
+draft, with `hr_payslips.net_minor` constrained by the database to equal gross
+less deductions). Money uses integer minor units, matching the billing engine.
+Four permissions split the surface: `hr.read`/`hr.manage` for the HR file and
+`payroll.read`/`payroll.manage` for salary, with `payroll.manage`
+`requires_online` so a payslip cannot be finalized from an offline snapshot.
+Two PowerSync buckets (`hr`, `payroll`) keep salary from riding along with the
+roster, the `/hr` screen is linked from navigation, and mutation-handler
+registration plus per-table conflict policies (employee and holiday field-level
+merge; leave and both payroll tables server-authoritative) are in place.
+
+Next module: Module 06 (Nurse Ward Station), per the agreed order
+(13 → 06 → 42 → 40). It is the remaining Phase 2 core clinical surface. Beyond
+it, the remaining clinical modules are built one vertical slice at a time.
+Hardware barcode scanning, PowerSync device verification and clinical
 deployment validation remain across all slices.
 
 ---
@@ -210,7 +231,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1069 tests).
+  mutation-verified (1085 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

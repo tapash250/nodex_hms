@@ -203,6 +203,21 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Human resources & payroll suite (Module 13).
+  static const NavigationDestinationSpec humanResources =
+      NavigationDestinationSpec(
+        routePath: '/hr',
+        label: 'HR & payroll',
+        icon: Icons.badge_outlined,
+        selectedIcon: Icons.badge,
+        requiredPermissions: <String>{
+          NodexPermissions.hrRead,
+          NodexPermissions.payrollRead,
+        },
+        moduleCode: 'M13',
+        isPrimary: false,
+      );
+
   /// Hospital floor map: rooms, capacity and live patient locations.
   static const NavigationDestinationSpec floorMap = NavigationDestinationSpec(
     routePath: '/floor-map',
@@ -221,7 +236,7 @@ abstract final class NodexDestinations {
     icon: Icons.inventory_2_outlined,
     selectedIcon: Icons.inventory_2,
     requiredPermissions: <String>{NodexPermissions.inventoryMovement},
-    moduleCode: 'M13',
+    moduleCode: 'M28',
   );
 
   /// Synchronization diagnostics: queue depth, retries, conflicts, failures.
@@ -283,6 +298,7 @@ abstract final class NodexDestinations {
         staffDirectory,
         departments,
         workforce,
+        humanResources,
         inventory,
         syncDiagnostics,
         aiGovernance,

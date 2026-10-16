@@ -529,3 +529,37 @@ sync_rules:
         - select * from public.staff_shifts where tenant_id = bucket.tenant_id
         - select * from public.duty_allocations where tenant_id = bucket.tenant_id
         - select * from public.attendance_logs where tenant_id = bucket.tenant_id
+    # Module 13 (HR): employment records, leave and holidays. Scoped by
+    # hr.read so an HR clerk's device holds the workforce file without holding
+    # payroll, which is money and is scoped separately below.
+    hr:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'hr.read'
+      data:
+        - select * from public.hr_employees where tenant_id = bucket.tenant_id
+        - select * from public.hr_leave_requests where tenant_id = bucket.tenant_id
+        - select * from public.hr_holidays where tenant_id = bucket.tenant_id
+    # Module 13 (payroll): periods and payslips, scoped by the payroll read
+    # permission so salary data does not ride along with the HR roster.
+    payroll:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'payroll.read'
+      data:
+        - select * from public.hr_payroll_periods where tenant_id = bucket.tenant_id
+        - select * from public.hr_payslips where tenant_id = bucket.tenant_id
