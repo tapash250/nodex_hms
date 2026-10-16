@@ -527,6 +527,22 @@ sync_rules:
             and rp.permission_key = 'contacts.read'
       data:
         - select * from public.directory_contacts where tenant_id = bucket.tenant_id
+    # Module 40 (institutional calendar & shift overlay): institutional events
+    # scoped by calendar.read. The shift overlay reads the Module 09
+    # workforce rows the device already holds, rather than syncing a copy.
+    calendar:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'calendar.read'
+      data:
+        - select * from public.calendar_events where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

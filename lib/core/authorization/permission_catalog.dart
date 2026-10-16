@@ -92,6 +92,12 @@ abstract final class NodexPermissions {
   /// Register, maintain and archive hospital contacts.
   static const String contactsAdminister = 'contacts.administer';
 
+  /// View institutional calendar events and the shift overlay.
+  static const String calendarRead = 'calendar.read';
+
+  /// Create, edit and cancel institutional calendar events.
+  static const String calendarManage = 'calendar.manage';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

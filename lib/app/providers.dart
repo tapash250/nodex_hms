@@ -28,6 +28,8 @@ import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_repository.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_use_cases.dart';
+import 'package:nodex_hms/domain/calendar/calendar_repository.dart';
+import 'package:nodex_hms/domain/calendar/calendar_use_cases.dart';
 import 'package:nodex_hms/domain/contacts/contact_repository.dart';
 import 'package:nodex_hms/domain/contacts/contact_use_cases.dart';
 import 'package:nodex_hms/domain/departments/department_repository.dart';
@@ -669,6 +671,49 @@ final Provider<FloorOccupancyUseCase> floorOccupancyUseCaseProvider =
     Provider<FloorOccupancyUseCase>(
       (Ref ref) => FloorOccupancyUseCase(
         repository: ref.watch(floorMapRepositoryProvider),
+      ),
+    );
+
+/// Institutional calendar repository over the encrypted local projection.
+final Provider<CalendarRepository> calendarRepositoryProvider =
+    Provider<CalendarRepository>(
+      (Ref ref) => DefaultCalendarRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Create an institutional calendar event.
+final Provider<CreateCalendarEventUseCase> createCalendarEventUseCaseProvider =
+    Provider<CreateCalendarEventUseCase>(
+      (Ref ref) => CreateCalendarEventUseCase(
+        repository: ref.watch(calendarRepositoryProvider),
+      ),
+    );
+
+/// Update a scheduled calendar event.
+final Provider<UpdateCalendarEventUseCase> updateCalendarEventUseCaseProvider =
+    Provider<UpdateCalendarEventUseCase>(
+      (Ref ref) => UpdateCalendarEventUseCase(
+        repository: ref.watch(calendarRepositoryProvider),
+      ),
+    );
+
+/// Cancel a calendar event.
+final Provider<CancelCalendarEventUseCase> cancelCalendarEventUseCaseProvider =
+    Provider<CancelCalendarEventUseCase>(
+      (Ref ref) => CancelCalendarEventUseCase(
+        repository: ref.watch(calendarRepositoryProvider),
+      ),
+    );
+
+/// Read the institutional calendar and build the shift overlay.
+final Provider<ReadCalendarUseCase> readCalendarUseCaseProvider =
+    Provider<ReadCalendarUseCase>(
+      (Ref ref) => ReadCalendarUseCase(
+        repository: ref.watch(calendarRepositoryProvider),
       ),
     );
 

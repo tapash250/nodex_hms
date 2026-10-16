@@ -1627,6 +1627,28 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'directory.contact.registered',
     auditActionPatch: 'directory.contact.updated',
   },
+  // Module 40 (institutional calendar & shift overlay).
+  calendar_events: {
+    columns: {
+      tenant_id: 'uuid',
+      facility_id: 'uuid',
+      department_id: 'uuid',
+      title: 'text',
+      description: 'text',
+      event_type: 'text',
+      starts_at: 'timestamp',
+      ends_at: 'timestamp',
+      all_day: 'boolean',
+      location: 'text',
+      status: 'text',
+      created_by: 'uuid',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'calendar.event.created',
+    auditActionPatch: 'calendar.event.updated',
+  },
   // Module 08 (doctor & specialist directory).
   practitioner_profiles: {
     columns: {

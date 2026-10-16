@@ -559,6 +559,7 @@ void main() {
       'bed_assignments',
       'beds',
       'blood_units',
+      'calendar_events',
       'clinical_encounters',
       'departments',
       'directory_contacts',

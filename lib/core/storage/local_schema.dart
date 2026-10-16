@@ -34,6 +34,9 @@ abstract final class LocalTables {
   /// Hospital contacts directory (Module 42). Synced, tenant-scoped.
   static const String directoryContacts = 'directory_contacts';
 
+  /// Institutional calendar events (Module 40). Synced, tenant-scoped.
+  static const String calendarEvents = 'calendar_events';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -300,6 +303,7 @@ abstract final class NodexLocalSchema {
     _facilities,
     _departments,
     _directoryContacts,
+    _calendarEvents,
     _wards,
     _appUsers,
     _roles,
@@ -469,6 +473,40 @@ abstract final class NodexLocalSchema {
       Index('directory_contact_facility', <IndexedColumn>[
         IndexedColumn('tenant_id'),
         IndexedColumn('facility_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Institutional calendar events (Module 40). Mirrors
+  /// `public.calendar_events`.
+  static const Table _calendarEvents = Table(
+    LocalTables.calendarEvents,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('department_id'),
+      Column.text('title'),
+      Column.text('description'),
+      Column.text('event_type'),
+      Column.text('starts_at'),
+      Column.text('ends_at'),
+      Column.integer('all_day'),
+      Column.text('location'),
+      Column.text('status'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('calendar_event_window', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('starts_at'),
+        IndexedColumn('ends_at'),
+      ]),
+      Index('calendar_event_type', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('event_type'),
         IndexedColumn('status'),
       ]),
     ],

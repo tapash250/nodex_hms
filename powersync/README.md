@@ -63,9 +63,12 @@ payroll runs and payslips, scoped separately by `payroll.read` so salary data
 does not ride along with the HR roster), and `nursing_station` (Module 06,
 general-ward observations, handovers and the task queue, scoped by
 `nursing_station.read`; beds and MAR are read from the Module 11 and Module 25
-rows already on the device rather than copied), and `contacts` (Module 42, the
+rows already on the device rather than copied), `contacts` (Module 42, the
 hospital contacts directory, scoped by `contacts.read` so every clinical device
-carries the emergency numbers and help desks it needs). The `emr_encounters` bucket also
+carries the emergency numbers and help desks it needs), and `calendar`
+(Module 40, institutional calendar events, scoped by `calendar.read`; the shift
+overlay reads the Module 09 `workforce` rows the device already holds rather
+than syncing a copy). The `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on
 it. Remaining: the rest of the 54-module scope.

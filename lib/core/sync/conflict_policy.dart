@@ -284,6 +284,9 @@ abstract final class ConflictPolicyRegistry {
   /// Hospital contact directory entry.
   static const String contact = 'contact';
 
+  /// Institutional calendar event.
+  static const String calendarEvent = 'calendar_event';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -785,6 +788,14 @@ abstract final class ConflictPolicyRegistry {
           'which tablet read it. The server owns the directory and the '
           'client reconciles.',
     ),
+    calendarEvent: ConflictPolicyEntry(
+      resourceType: calendarEvent,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'An institutional event is shared scheduling configuration. Two '
+          'devices cannot both hold different times for the same training '
+          'day, so the server owns the calendar and the client reconciles.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1110,6 +1121,7 @@ abstract final class ConflictPolicyRegistry {
     'practitioner_on_calls': practitionerOnCall,
     'departments': department,
     'directory_contacts': contact,
+    'calendar_events': calendarEvent,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

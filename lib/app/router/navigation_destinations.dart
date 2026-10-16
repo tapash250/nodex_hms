@@ -226,6 +226,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Institutional calendar and shift overlay (Module 40).
+  static const NavigationDestinationSpec calendar = NavigationDestinationSpec(
+    routePath: '/calendar',
+    label: 'Calendar',
+    icon: Icons.calendar_month_outlined,
+    selectedIcon: Icons.calendar_month,
+    requiredPermissions: <String>{NodexPermissions.calendarRead},
+    moduleCode: 'M40',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -324,6 +335,7 @@ abstract final class NodexDestinations {
         workforce,
         humanResources,
         contacts,
+        calendar,
         inventory,
         syncDiagnostics,
         aiGovernance,

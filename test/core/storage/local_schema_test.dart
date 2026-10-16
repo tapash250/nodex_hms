@@ -39,6 +39,7 @@ void main() {
           LocalTables.facilities,
           LocalTables.departments,
           LocalTables.directoryContacts,
+          LocalTables.calendarEvents,
           LocalTables.wards,
           LocalTables.appUsers,
           LocalTables.roles,

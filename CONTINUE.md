@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 59 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 60 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1109 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1121 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -249,10 +249,28 @@ migrations had been applied, so the bug was invisible; all four now insert into
 `display_name`. Verify any unapplied slice against the real column names before
 `supabase db push`.
 
-Next module: Module 40 (Institutional Calendar & Shift Overlay), per the agreed
-order (13 → 06 → 42 → 40). Beyond it, the remaining clinical modules are built
-one vertical slice at a time. Hardware barcode scanning, PowerSync device
-verification and clinical deployment validation remain across all slices.
+**Institutional Calendar & Shift Overlay (module 40)** followed, over
+`calendar_events`. It owns only the institutional event; the "shift overlay" is
+reading the Module 09 roster on the same time axis rather than storing a second
+copy, and the calendar domain takes plain `ShiftSlice` projections so it does
+not depend on the workforce domain — `buildCalendarOverlay` is a pure function
+over events and shift slices. It also does not duplicate the HR holiday
+entitlement (Module 13 `hr_holidays`): an operational holiday is an event here
+with type `holiday`. An event is scheduled or cancelled and cancellation is
+one-way, freezing the row so a document that names the cancelled event stays
+answerable; events may overlap by design. `calendar.read` is standard and
+offline, `calendar.manage` is elevated, and a `calendar` PowerSync bucket scopes
+events to `calendar.read`, with a server-authoritative conflict policy and a
+mutation-handler entry. The `/calendar` screen lists the next 30 days, overlaying
+roster shifts when the session also holds `workforce.read`.
+
+That completes the agreed run of four modules (13 → 06 → 42 → 40). Next: continue
+with the remaining clinical modules one vertical slice at a time, following the
+same pattern (Postgres schema + RLS, PowerSync local schema, repository + test
+seam, `*.write`-gated use cases, screens, sync bucket, mutation-handler
+registration, conflict policy, tests, then format/analyze/test). Hardware
+barcode scanning, PowerSync device verification and clinical deployment
+validation also remain across all slices.
 
 ---
 
@@ -269,7 +287,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1109 tests).
+  mutation-verified (1121 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and
