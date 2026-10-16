@@ -281,6 +281,9 @@ abstract final class ConflictPolicyRegistry {
   /// Clinical or administrative department.
   static const String department = 'department';
 
+  /// Hospital contact directory entry.
+  static const String contact = 'contact';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -773,6 +776,15 @@ abstract final class ConflictPolicyRegistry {
           'cannot disagree about the structure of a department, so the '
           'server holds the registry and the client reconciles.',
     ),
+    contact: ConflictPolicyEntry(
+      resourceType: contact,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A contact number is shared operational configuration: a ward '
+          'help desk must not show two different extensions depending on '
+          'which tablet read it. The server owns the directory and the '
+          'client reconciles.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1097,6 +1109,7 @@ abstract final class ConflictPolicyRegistry {
     'practitioner_profiles': practitionerProfile,
     'practitioner_on_calls': practitionerOnCall,
     'departments': department,
+    'directory_contacts': contact,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

@@ -86,6 +86,12 @@ abstract final class NodexPermissions {
   /// Create and maintain practitioner directory entries and on-call rota.
   static const String staffDirectoryAdminister = 'staff_directory.administer';
 
+  /// Browse the hospital contacts directory.
+  static const String contactsRead = 'contacts.read';
+
+  /// Register, maintain and archive hospital contacts.
+  static const String contactsAdminister = 'contacts.administer';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

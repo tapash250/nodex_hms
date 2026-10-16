@@ -511,6 +511,22 @@ sync_rules:
       data:
         - select * from public.practitioner_profiles where tenant_id = bucket.tenant_id
         - select * from public.practitioner_on_calls where tenant_id = bucket.tenant_id
+    # Module 42 (hospital contacts directory): the operational contact book.
+    # Scoped by contacts.read so every clinical device carries the emergency
+    # numbers and help desks it needs, without carrying anything clinical.
+    contacts:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'contacts.read'
+      data:
+        - select * from public.directory_contacts where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

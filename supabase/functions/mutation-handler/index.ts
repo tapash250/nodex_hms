@@ -1599,6 +1599,34 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'directory.department.registered',
     auditActionPatch: 'directory.department.updated',
   },
+  // Module 42 (hospital contacts directory).
+  directory_contacts: {
+    columns: {
+      tenant_id: 'uuid',
+      facility_id: 'uuid',
+      department_id: 'uuid',
+      name: 'text',
+      category: 'text',
+      contact_role: 'text',
+      organisation: 'text',
+      phone_primary: 'text',
+      phone_secondary: 'text',
+      extension: 'text',
+      email: 'text',
+      address: 'text',
+      notes: 'text',
+      is_emergency: 'boolean',
+      available_24_7: 'boolean',
+      display_order: 'integer',
+      status: 'text',
+      created_by: 'uuid',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'directory.contact.registered',
+    auditActionPatch: 'directory.contact.updated',
+  },
   // Module 08 (doctor & specialist directory).
   practitioner_profiles: {
     columns: {

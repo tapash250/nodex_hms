@@ -28,6 +28,8 @@ import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_repository.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_use_cases.dart';
+import 'package:nodex_hms/domain/contacts/contact_repository.dart';
+import 'package:nodex_hms/domain/contacts/contact_use_cases.dart';
 import 'package:nodex_hms/domain/departments/department_repository.dart';
 import 'package:nodex_hms/domain/departments/department_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_management_repository.dart';
@@ -668,6 +670,48 @@ final Provider<FloorOccupancyUseCase> floorOccupancyUseCaseProvider =
       (Ref ref) => FloorOccupancyUseCase(
         repository: ref.watch(floorMapRepositoryProvider),
       ),
+    );
+
+/// Hospital contacts directory repository over the encrypted local projection.
+final Provider<ContactRepository> contactRepositoryProvider =
+    Provider<ContactRepository>(
+      (Ref ref) => DefaultContactRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Register a hospital contact.
+final Provider<RegisterContactUseCase> registerContactUseCaseProvider =
+    Provider<RegisterContactUseCase>(
+      (Ref ref) => RegisterContactUseCase(
+        repository: ref.watch(contactRepositoryProvider),
+      ),
+    );
+
+/// Update a hospital contact.
+final Provider<UpdateContactUseCase> updateContactUseCaseProvider =
+    Provider<UpdateContactUseCase>(
+      (Ref ref) => UpdateContactUseCase(
+        repository: ref.watch(contactRepositoryProvider),
+      ),
+    );
+
+/// Archive a hospital contact.
+final Provider<ArchiveContactUseCase> archiveContactUseCaseProvider =
+    Provider<ArchiveContactUseCase>(
+      (Ref ref) => ArchiveContactUseCase(
+        repository: ref.watch(contactRepositoryProvider),
+      ),
+    );
+
+/// Read the hospital contacts directory.
+final Provider<ListContactsUseCase> listContactsUseCaseProvider =
+    Provider<ListContactsUseCase>(
+      (Ref ref) =>
+          ListContactsUseCase(repository: ref.watch(contactRepositoryProvider)),
     );
 
 /// Department registry repository over the encrypted local projection.

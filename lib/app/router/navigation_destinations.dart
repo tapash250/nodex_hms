@@ -215,6 +215,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Hospital contacts directory (Module 42).
+  static const NavigationDestinationSpec contacts = NavigationDestinationSpec(
+    routePath: '/contacts',
+    label: 'Contacts',
+    icon: Icons.contact_phone_outlined,
+    selectedIcon: Icons.contact_phone,
+    requiredPermissions: <String>{NodexPermissions.contactsRead},
+    moduleCode: 'M42',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -312,6 +323,7 @@ abstract final class NodexDestinations {
         departments,
         workforce,
         humanResources,
+        contacts,
         inventory,
         syncDiagnostics,
         aiGovernance,

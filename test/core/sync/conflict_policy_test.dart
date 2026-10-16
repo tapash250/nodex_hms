@@ -561,6 +561,7 @@ void main() {
       'blood_units',
       'clinical_encounters',
       'departments',
+      'directory_contacts',
       'diet_assessments',
       'diet_intake_logs',
       'diet_meal_plan_days',

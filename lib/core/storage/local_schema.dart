@@ -31,6 +31,9 @@ abstract final class LocalTables {
   /// Department catalogue.
   static const String departments = 'departments';
 
+  /// Hospital contacts directory (Module 42). Synced, tenant-scoped.
+  static const String directoryContacts = 'directory_contacts';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -296,6 +299,7 @@ abstract final class NodexLocalSchema {
     _tenants,
     _facilities,
     _departments,
+    _directoryContacts,
     _wards,
     _appUsers,
     _roles,
@@ -426,6 +430,46 @@ abstract final class NodexLocalSchema {
     indexes: <Index>[
       Index('department_facility', <IndexedColumn>[
         IndexedColumn('facility_id'),
+      ]),
+    ],
+  );
+
+  /// Hospital contacts directory (Module 42). Mirrors
+  /// `public.directory_contacts`.
+  static const Table _directoryContacts = Table(
+    LocalTables.directoryContacts,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('department_id'),
+      Column.text('name'),
+      Column.text('category'),
+      Column.text('contact_role'),
+      Column.text('organisation'),
+      Column.text('phone_primary'),
+      Column.text('phone_secondary'),
+      Column.text('extension'),
+      Column.text('email'),
+      Column.text('address'),
+      Column.text('notes'),
+      Column.integer('is_emergency'),
+      Column.integer('available_24_7'),
+      Column.integer('display_order'),
+      Column.text('status'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('directory_contact_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('category'),
+        IndexedColumn('status'),
+      ]),
+      Index('directory_contact_facility', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('facility_id'),
+        IndexedColumn('status'),
       ]),
     ],
   );

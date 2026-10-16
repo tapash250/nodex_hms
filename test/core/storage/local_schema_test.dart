@@ -38,6 +38,7 @@ void main() {
           LocalTables.tenants,
           LocalTables.facilities,
           LocalTables.departments,
+          LocalTables.directoryContacts,
           LocalTables.wards,
           LocalTables.appUsers,
           LocalTables.roles,

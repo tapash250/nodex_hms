@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 58 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 59 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1097 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1109 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -225,11 +225,34 @@ task board, recent observations and the last handovers. An observation carries
 an advisory alert band (normal/watch/urgent) derived by a pure function — a
 triage aid for the board, explicitly not a validated early-warning score.
 
-Next module: Module 42 (Hospital Contacts Directory), then Module 40
-(Institutional Calendar & Shift Overlay), per the agreed order (13 → 06 → 42 →
-40). Beyond those, the remaining clinical modules are built one vertical slice
-at a time. Hardware barcode scanning, PowerSync device verification and clinical
-deployment validation remain across all slices.
+**Hospital Contacts Directory (module 42)** followed, over `directory_contacts`.
+It is deliberately distinct from the staff directory (Module 08, people and
+credentials) and the department registry (Module 12, organisational structure):
+a contact is an operational reachability fact, and internal contact points are
+often role-based ("Duty biomedical engineer", "Blood bank help desk") because
+the number outlives whoever holds the phone — which is why the row does not hang
+off an `app_users` identity. Contacts are archived, never deleted, and archiving
+is one-way: the row freezes so a number a historical document or incident report
+names stays answerable, and a contact that must return is registered afresh.
+`contacts.read` is standard and offline (an emergency number must be reachable
+without a network) and `contacts.administer` is elevated; a dedicated `contacts`
+PowerSync bucket scopes the directory to `contacts.read`, the `/contacts` screen
+searches by name, role and number (emergency contacts pinned first), and the
+table is registered with a server-authoritative conflict policy and a
+mutation-handler entry.
+
+While building this slice a latent migration bug was found and fixed: the last
+four migrations (`practitioner_directory`, `allied_staff_workforce`,
+`hr_payroll_suite`, `nurse_ward_station`) inserted new permissions into a
+`name` column, but `public.permissions` names it `display_name`. None of those
+migrations had been applied, so the bug was invisible; all four now insert into
+`display_name`. Verify any unapplied slice against the real column names before
+`supabase db push`.
+
+Next module: Module 40 (Institutional Calendar & Shift Overlay), per the agreed
+order (13 → 06 → 42 → 40). Beyond it, the remaining clinical modules are built
+one vertical slice at a time. Hardware barcode scanning, PowerSync device
+verification and clinical deployment validation remain across all slices.
 
 ---
 
@@ -246,7 +269,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1097 tests).
+  mutation-verified (1109 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and
