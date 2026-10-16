@@ -543,6 +543,26 @@ sync_rules:
             and rp.permission_key = 'calendar.read'
       data:
         - select * from public.calendar_events where tenant_id = bucket.tenant_id
+    # Module 27 (fleet & ambulance dispatch): vehicles, driver duty rosters,
+    # dispatch jobs and coarse position pings, scoped by fleet.read. The ping
+    # trail travels with the fleet so a dispatcher can answer "where was it
+    # last seen" offline.
+    fleet:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'fleet.read'
+      data:
+        - select * from public.ambulances where tenant_id = bucket.tenant_id
+        - select * from public.ambulance_duty_assignments where tenant_id = bucket.tenant_id
+        - select * from public.ambulance_dispatches where tenant_id = bucket.tenant_id
+        - select * from public.ambulance_tracking_pings where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

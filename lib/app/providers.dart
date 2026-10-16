@@ -44,6 +44,8 @@ import 'package:nodex_hms/domain/encounters/problem_list_repository.dart';
 import 'package:nodex_hms/domain/encounters/problem_list_use_cases.dart';
 import 'package:nodex_hms/domain/er/er_repository.dart';
 import 'package:nodex_hms/domain/er/er_use_cases.dart';
+import 'package:nodex_hms/domain/fleet/fleet_repository.dart';
+import 'package:nodex_hms/domain/fleet/fleet_use_cases.dart';
 import 'package:nodex_hms/domain/floormap/floormap_repository.dart';
 import 'package:nodex_hms/domain/floormap/floormap_use_cases.dart';
 import 'package:nodex_hms/domain/hr/hr_repository.dart';
@@ -672,6 +674,91 @@ final Provider<FloorOccupancyUseCase> floorOccupancyUseCaseProvider =
       (Ref ref) => FloorOccupancyUseCase(
         repository: ref.watch(floorMapRepositoryProvider),
       ),
+    );
+
+/// Fleet & ambulance dispatch repository over the encrypted local projection.
+final Provider<FleetRepository> fleetRepositoryProvider =
+    Provider<FleetRepository>(
+      (Ref ref) => DefaultFleetRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Register a fleet vehicle.
+final Provider<RegisterAmbulanceUseCase> registerAmbulanceUseCaseProvider =
+    Provider<RegisterAmbulanceUseCase>(
+      (Ref ref) => RegisterAmbulanceUseCase(
+        repository: ref.watch(fleetRepositoryProvider),
+      ),
+    );
+
+/// Update a fleet vehicle.
+final Provider<UpdateAmbulanceUseCase> updateAmbulanceUseCaseProvider =
+    Provider<UpdateAmbulanceUseCase>(
+      (Ref ref) => UpdateAmbulanceUseCase(
+        repository: ref.watch(fleetRepositoryProvider),
+      ),
+    );
+
+/// Archive a fleet vehicle.
+final Provider<ArchiveAmbulanceUseCase> archiveAmbulanceUseCaseProvider =
+    Provider<ArchiveAmbulanceUseCase>(
+      (Ref ref) => ArchiveAmbulanceUseCase(
+        repository: ref.watch(fleetRepositoryProvider),
+      ),
+    );
+
+/// Book a driver onto a vehicle.
+final Provider<ScheduleDutyUseCase> scheduleDutyUseCaseProvider =
+    Provider<ScheduleDutyUseCase>(
+      (Ref ref) =>
+          ScheduleDutyUseCase(repository: ref.watch(fleetRepositoryProvider)),
+    );
+
+/// Close an open duty assignment.
+final Provider<CloseDutyUseCase> closeDutyUseCaseProvider =
+    Provider<CloseDutyUseCase>(
+      (Ref ref) =>
+          CloseDutyUseCase(repository: ref.watch(fleetRepositoryProvider)),
+    );
+
+/// Raise an emergency dispatch.
+final Provider<RaiseDispatchUseCase> raiseDispatchUseCaseProvider =
+    Provider<RaiseDispatchUseCase>(
+      (Ref ref) =>
+          RaiseDispatchUseCase(repository: ref.watch(fleetRepositoryProvider)),
+    );
+
+/// Advance a dispatch.
+final Provider<AdvanceDispatchUseCase> advanceDispatchUseCaseProvider =
+    Provider<AdvanceDispatchUseCase>(
+      (Ref ref) => AdvanceDispatchUseCase(
+        repository: ref.watch(fleetRepositoryProvider),
+      ),
+    );
+
+/// Cancel a dispatch.
+final Provider<CancelDispatchUseCase> cancelDispatchUseCaseProvider =
+    Provider<CancelDispatchUseCase>(
+      (Ref ref) =>
+          CancelDispatchUseCase(repository: ref.watch(fleetRepositoryProvider)),
+    );
+
+/// Record a last-known-position ping.
+final Provider<RecordPingUseCase> recordPingUseCaseProvider =
+    Provider<RecordPingUseCase>(
+      (Ref ref) =>
+          RecordPingUseCase(repository: ref.watch(fleetRepositoryProvider)),
+    );
+
+/// Read the fleet board.
+final Provider<ReadFleetUseCase> readFleetUseCaseProvider =
+    Provider<ReadFleetUseCase>(
+      (Ref ref) =>
+          ReadFleetUseCase(repository: ref.watch(fleetRepositoryProvider)),
     );
 
 /// Institutional calendar repository over the encrypted local projection.

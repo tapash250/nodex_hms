@@ -37,6 +37,18 @@ abstract final class LocalTables {
   /// Institutional calendar events (Module 40). Synced, tenant-scoped.
   static const String calendarEvents = 'calendar_events';
 
+  /// Ambulance fleet registry (Module 27).
+  static const String ambulances = 'ambulances';
+
+  /// Ambulance driver duty rosters (Module 27).
+  static const String ambulanceDutyAssignments = 'ambulance_duty_assignments';
+
+  /// Ambulance dispatch jobs (Module 27).
+  static const String ambulanceDispatches = 'ambulance_dispatches';
+
+  /// Ambulance last-known position pings (Module 27).
+  static const String ambulanceTrackingPings = 'ambulance_tracking_pings';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -304,6 +316,10 @@ abstract final class NodexLocalSchema {
     _departments,
     _directoryContacts,
     _calendarEvents,
+    _ambulances,
+    _ambulanceDutyAssignments,
+    _ambulanceDispatches,
+    _ambulanceTrackingPings,
     _wards,
     _appUsers,
     _roles,
@@ -508,6 +524,138 @@ abstract final class NodexLocalSchema {
         IndexedColumn('tenant_id'),
         IndexedColumn('event_type'),
         IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Ambulance fleet registry (Module 27). Mirrors `public.ambulances`.
+  static const Table _ambulances = Table(
+    LocalTables.ambulances,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('call_sign'),
+      Column.text('registration_no'),
+      Column.text('vehicle_type'),
+      Column.integer('capacity'),
+      Column.text('capability_notes'),
+      Column.text('service_status'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ambulance_facility', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('facility_id'),
+        IndexedColumn('service_status'),
+      ]),
+    ],
+  );
+
+  /// Ambulance driver duty rosters (Module 27). Mirrors
+  /// `public.ambulance_duty_assignments`.
+  static const Table _ambulanceDutyAssignments = Table(
+    LocalTables.ambulanceDutyAssignments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('ambulance_id'),
+      Column.text('driver_user_id'),
+      Column.text('attendant_user_id'),
+      Column.text('starts_at'),
+      Column.text('ends_at'),
+      Column.text('status'),
+      Column.text('notes'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ambulance_duty_vehicle', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('ambulance_id'),
+        IndexedColumn('starts_at'),
+      ]),
+      Index('ambulance_duty_driver', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('driver_user_id'),
+        IndexedColumn('starts_at'),
+      ]),
+    ],
+  );
+
+  /// Ambulance dispatch jobs (Module 27). Mirrors
+  /// `public.ambulance_dispatches`.
+  static const Table _ambulanceDispatches = Table(
+    LocalTables.ambulanceDispatches,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('ambulance_id'),
+      Column.text('duty_assignment_id'),
+      Column.text('driver_user_id'),
+      Column.text('patient_id'),
+      Column.text('patient_name_text'),
+      Column.text('priority'),
+      Column.text('status'),
+      Column.text('requesting_reference'),
+      Column.text('pickup_address'),
+      Column.text('destination_address'),
+      Column.text('destination_facility'),
+      Column.text('requested_at'),
+      Column.text('dispatched_at'),
+      Column.text('on_scene_at'),
+      Column.text('completed_at'),
+      Column.text('cancellation_reason'),
+      Column.text('notes'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ambulance_dispatch_active', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('priority'),
+        IndexedColumn('requested_at'),
+      ]),
+      Index('ambulance_dispatch_vehicle', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('ambulance_id'),
+        IndexedColumn('requested_at'),
+      ]),
+      Index('ambulance_dispatch_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('requested_at'),
+      ]),
+    ],
+  );
+
+  /// Ambulance last-known position pings (Module 27). Mirrors
+  /// `public.ambulance_tracking_pings`.
+  static const Table _ambulanceTrackingPings = Table(
+    LocalTables.ambulanceTrackingPings,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('ambulance_id'),
+      Column.text('dispatch_id'),
+      Column.real('latitude'),
+      Column.real('longitude'),
+      Column.real('speed_kph'),
+      Column.text('recorded_at'),
+      Column.text('source'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('ambulance_tracking_vehicle', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('ambulance_id'),
+        IndexedColumn('recorded_at'),
+      ]),
+      Index('ambulance_tracking_dispatch', <IndexedColumn>[
+        IndexedColumn('dispatch_id'),
+        IndexedColumn('recorded_at'),
       ]),
     ],
   );

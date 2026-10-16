@@ -237,6 +237,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Fleet & ambulance dispatch (Module 27).
+  static const NavigationDestinationSpec fleet = NavigationDestinationSpec(
+    routePath: '/fleet',
+    label: 'Fleet',
+    icon: Icons.airport_shuttle_outlined,
+    selectedIcon: Icons.airport_shuttle,
+    requiredPermissions: <String>{NodexPermissions.fleetRead},
+    moduleCode: 'M27',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -336,6 +347,7 @@ abstract final class NodexDestinations {
         humanResources,
         contacts,
         calendar,
+        fleet,
         inventory,
         syncDiagnostics,
         aiGovernance,

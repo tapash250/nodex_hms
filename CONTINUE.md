@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 60 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 61 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1121 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1137 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -264,13 +264,34 @@ events to `calendar.read`, with a server-authoritative conflict policy and a
 mutation-handler entry. The `/calendar` screen lists the next 30 days, overlaying
 roster shifts when the session also holds `workforce.read`.
 
-That completes the agreed run of four modules (13 → 06 → 42 → 40). Next: continue
-with the remaining clinical modules one vertical slice at a time, following the
-same pattern (Postgres schema + RLS, PowerSync local schema, repository + test
-seam, `*.write`-gated use cases, screens, sync bucket, mutation-handler
-registration, conflict policy, tests, then format/analyze/test). Hardware
-barcode scanning, PowerSync device verification and clinical deployment
-validation also remain across all slices.
+**Fleet & Ambulance Dispatch (module 27)** followed, the next unbuilt slice in
+Domain C (Hospital Logistics, Supply Chain, Finance & Governance), over four
+tables: `ambulances` (the fleet registry), `ambulance_duty_assignments` (the
+driver roster), `ambulance_dispatches` (the emergency transit job) and
+`ambulance_tracking_pings` (the coarse last-known position). This is a distinct
+domain from the Module 09 ward roster: a crew is assigned to a *vehicle* for a
+duty window, and the database forbids overlapping live duties for the same
+vehicle or the same driver, so two offline tablets cannot both claim one
+ambulance. A dispatch is a guarded state machine (`requested → assigned →
+en_route → on_scene → completed`, cancellable from any live stage) and terminal
+jobs freeze, because the stage times are what an incident review turns on. The
+position ping is deliberately not a live GPS stream: a device buffers a ping and
+it syncs when the network returns, answering "where was it last seen" without
+pretending to be real-time telemetry. `fleet.read` is standard and offline,
+`fleet.dispatch` and `fleet.manage` are elevated but offline — an emergency
+dispatch cannot wait for connectivity — and a `fleet` PowerSync bucket scopes all
+four tables to `fleet.read`, with server-authoritative policies for the registry,
+roster and dispatch and an append-only policy for the ping. The `/fleet` screen
+is a two-tab board: a dispatch board with stage progression and vehicle
+assignment, and a vehicle registry with live duty rosters.
+
+The agreed run of four modules (13 → 06 → 42 → 40) is complete, and module 27
+continues the sequence into Domain C. Next: continue with the remaining clinical
+modules one vertical slice at a time, following the same pattern (Postgres schema
++ RLS, PowerSync local schema, repository + test seam, `*.write`-gated use cases,
+screens, sync bucket, mutation-handler registration, conflict policy, tests, then
+format/analyze/test). Hardware barcode scanning, PowerSync device verification
+and clinical deployment validation also remain across all slices.
 
 ---
 
@@ -287,7 +308,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1121 tests).
+  mutation-verified (1137 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

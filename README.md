@@ -18,7 +18,7 @@ authoritative system of record.
 ## Status
 
 **Phase 1 (Platform Foundation) is complete.** Phase 2 clinical vertical slices
-are substantially built: **25 of the 54 clinical modules** have a full vertical
+are substantially built: **26 of the 54 clinical modules** have a full vertical
 slice (Postgres schema + RLS, PowerSync local schema, repository, `*.write`-gated
 use cases, screens, sync bucket and mutation-handler registration), plus the
 full application shell and session lifecycle.
@@ -35,7 +35,7 @@ full application shell and session lifecycle.
 | Clinical modules (25) | Appointments, Beds, ER/triage, ICU, Nurse ward station, Patients/MPI, Encounters, Laboratory, Radiology, Operation theatre, Physiotherapy, Nutrition, Telemedicine, Discharge, Floor map, Doctor & specialist directory, Clinical departments, Hospital contacts directory, Institutional calendar, Allied staff & workforce, Human resources & payroll, Prescriptions/pharmacy, Blood bank, Inventory, Billing |
 | Mutation path | Edge `mutation-handler` with per-table validators, idempotency ledger, SHA-256 `payload_digest`, device provenance, audit-before-apply |
 | Object storage | Three private tenant-scoped buckets with membership-derived RLS, checksum-on-upload, 60-second signed URLs, and a client `StorageService` wired to radiology and telemedicine |
-| Verification | 1121 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
+| Verification | 1137 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
 
 Not yet built: the remaining ~29 clinical modules, the PowerSync instance
 itself (rules are written), real AI provider adapters, the on-device vision and

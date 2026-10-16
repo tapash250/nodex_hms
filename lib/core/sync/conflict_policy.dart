@@ -287,6 +287,18 @@ abstract final class ConflictPolicyRegistry {
   /// Institutional calendar event.
   static const String calendarEvent = 'calendar_event';
 
+  /// Ambulance fleet vehicle registry entry.
+  static const String ambulance = 'ambulance';
+
+  /// Ambulance driver duty assignment.
+  static const String ambulanceDuty = 'ambulance_duty';
+
+  /// Ambulance dispatch job.
+  static const String ambulanceDispatch = 'ambulance_dispatch';
+
+  /// Ambulance last-known position ping.
+  static const String ambulanceTrackingPing = 'ambulance_tracking_ping';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -796,6 +808,41 @@ abstract final class ConflictPolicyRegistry {
           'devices cannot both hold different times for the same training '
           'day, so the server owns the calendar and the client reconciles.',
     ),
+    ambulance: ConflictPolicyEntry(
+      resourceType: ambulance,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A vehicle call sign and registration are shared fleet '
+          'configuration that dispatches and records name. Two devices '
+          'cannot disagree about which vehicle is on the road, so the '
+          'server owns the registry and the client reconciles.',
+    ),
+    ambulanceDuty: ConflictPolicyEntry(
+      resourceType: ambulanceDuty,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A duty assignment books a vehicle and a driver for a window, and '
+          'the database forbids overlapping duties. Two offline devices must '
+          'not both claim the same vehicle, so the server authorises the '
+          'booking and the client reconciles.',
+    ),
+    ambulanceDispatch: ConflictPolicyEntry(
+      resourceType: ambulanceDispatch,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A dispatch claims a specific vehicle for a live transit. Two '
+          'devices cannot both send the same ambulance, and the stage times '
+          'are what an incident review turns on, so the server holds the '
+          'dispatch and the client reconciles.',
+    ),
+    ambulanceTrackingPing: ConflictPolicyEntry(
+      resourceType: ambulanceTrackingPing,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A position ping is a moment the vehicle was seen. A later ping is '
+          'a later row, not a correction of the earlier one, so pings '
+          'resolve without conflict and form the last-known-position trail.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1122,6 +1169,10 @@ abstract final class ConflictPolicyRegistry {
     'departments': department,
     'directory_contacts': contact,
     'calendar_events': calendarEvent,
+    'ambulances': ambulance,
+    'ambulance_duty_assignments': ambulanceDuty,
+    'ambulance_dispatches': ambulanceDispatch,
+    'ambulance_tracking_pings': ambulanceTrackingPing,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

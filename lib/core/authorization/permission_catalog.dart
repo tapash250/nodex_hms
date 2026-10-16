@@ -98,6 +98,15 @@ abstract final class NodexPermissions {
   /// Create, edit and cancel institutional calendar events.
   static const String calendarManage = 'calendar.manage';
 
+  /// View vehicles, driver rosters, dispatches and tracking.
+  static const String fleetRead = 'fleet.read';
+
+  /// Raise, progress and cancel emergency ambulance dispatches.
+  static const String fleetDispatch = 'fleet.dispatch';
+
+  /// Register vehicles and maintain driver duty rosters.
+  static const String fleetManage = 'fleet.manage';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

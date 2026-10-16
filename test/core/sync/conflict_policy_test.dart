@@ -554,6 +554,10 @@ void main() {
     // writable table must therefore resolve, or a real conflict would raise
     // `unregistered_conflict_policy` at the moment the policy was needed.
     const List<String> writableTables = <String>[
+      'ambulance_dispatches',
+      'ambulance_duty_assignments',
+      'ambulance_tracking_pings',
+      'ambulances',
       'appointments',
       'attendance_logs',
       'bed_assignments',
