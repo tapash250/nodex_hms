@@ -65,6 +65,8 @@ import 'package:nodex_hms/domain/roster/practitioner_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
+import 'package:nodex_hms/domain/workforce/workforce_repository.dart';
+import 'package:nodex_hms/domain/workforce/workforce_use_cases.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// The resolved build environment.
@@ -758,6 +760,81 @@ final Provider<SearchPractitionersUseCase> searchPractitionersUseCaseProvider =
     Provider<SearchPractitionersUseCase>(
       (Ref ref) => SearchPractitionersUseCase(
         repository: ref.watch(practitionerRepositoryProvider),
+      ),
+    );
+
+/// Workforce repository over the encrypted local projection.
+final Provider<WorkforceRepository> workforceRepositoryProvider =
+    Provider<WorkforceRepository>(
+      (Ref ref) => DefaultWorkforceRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Schedule a dated staff shift.
+final Provider<ScheduleStaffShiftUseCase> scheduleStaffShiftUseCaseProvider =
+    Provider<ScheduleStaffShiftUseCase>(
+      (Ref ref) => ScheduleStaffShiftUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Edit a scheduled shift.
+final Provider<UpdateStaffShiftUseCase> updateStaffShiftUseCaseProvider =
+    Provider<UpdateStaffShiftUseCase>(
+      (Ref ref) => UpdateStaffShiftUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Cancel a scheduled shift.
+final Provider<CancelStaffShiftUseCase> cancelStaffShiftUseCaseProvider =
+    Provider<CancelStaffShiftUseCase>(
+      (Ref ref) => CancelStaffShiftUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Close a finished shift.
+final Provider<CloseStaffShiftUseCase> closeStaffShiftUseCaseProvider =
+    Provider<CloseStaffShiftUseCase>(
+      (Ref ref) => CloseStaffShiftUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Allocate a staff member to a shift.
+final Provider<AllocateDutyUseCase> allocateDutyUseCaseProvider =
+    Provider<AllocateDutyUseCase>(
+      (Ref ref) => AllocateDutyUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Withdraw a duty allocation.
+final Provider<WithdrawAllocationUseCase> withdrawAllocationUseCaseProvider =
+    Provider<WithdrawAllocationUseCase>(
+      (Ref ref) => WithdrawAllocationUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Record an attendance event.
+final Provider<RecordAttendanceUseCase> recordAttendanceUseCaseProvider =
+    Provider<RecordAttendanceUseCase>(
+      (Ref ref) => RecordAttendanceUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
+      ),
+    );
+
+/// Read the workforce rosters.
+final Provider<ReadWorkforceUseCase> readWorkforceUseCaseProvider =
+    Provider<ReadWorkforceUseCase>(
+      (Ref ref) => ReadWorkforceUseCase(
+        repository: ref.watch(workforceRepositoryProvider),
       ),
     );
 

@@ -555,6 +555,7 @@ void main() {
     // `unregistered_conflict_policy` at the moment the policy was needed.
     const List<String> writableTables = <String>[
       'appointments',
+      'attendance_logs',
       'bed_assignments',
       'beds',
       'blood_units',
@@ -570,6 +571,7 @@ void main() {
       'discharge_medication_reconciliations',
       'discharge_settlements',
       'discharges',
+      'duty_allocations',
       'encounter_amendments',
       'er_visits',
       'icu_beds',
@@ -602,6 +604,7 @@ void main() {
       'prescription_items',
       'prescriptions',
       'refunds',
+      'staff_shifts',
       'stock_batches',
       'stock_items',
       'stock_locations',

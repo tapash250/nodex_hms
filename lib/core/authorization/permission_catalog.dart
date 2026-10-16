@@ -86,6 +86,12 @@ abstract final class NodexPermissions {
   /// Create and maintain practitioner directory entries and on-call rota.
   static const String staffDirectoryAdminister = 'staff_directory.administer';
 
+  /// View shift rosters, duty allocations and attendance.
+  static const String workforceRead = 'workforce.read';
+
+  /// Create shifts, allocate duties and record attendance.
+  static const String workforceManage = 'workforce.manage';
+
   /// Enrol, suspend, revoke and wipe client devices.
   static const String deviceAdminister = 'device.administer';
 

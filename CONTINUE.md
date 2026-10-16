@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1056 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1069 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -176,12 +176,24 @@ departments are retained as historical references, never deleted),
 `department` server-authoritative conflict policy, and mutation-handler
 registration. Departments already replicate in `tenant_master_data`.
 
-Next module: Module 09 (Allied Staff & Workforce Manager) extends the
-directory and department structure with the wider allied-health workforce.
-Beyond it, the dependency order is unchanged: finish the remaining 34 clinical
-modules one vertical slice at a time. Hardware barcode scanning, PowerSync
-device verification and clinical deployment validation remain across all
-slices.
+**Allied Staff & Workforce Manager (module 09)** came next, over the three
+specification entities `staff_shifts`, `duty_allocations` and `attendance_logs`.
+The slice keeps three different kinds of fact distinct: a shift is configuration
+(a dated block of cover a ward needs), an allocation is a commitment (a named
+person filling it, or approved leave), and attendance is a fact (appended, never
+rewritten). Shift windows and headcounts freeze on close so an attendance report
+can always be explained; a duty allocation cannot overlap another commitment
+(rejected against the local projection and again by a database trigger); and
+leave is modelled as an allocation whose role and status are both `leave`, so it
+participates in the same overlap guard. New `workforce.read` / `workforce.manage`
+permissions gate the `/workforce` screen, a dedicated `workforce` PowerSync
+bucket scopes the rosters to `workforce.read`, and each table has a conflict
+policy (shifts and allocations server-authoritative, attendance append-only).
+
+Next module: Module 10 (Master Patient Index & Timeline) is the dependency-order
+successor. Beyond it, the remaining clinical modules are built one vertical slice
+at a time. Hardware barcode scanning, PowerSync device verification and clinical
+deployment validation remain across all slices.
 
 ---
 
@@ -198,7 +210,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1056 tests).
+  mutation-verified (1069 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

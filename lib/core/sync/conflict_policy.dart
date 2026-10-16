@@ -281,6 +281,15 @@ abstract final class ConflictPolicyRegistry {
   /// Clinical or administrative department.
   static const String department = 'department';
 
+  /// Dated staff shift block.
+  static const String staffShift = 'staff_shift';
+
+  /// Staff commitment to a shift.
+  static const String dutyAllocation = 'duty_allocation';
+
+  /// Appended attendance event.
+  static const String attendanceLog = 'attendance_log';
+
   /// Bed registry entry (code, type and lifecycle status).
   static const String bed = 'bed';
 
@@ -740,6 +749,31 @@ abstract final class ConflictPolicyRegistry {
           'cannot disagree about the structure of a department, so the '
           'server holds the registry and the client reconciles.',
     ),
+    staffShift: ConflictPolicyEntry(
+      resourceType: staffShift,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A shift window and headcount are the roster a ward is staffed '
+          'against. Two devices cannot both close or cancel the same block, '
+          'so the server holds the shift and the client reconciles.',
+    ),
+    dutyAllocation: ConflictPolicyEntry(
+      resourceType: dutyAllocation,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'An allocation commits a named person to a window, and the server '
+          'refuses two overlapping commitments with an exclusion violation. '
+          'The allocation is therefore server-held so a stale offline roster '
+          'cannot double-book a clinician.',
+    ),
+    attendanceLog: ConflictPolicyEntry(
+      resourceType: attendanceLog,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'Attendance is a fact: a clock-in happened at a time and cannot be '
+          'rewritten. A correction is a further event, so the record of who '
+          'was where survives every sync.',
+    ),
     bed: ConflictPolicyEntry(
       resourceType: bed,
       policy: ConflictPolicy.serverAuthoritative,
@@ -961,6 +995,9 @@ abstract final class ConflictPolicyRegistry {
     'practitioner_profiles': practitionerProfile,
     'practitioner_on_calls': practitionerOnCall,
     'departments': department,
+    'staff_shifts': staffShift,
+    'duty_allocations': dutyAllocation,
+    'attendance_logs': attendanceLog,
   };
 
   /// Resolves [resourceType], which may be a table name, to its entry.

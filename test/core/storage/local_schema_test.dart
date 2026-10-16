@@ -109,6 +109,9 @@ void main() {
           LocalTables.wardRooms,
           LocalTables.practitionerProfiles,
           LocalTables.practitionerOnCalls,
+          LocalTables.staffShifts,
+          LocalTables.dutyAllocations,
+          LocalTables.attendanceLogs,
           LocalTables.clinicalProblems,
           LocalTables.encounterScribeDrafts,
         });

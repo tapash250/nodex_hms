@@ -1373,6 +1373,57 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'ward.room.registered',
     auditActionPatch: 'ward.room.updated',
   },
+  // Module 09 (allied staff & workforce rosters).
+  staff_shifts: {
+    columns: {
+      tenant_id: 'uuid',
+      facility_id: 'uuid',
+      department_id: 'uuid',
+      shift_date: 'text',
+      shift_code: 'text',
+      display_name: 'text',
+      staff_category: 'text',
+      starts_at: 'timestamp',
+      ends_at: 'timestamp',
+      required_headcount: 'integer',
+      status: 'text',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'workforce.shift.scheduled',
+    auditActionPatch: 'workforce.shift.updated',
+  },
+  duty_allocations: {
+    columns: {
+      tenant_id: 'uuid',
+      shift_id: 'uuid',
+      staff_user_id: 'uuid',
+      allocation_role: 'text',
+      status: 'text',
+      note: 'text',
+      allocated_by: 'uuid',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'workforce.duty.allocated',
+    auditActionPatch: 'workforce.duty.updated',
+  },
+  attendance_logs: {
+    columns: {
+      tenant_id: 'uuid',
+      allocation_id: 'uuid',
+      staff_user_id: 'uuid',
+      event_type: 'text',
+      occurred_at: 'timestamp',
+      recorded_by: 'uuid',
+      note: 'text',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'workforce.attendance.recorded',
+  },
   // Module 12 (clinical departments registry).
   departments: {
     columns: {

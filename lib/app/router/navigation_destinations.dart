@@ -192,6 +192,17 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Allied staff & workforce rosters (Module 09).
+  static const NavigationDestinationSpec workforce = NavigationDestinationSpec(
+    routePath: '/workforce',
+    label: 'Workforce',
+    icon: Icons.groups_outlined,
+    selectedIcon: Icons.groups,
+    requiredPermissions: <String>{NodexPermissions.workforceRead},
+    moduleCode: 'M09',
+    isPrimary: false,
+  );
+
   /// Hospital floor map: rooms, capacity and live patient locations.
   static const NavigationDestinationSpec floorMap = NavigationDestinationSpec(
     routePath: '/floor-map',
@@ -271,6 +282,7 @@ abstract final class NodexDestinations {
         floorMap,
         staffDirectory,
         departments,
+        workforce,
         inventory,
         syncDiagnostics,
         aiGovernance,
