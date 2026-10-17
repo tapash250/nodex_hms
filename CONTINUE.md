@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 63 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 64 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1166 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1210 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -333,13 +333,39 @@ certificates and an append-only policy for the generation log. The `/waste`
 screen is a four-tab board: generation, certificates, the derived compliance
 window and the category catalogue.
 
-The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29 and
-30 continue the sequence into Domain C. Next: continue with the remaining clinical
-modules one vertical slice at a time, following the same pattern (Postgres schema
-+ RLS, PowerSync local schema, repository + test seam, `*.write`-gated use cases,
-screens, sync bucket, mutation-handler registration, conflict policy, tests, then
-format/analyze/test). The next unbuilt slice in Domain C sequence is **module 32,
-Health Insurance & TPA** (module 31, the billing engine, is already built).
+**Health Insurance & TPA (module 32)** followed, over `insurance_payers`,
+`insurance_policies`, `pre_authorisation_requests` and `insurance_claims`. It is
+the payer side of the money, distinct from Module 31, which bills the patient:
+here the counterparty is an insurer or a TPA and the money is recovered rather
+than collected. The payer registry is tenant-scoped governed configuration, so a
+payer is deactivated and retained rather than deleted — policies and claims name
+it. Verification is a fact recorded on the policy row (who and when) instead of a
+second copy of the cover, and cancellation is one-way: a trigger freezes a
+cancelled policy, because the terms the payer asserted must stay readable.
+Pre-authorisation and claim are both guarded state machines — `requested →
+submitted → approved | partially_approved | rejected`, and `draft → submitted →
+under_review → approved | partially_approved | rejected`, then `approved |
+partially_approved → settled` — cancellable while live and frozen once answered or
+closed. Two facts are derived rather than stored, so they cannot drift: the cover
+state of a policy (expired, expiring soon, active or cancelled) from its validity
+window, and the recovery gap of a claim (claimed minus settled, floored at zero).
+Verification is separated from registry administration and from claims, so an
+insurance desk can verify cover without being able to edit the payer registry:
+`insurance.read` is standard and offline; `insurance.verify` (verification and
+pre-authorisation), `insurance.claim` (claims, decisions and settlements) and
+`insurance.manage` (registry and policies) are elevated and offline. An
+`insurance` PowerSync bucket scopes all four tables to `insurance.read` with a
+server-authoritative policy on every one, since a payer's decision and a claim
+reference are single facts the server owns. The `/insurance` screen is a
+patient-scoped four-tab board: cover, pre-auth, claims and payers.
+
+The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29, 30
+and 32 continue the sequence into Domain C. Next: continue with the remaining
+clinical modules one vertical slice at a time, following the same pattern
+(Postgres schema + RLS, PowerSync local schema, repository + test seam,
+`*.write`-gated use cases, screens, sync bucket, mutation-handler registration,
+conflict policy, tests, then format/analyze/test). The next unbuilt slice in
+Domain C sequence is **module 33** (modules 31 and 32 are built; 33–39 remain).
 Hardware barcode scanning, PowerSync device verification and clinical deployment
 validation also remain across all slices.
 
@@ -358,7 +384,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1166 tests).
+  mutation-verified (1210 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

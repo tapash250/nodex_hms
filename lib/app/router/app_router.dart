@@ -43,6 +43,7 @@ import 'package:nodex_hms/features/home/home_screen.dart';
 import 'package:nodex_hms/features/hr/hr_screen.dart';
 import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
 import 'package:nodex_hms/features/icu/icu_list_screen.dart';
+import 'package:nodex_hms/features/insurance/insurance_board_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
 import 'package:nodex_hms/features/laboratory/lab_order_screen.dart';
 import 'package:nodex_hms/features/nursing_station/ward_station_screen.dart';
@@ -320,6 +321,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.waste.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WasteManagementScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.insurance.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const InsuranceBoardScreen(),
           ),
           GoRoute(
             path: NodexDestinations.staffDirectory.routePath,

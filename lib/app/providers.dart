@@ -54,6 +54,8 @@ import 'package:nodex_hms/domain/hr/hr_repository.dart';
 import 'package:nodex_hms/domain/hr/hr_use_cases.dart';
 import 'package:nodex_hms/domain/icu/icu_repository.dart';
 import 'package:nodex_hms/domain/icu/icu_use_cases.dart';
+import 'package:nodex_hms/domain/insurance/insurance_repository.dart';
+import 'package:nodex_hms/domain/insurance/insurance_use_cases.dart';
 import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
 import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
@@ -895,6 +897,106 @@ final Provider<ReadWasteUseCase> readWasteUseCaseProvider =
     Provider<ReadWasteUseCase>(
       (Ref ref) =>
           ReadWasteUseCase(repository: ref.watch(wasteRepositoryProvider)),
+    );
+
+/// Health Insurance & TPA repository over the encrypted local projection.
+final Provider<InsuranceRepository> insuranceRepositoryProvider =
+    Provider<InsuranceRepository>(
+      (Ref ref) => DefaultInsuranceRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Register a payer.
+final Provider<RegisterPayerUseCase> registerPayerUseCaseProvider =
+    Provider<RegisterPayerUseCase>(
+      (Ref ref) => RegisterPayerUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Update a payer.
+final Provider<UpdatePayerUseCase> updatePayerUseCaseProvider =
+    Provider<UpdatePayerUseCase>(
+      (Ref ref) => UpdatePayerUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Register a patient's insurance policy.
+final Provider<RegisterPolicyUseCase> registerPolicyUseCaseProvider =
+    Provider<RegisterPolicyUseCase>(
+      (Ref ref) => RegisterPolicyUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Update a policy that is still in force.
+final Provider<UpdatePolicyUseCase> updatePolicyUseCaseProvider =
+    Provider<UpdatePolicyUseCase>(
+      (Ref ref) => UpdatePolicyUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Record policy verification.
+final Provider<VerifyPolicyUseCase> verifyPolicyUseCaseProvider =
+    Provider<VerifyPolicyUseCase>(
+      (Ref ref) => VerifyPolicyUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Cancel a policy.
+final Provider<CancelPolicyUseCase> cancelPolicyUseCaseProvider =
+    Provider<CancelPolicyUseCase>(
+      (Ref ref) => CancelPolicyUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Raise a pre-authorisation request.
+final Provider<RaisePreAuthorisationUseCase>
+raisePreAuthorisationUseCaseProvider = Provider<RaisePreAuthorisationUseCase>(
+  (Ref ref) => RaisePreAuthorisationUseCase(
+    repository: ref.watch(insuranceRepositoryProvider),
+  ),
+);
+
+/// Move a pre-authorisation request, or record the payer's answer.
+final Provider<AdvancePreAuthorisationUseCase>
+advancePreAuthorisationUseCaseProvider =
+    Provider<AdvancePreAuthorisationUseCase>(
+      (Ref ref) => AdvancePreAuthorisationUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Create an electronic claim.
+final Provider<CreateClaimUseCase> createClaimUseCaseProvider =
+    Provider<CreateClaimUseCase>(
+      (Ref ref) => CreateClaimUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Move a claim, record the payer's decision, or record the settlement.
+final Provider<AdvanceClaimUseCase> advanceClaimUseCaseProvider =
+    Provider<AdvanceClaimUseCase>(
+      (Ref ref) => AdvanceClaimUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Read the insurance board, registry, requests and claims.
+final Provider<ReadInsuranceUseCase> readInsuranceUseCaseProvider =
+    Provider<ReadInsuranceUseCase>(
+      (Ref ref) => ReadInsuranceUseCase(
+        repository: ref.watch(insuranceRepositoryProvider),
+      ),
     );
 
 /// Institutional calendar repository over the encrypted local projection.

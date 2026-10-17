@@ -125,6 +125,19 @@ abstract final class NodexPermissions {
   /// Maintain waste categories and issue or void disposal certificates.
   static const String wasteManage = 'waste.manage';
 
+  /// View payers, policies, pre-authorisation requests and claims.
+  static const String insuranceRead = 'insurance.read';
+
+  /// Record policy verification and raise and submit pre-authorisation
+  /// requests.
+  static const String insuranceVerify = 'insurance.verify';
+
+  /// Submit electronic claims and record payer decisions and settlements.
+  static const String insuranceClaim = 'insurance.claim';
+
+  /// Maintain the payer registry and register or cancel patient policies.
+  static const String insuranceManage = 'insurance.manage';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

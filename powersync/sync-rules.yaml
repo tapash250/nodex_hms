@@ -601,6 +601,26 @@ sync_rules:
         - select * from public.waste_categories where tenant_id = bucket.tenant_id
         - select * from public.waste_generation_logs where tenant_id = bucket.tenant_id
         - select * from public.waste_disposal_certificates where tenant_id = bucket.tenant_id
+    # Module 32 (health insurance & TPA): the payer registry, the patient cover,
+    # the pre-authorisation requests and the electronic claims, scoped by
+    # insurance.read so a desk can verify cover, raise an authorisation and
+    # submit a claim offline.
+    insurance:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'insurance.read'
+      data:
+        - select * from public.insurance_payers where tenant_id = bucket.tenant_id
+        - select * from public.insurance_policies where tenant_id = bucket.tenant_id
+        - select * from public.pre_authorisation_requests where tenant_id = bucket.tenant_id
+        - select * from public.insurance_claims where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

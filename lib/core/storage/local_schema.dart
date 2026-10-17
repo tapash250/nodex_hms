@@ -69,6 +69,18 @@ abstract final class LocalTables {
   /// Biomedical waste disposal certificates (Module 30).
   static const String wasteDisposalCertificates = 'waste_disposal_certificates';
 
+  /// Insurance and TPA payer registry (Module 32).
+  static const String insurancePayers = 'insurance_payers';
+
+  /// Patient insurance policies (Module 32).
+  static const String insurancePolicies = 'insurance_policies';
+
+  /// Cashless pre-authorisation requests (Module 32).
+  static const String preAuthorisationRequests = 'pre_authorisation_requests';
+
+  /// Electronic insurance claims (Module 32).
+  static const String insuranceClaims = 'insurance_claims';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -346,6 +358,10 @@ abstract final class NodexLocalSchema {
     _wasteCategories,
     _wasteGenerationLogs,
     _wasteDisposalCertificates,
+    _insurancePayers,
+    _insurancePolicies,
+    _preAuthorisationRequests,
+    _insuranceClaims,
     _wards,
     _appUsers,
     _roles,
@@ -877,6 +893,170 @@ abstract final class NodexLocalSchema {
         IndexedColumn('tenant_id'),
         IndexedColumn('status'),
         IndexedColumn('disposed_at'),
+      ]),
+    ],
+  );
+
+  /// Insurance and TPA payer registry (Module 32). Mirrors
+  /// `public.insurance_payers`.
+  static const Table _insurancePayers = Table(
+    LocalTables.insurancePayers,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('code'),
+      Column.text('name'),
+      Column.text('payer_type'),
+      Column.text('claim_portal_ref'),
+      Column.text('contact_phone'),
+      Column.text('contact_email'),
+      Column.integer('is_active'),
+      Column.text('notes'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('insurance_payer_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('is_active'),
+      ]),
+    ],
+  );
+
+  /// Patient insurance policies (Module 32). Mirrors
+  /// `public.insurance_policies`.
+  static const Table _insurancePolicies = Table(
+    LocalTables.insurancePolicies,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('payer_id'),
+      Column.text('policy_no'),
+      Column.text('member_id'),
+      Column.text('plan_name'),
+      Column.text('coverage_type'),
+      Column.text('currency'),
+      Column.integer('sum_insured_minor'),
+      Column.text('valid_from'),
+      Column.text('valid_to'),
+      Column.text('status'),
+      Column.text('verified_at'),
+      Column.text('verified_by'),
+      Column.text('verification_reference'),
+      Column.text('cancelled_at'),
+      Column.text('cancellation_reason'),
+      Column.text('notes'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('insurance_policy_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('valid_to'),
+      ]),
+      Index('insurance_policy_payer', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('payer_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Cashless pre-authorisation requests (Module 32). Mirrors
+  /// `public.pre_authorisation_requests`.
+  static const Table _preAuthorisationRequests = Table(
+    LocalTables.preAuthorisationRequests,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('policy_id'),
+      Column.text('patient_id'),
+      Column.text('facility_id'),
+      Column.text('encounter_id'),
+      Column.text('requested_by'),
+      Column.text('requested_at'),
+      Column.text('diagnosis'),
+      Column.text('procedure_text'),
+      Column.text('currency'),
+      Column.integer('estimated_cost_minor'),
+      Column.text('status'),
+      Column.text('payer_reference'),
+      Column.text('answered_at'),
+      Column.integer('approved_amount_minor'),
+      Column.text('valid_until'),
+      Column.text('decision_notes'),
+      Column.text('cancellation_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('pre_authorisation_policy', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('policy_id'),
+        IndexedColumn('requested_at'),
+      ]),
+      Index('pre_authorisation_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('requested_at'),
+      ]),
+      Index('pre_authorisation_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('requested_at'),
+      ]),
+    ],
+  );
+
+  /// Electronic insurance claims (Module 32). Mirrors
+  /// `public.insurance_claims`.
+  static const Table _insuranceClaims = Table(
+    LocalTables.insuranceClaims,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('policy_id'),
+      Column.text('patient_id'),
+      Column.text('facility_id'),
+      Column.text('pre_authorisation_id'),
+      Column.text('invoice_id'),
+      Column.text('claim_no'),
+      Column.text('currency'),
+      Column.integer('claimed_amount_minor'),
+      Column.integer('approved_amount_minor'),
+      Column.integer('settled_amount_minor'),
+      Column.text('status'),
+      Column.text('payer_reference'),
+      Column.text('submitted_at'),
+      Column.text('decided_at'),
+      Column.text('settled_at'),
+      Column.text('rejection_reason'),
+      Column.text('cancellation_reason'),
+      Column.text('notes'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('insurance_claim_policy', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('policy_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('insurance_claim_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('insurance_claim_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('insurance_claim_invoice', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('invoice_id'),
       ]),
     ],
   );

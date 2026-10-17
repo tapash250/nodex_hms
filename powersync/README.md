@@ -77,7 +77,10 @@ around it and a technician can record a calibration offline), and `waste`
 (Module 30, the governed waste category catalogue, the append-only generation
 logs and the barcoded disposal certificates, scoped by `waste.read` so a ward can
 log a bin offline and a compliance officer can read the certificates that back
-it). The `emr_encounters` bucket also
+it). The `insurance` bucket (Module 32, the payer registry, the patient policies,
+the pre-authorisation requests and the electronic claims, scoped by
+`insurance.read` so a desk can verify cover, raise an authorisation and submit a
+claim offline) rounds out Domain C's payer side. The `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on
 it. Remaining: the rest of the 54-module scope.

@@ -318,6 +318,18 @@ abstract final class ConflictPolicyRegistry {
   /// Biomedical waste disposal certificate.
   static const String wasteDisposalCertificate = 'waste_disposal_certificate';
 
+  /// Insurance or TPA payer registry entry.
+  static const String insurancePayer = 'insurance_payer';
+
+  /// Patient insurance policy.
+  static const String insurancePolicy = 'insurance_policy';
+
+  /// Cashless pre-authorisation request.
+  static const String preAuthorisation = 'pre_authorisation';
+
+  /// Electronic insurance claim.
+  static const String insuranceClaim = 'insurance_claim';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -912,6 +924,40 @@ abstract final class ConflictPolicyRegistry {
           'was destroyed. Two offline devices must not both issue or void the '
           'same certificate, so the server holds it and the client reconciles.',
     ),
+    insurancePayer: ConflictPolicyEntry(
+      resourceType: insurancePayer,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A payer is governed configuration that policies and claims name. '
+          'Two devices cannot disagree about the identity or the portal '
+          'reference of an insurer, so the server owns the registry.',
+    ),
+    insurancePolicy: ConflictPolicyEntry(
+      resourceType: insurancePolicy,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'The cover a patient holds is a fact agreed with the payer, and its '
+          'verification and cancellation are consequential. Two offline '
+          'devices must not both cancel one policy, so the server owns it and '
+          'the client reconciles.',
+    ),
+    preAuthorisation: ConflictPolicyEntry(
+      resourceType: preAuthorisation,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'The payer answers a pre-authorisation request, and the answer is '
+          'what the ward acts on. The decision is the payer\'s, so the server '
+          'is authoritative and the client reconciles rather than merging.',
+    ),
+    insuranceClaim: ConflictPolicyEntry(
+      resourceType: insuranceClaim,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A claim is a submission to an external payer with a single payer '
+          'reference and a single decision. Two offline devices must not both '
+          'submit or settle it, so the server is authoritative and the client '
+          'reconciles.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1248,6 +1294,10 @@ abstract final class ConflictPolicyRegistry {
     'waste_categories': wasteCategory,
     'waste_generation_logs': wasteGenerationLog,
     'waste_disposal_certificates': wasteDisposalCertificate,
+    'insurance_payers': insurancePayer,
+    'insurance_policies': insurancePolicy,
+    'pre_authorisation_requests': preAuthorisation,
+    'insurance_claims': insuranceClaim,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

@@ -270,6 +270,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Health insurance & TPA (Module 32).
+  static const NavigationDestinationSpec insurance = NavigationDestinationSpec(
+    routePath: '/insurance',
+    label: 'Insurance',
+    icon: Icons.health_and_safety_outlined,
+    selectedIcon: Icons.health_and_safety,
+    requiredPermissions: <String>{NodexPermissions.insuranceRead},
+    moduleCode: 'M32',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -372,6 +383,7 @@ abstract final class NodexDestinations {
         fleet,
         biomedical,
         waste,
+        insurance,
         inventory,
         syncDiagnostics,
         aiGovernance,
