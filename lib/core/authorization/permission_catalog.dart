@@ -116,6 +116,15 @@ abstract final class NodexPermissions {
   /// Register, update and decommission equipment.
   static const String biomedicalManage = 'biomedical.manage';
 
+  /// View waste categories, generation logs and disposal certificates.
+  static const String wasteRead = 'waste.read';
+
+  /// Record the weight and containers of waste generated.
+  static const String wasteRecord = 'waste.record';
+
+  /// Maintain waste categories and issue or void disposal certificates.
+  static const String wasteManage = 'waste.manage';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

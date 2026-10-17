@@ -634,6 +634,9 @@ void main() {
       'triage_assessments',
       'ventilator_events',
       'ward_rooms',
+      'waste_categories',
+      'waste_disposal_certificates',
+      'waste_generation_logs',
     ];
 
     test('every writable table resolves to a registered policy', () {

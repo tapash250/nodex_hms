@@ -60,6 +60,15 @@ abstract final class LocalTables {
   static const String biomedicalMaintenanceRecords =
       'biomedical_maintenance_records';
 
+  /// Biomedical waste category catalogue (Module 30).
+  static const String wasteCategories = 'waste_categories';
+
+  /// Biomedical waste generation logs (Module 30).
+  static const String wasteGenerationLogs = 'waste_generation_logs';
+
+  /// Biomedical waste disposal certificates (Module 30).
+  static const String wasteDisposalCertificates = 'waste_disposal_certificates';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -334,6 +343,9 @@ abstract final class NodexLocalSchema {
     _biomedicalAssets,
     _biomedicalBreakdownTickets,
     _biomedicalMaintenanceRecords,
+    _wasteCategories,
+    _wasteGenerationLogs,
+    _wasteDisposalCertificates,
     _wards,
     _appUsers,
     _roles,
@@ -772,6 +784,99 @@ abstract final class NodexLocalSchema {
       Index('biomedical_maintenance_due', <IndexedColumn>[
         IndexedColumn('tenant_id'),
         IndexedColumn('next_due_at'),
+      ]),
+    ],
+  );
+
+  /// Biomedical waste category catalogue (Module 30). Mirrors
+  /// `public.waste_categories`.
+  static const Table _wasteCategories = Table(
+    LocalTables.wasteCategories,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('code'),
+      Column.text('name'),
+      Column.text('colour'),
+      Column.text('hazard_class'),
+      Column.integer('requires_treatment'),
+      Column.text('treatment_method'),
+      Column.integer('retention_days'),
+      Column.integer('is_active'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('waste_category_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('is_active'),
+      ]),
+    ],
+  );
+
+  /// Biomedical waste generation logs (Module 30). Mirrors
+  /// `public.waste_generation_logs`.
+  static const Table _wasteGenerationLogs = Table(
+    LocalTables.wasteGenerationLogs,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('category_id'),
+      Column.text('department_id'),
+      Column.text('location_label'),
+      Column.integer('weight_grams'),
+      Column.integer('container_count'),
+      Column.text('logged_at'),
+      Column.text('logged_by'),
+      Column.text('notes'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('waste_generation_category', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('category_id'),
+        IndexedColumn('logged_at'),
+      ]),
+      Index('waste_generation_facility', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('facility_id'),
+        IndexedColumn('logged_at'),
+      ]),
+    ],
+  );
+
+  /// Biomedical waste disposal certificates (Module 30). Mirrors
+  /// `public.waste_disposal_certificates`.
+  static const Table _wasteDisposalCertificates = Table(
+    LocalTables.wasteDisposalCertificates,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('category_id'),
+      Column.text('certificate_no'),
+      Column.text('barcode'),
+      Column.text('disposal_vendor'),
+      Column.text('vendor_licence'),
+      Column.text('method'),
+      Column.text('disposed_at'),
+      Column.integer('weight_grams'),
+      Column.text('manifest_reference'),
+      Column.text('status'),
+      Column.text('void_reason'),
+      Column.text('issued_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('waste_certificate_category', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('category_id'),
+        IndexedColumn('disposed_at'),
+      ]),
+      Index('waste_certificate_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('disposed_at'),
       ]),
     ],
   );

@@ -77,6 +77,8 @@ import 'package:nodex_hms/domain/roster/practitioner_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
+import 'package:nodex_hms/domain/waste/waste_repository.dart';
+import 'package:nodex_hms/domain/waste/waste_use_cases.dart';
 import 'package:nodex_hms/domain/workforce/workforce_repository.dart';
 import 'package:nodex_hms/domain/workforce/workforce_use_cases.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -837,6 +839,62 @@ final Provider<ReadFleetUseCase> readFleetUseCaseProvider =
     Provider<ReadFleetUseCase>(
       (Ref ref) =>
           ReadFleetUseCase(repository: ref.watch(fleetRepositoryProvider)),
+    );
+
+/// Biomedical waste management repository over the encrypted local projection.
+final Provider<WasteRepository> wasteRepositoryProvider =
+    Provider<WasteRepository>(
+      (Ref ref) => DefaultWasteRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Register a waste category.
+final Provider<RegisterCategoryUseCase> registerWasteCategoryUseCaseProvider =
+    Provider<RegisterCategoryUseCase>(
+      (Ref ref) => RegisterCategoryUseCase(
+        repository: ref.watch(wasteRepositoryProvider),
+      ),
+    );
+
+/// Update a waste category.
+final Provider<UpdateCategoryUseCase> updateWasteCategoryUseCaseProvider =
+    Provider<UpdateCategoryUseCase>(
+      (Ref ref) =>
+          UpdateCategoryUseCase(repository: ref.watch(wasteRepositoryProvider)),
+    );
+
+/// Log waste generation.
+final Provider<LogGenerationUseCase> logWasteGenerationUseCaseProvider =
+    Provider<LogGenerationUseCase>(
+      (Ref ref) =>
+          LogGenerationUseCase(repository: ref.watch(wasteRepositoryProvider)),
+    );
+
+/// Issue a disposal certificate.
+final Provider<IssueCertificateUseCase> issueWasteCertificateUseCaseProvider =
+    Provider<IssueCertificateUseCase>(
+      (Ref ref) => IssueCertificateUseCase(
+        repository: ref.watch(wasteRepositoryProvider),
+      ),
+    );
+
+/// Void a disposal certificate.
+final Provider<VoidCertificateUseCase> voidWasteCertificateUseCaseProvider =
+    Provider<VoidCertificateUseCase>(
+      (Ref ref) => VoidCertificateUseCase(
+        repository: ref.watch(wasteRepositoryProvider),
+      ),
+    );
+
+/// Read the waste board, logs, certificates and compliance.
+final Provider<ReadWasteUseCase> readWasteUseCaseProvider =
+    Provider<ReadWasteUseCase>(
+      (Ref ref) =>
+          ReadWasteUseCase(repository: ref.watch(wasteRepositoryProvider)),
     );
 
 /// Institutional calendar repository over the encrypted local projection.

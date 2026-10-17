@@ -582,6 +582,25 @@ sync_rules:
         - select * from public.biomedical_assets where tenant_id = bucket.tenant_id
         - select * from public.biomedical_breakdown_tickets where tenant_id = bucket.tenant_id
         - select * from public.biomedical_maintenance_records where tenant_id = bucket.tenant_id
+    # Module 30 (bio-medical waste management): the governed waste category
+    # catalogue, the append-only generation logs and the barcoded disposal
+    # certificates, scoped by waste.read so a ward can log a bin offline and a
+    # compliance officer can read the certificates that back it.
+    waste:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'waste.read'
+      data:
+        - select * from public.waste_categories where tenant_id = bucket.tenant_id
+        - select * from public.waste_generation_logs where tenant_id = bucket.tenant_id
+        - select * from public.waste_disposal_certificates where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

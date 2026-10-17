@@ -309,6 +309,15 @@ abstract final class ConflictPolicyRegistry {
   static const String biomedicalMaintenanceRecord =
       'biomedical_maintenance_record';
 
+  /// Biomedical waste category catalogue entry.
+  static const String wasteCategory = 'waste_category';
+
+  /// Biomedical waste generation log entry.
+  static const String wasteGenerationLog = 'waste_generation_log';
+
+  /// Biomedical waste disposal certificate.
+  static const String wasteDisposalCertificate = 'waste_disposal_certificate';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -878,6 +887,31 @@ abstract final class ConflictPolicyRegistry {
           'time. A later service is a later row, not an edit of the earlier '
           'one, so the service history resolves without conflict.',
     ),
+    wasteCategory: ConflictPolicyEntry(
+      resourceType: wasteCategory,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A waste category is governed configuration that generation logs '
+          'and disposal certificates name. Two devices cannot disagree about '
+          'the hazard class or colour of a stream, so the server owns the '
+          'catalogue and the client reconciles.',
+    ),
+    wasteGenerationLog: ConflictPolicyEntry(
+      resourceType: wasteGenerationLog,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A generation log is a quantity that left a place at a time. A '
+          'correction is a new row, not an edit of the earlier one, so the '
+          'generation record resolves without conflict.',
+    ),
+    wasteDisposalCertificate: ConflictPolicyEntry(
+      resourceType: wasteDisposalCertificate,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A disposal certificate is the compliance assertion that a batch '
+          'was destroyed. Two offline devices must not both issue or void the '
+          'same certificate, so the server holds it and the client reconciles.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1211,6 +1245,9 @@ abstract final class ConflictPolicyRegistry {
     'biomedical_assets': biomedicalAsset,
     'biomedical_breakdown_tickets': biomedicalBreakdownTicket,
     'biomedical_maintenance_records': biomedicalMaintenanceRecord,
+    'waste_categories': wasteCategory,
+    'waste_generation_logs': wasteGenerationLog,
+    'waste_disposal_certificates': wasteDisposalCertificate,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 62 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 63 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1151 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1166 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -307,14 +307,41 @@ tickets and an append-only policy for the service history. The `/biomedical`
 screen is a two-tab board: the equipment list with derived calibration state and
 open-ticket counts, and the breakdown queue.
 
-The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27 and 29
-continue the sequence into Domain C. Next: continue with the remaining clinical
+**Bio-Medical Waste Management (module 30)** followed, over three tables:
+`waste_categories` (the governed, colour-coded stream catalogue), `waste_generation_logs`
+(the append-only record of what left where and when) and
+`waste_disposal_certificates` (the barcoded proof of lawful destruction). This is
+the regulated waste estate: waste is a quantity that leaves the building and is
+accounted for by weight, so it is distinct from central inventory (Module 28,
+consumables held on a shelf) and from the equipment registry (Module 29,
+serialized instruments). Categories are tenant-scoped because the colour codes,
+hazard classes and retention rules differ by jurisdiction; a category is
+deactivated and retained rather than deleted, so history that names it stays
+legible. A certificate is issued and may be voided, and voiding is one-way and
+freezes the row — a certificate declared void must not be quietly resurrected. A
+certificate's number and barcode are unique within the tenant, a rule the
+database enforces and the client checks against the rows on the device, so a
+duplicate is refused immediately offline. Compliance is *derived*, not stored:
+the gap between weight generated and weight covered by live certificates per
+category over a half-open window. Weight is an integer number of grams, matching
+the integer-minor-unit convention money uses — no float on a compliance figure.
+`waste.read` is standard and offline, `waste.record` (logging generation) and
+`waste.manage` (categories and certificates) are elevated and offline so a ward
+can log a bin without connectivity. A `waste` PowerSync bucket scopes all three
+tables to `waste.read`, with a server-authoritative policy for the catalogue and
+certificates and an append-only policy for the generation log. The `/waste`
+screen is a four-tab board: generation, certificates, the derived compliance
+window and the category catalogue.
+
+The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29 and
+30 continue the sequence into Domain C. Next: continue with the remaining clinical
 modules one vertical slice at a time, following the same pattern (Postgres schema
 + RLS, PowerSync local schema, repository + test seam, `*.write`-gated use cases,
 screens, sync bucket, mutation-handler registration, conflict policy, tests, then
-format/analyze/test). The next unbuilt slice in Domain C sequence is **module 30,
-Bio-Medical Waste Management**. Hardware barcode scanning, PowerSync device
-verification and clinical deployment validation also remain across all slices.
+format/analyze/test). The next unbuilt slice in Domain C sequence is **module 32,
+Health Insurance & TPA** (module 31, the billing engine, is already built).
+Hardware barcode scanning, PowerSync device verification and clinical deployment
+validation also remain across all slices.
 
 ---
 
@@ -331,7 +358,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1151 tests).
+  mutation-verified (1166 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

@@ -59,6 +59,7 @@ import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/settings_screen.dart';
 import 'package:nodex_hms/features/telemedicine/telemedicine_consultation_screen.dart';
+import 'package:nodex_hms/features/waste/waste_management_screen.dart';
 import 'package:nodex_hms/features/workforce/workforce_screen.dart';
 
 /// Route paths that do not require an authorized session.
@@ -314,6 +315,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.biomedical.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const BiomedicalAssetsScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.waste.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const WasteManagementScreen(),
           ),
           GoRoute(
             path: NodexDestinations.staffDirectory.routePath,

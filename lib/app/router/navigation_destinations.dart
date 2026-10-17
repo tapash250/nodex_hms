@@ -259,6 +259,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Bio-medical waste management (Module 30).
+  static const NavigationDestinationSpec waste = NavigationDestinationSpec(
+    routePath: '/waste',
+    label: 'Waste',
+    icon: Icons.delete_sweep_outlined,
+    selectedIcon: Icons.delete_sweep,
+    requiredPermissions: <String>{NodexPermissions.wasteRead},
+    moduleCode: 'M30',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -360,6 +371,7 @@ abstract final class NodexDestinations {
         calendar,
         fleet,
         biomedical,
+        waste,
         inventory,
         syncDiagnostics,
         aiGovernance,
