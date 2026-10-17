@@ -107,6 +107,15 @@ abstract final class NodexPermissions {
   /// Register vehicles and maintain driver duty rosters.
   static const String fleetManage = 'fleet.manage';
 
+  /// View the equipment registry, breakdown tickets and service history.
+  static const String biomedicalRead = 'biomedical.read';
+
+  /// Raise and progress breakdown tickets and record maintenance.
+  static const String biomedicalMaintain = 'biomedical.maintain';
+
+  /// Register, update and decommission equipment.
+  static const String biomedicalManage = 'biomedical.manage';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

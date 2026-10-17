@@ -26,6 +26,8 @@ import 'package:nodex_hms/domain/beds/bed_repository.dart';
 import 'package:nodex_hms/domain/beds/bed_use_cases.dart';
 import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
+import 'package:nodex_hms/domain/biomedical/biomedical_repository.dart';
+import 'package:nodex_hms/domain/biomedical/biomedical_use_cases.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_repository.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_use_cases.dart';
 import 'package:nodex_hms/domain/calendar/calendar_repository.dart';
@@ -673,6 +675,82 @@ final Provider<FloorOccupancyUseCase> floorOccupancyUseCaseProvider =
     Provider<FloorOccupancyUseCase>(
       (Ref ref) => FloorOccupancyUseCase(
         repository: ref.watch(floorMapRepositoryProvider),
+      ),
+    );
+
+/// Biomedical assets & calibration repository over the encrypted local
+/// projection.
+final Provider<BiomedicalRepository> biomedicalRepositoryProvider =
+    Provider<BiomedicalRepository>(
+      (Ref ref) => DefaultBiomedicalRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Register a biomedical asset.
+final Provider<RegisterAssetUseCase> registerAssetUseCaseProvider =
+    Provider<RegisterAssetUseCase>(
+      (Ref ref) => RegisterAssetUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
+      ),
+    );
+
+/// Update a biomedical asset.
+final Provider<UpdateAssetUseCase> updateAssetUseCaseProvider =
+    Provider<UpdateAssetUseCase>(
+      (Ref ref) => UpdateAssetUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
+      ),
+    );
+
+/// Move a biomedical asset's lifecycle status.
+final Provider<SetAssetStatusUseCase> setAssetStatusUseCaseProvider =
+    Provider<SetAssetStatusUseCase>(
+      (Ref ref) => SetAssetStatusUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
+      ),
+    );
+
+/// Decommission a biomedical asset.
+final Provider<DecommissionAssetUseCase> decommissionAssetUseCaseProvider =
+    Provider<DecommissionAssetUseCase>(
+      (Ref ref) => DecommissionAssetUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
+      ),
+    );
+
+/// Raise a breakdown ticket.
+final Provider<RaiseBreakdownUseCase> raiseBreakdownUseCaseProvider =
+    Provider<RaiseBreakdownUseCase>(
+      (Ref ref) => RaiseBreakdownUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
+      ),
+    );
+
+/// Advance a breakdown ticket.
+final Provider<AdvanceBreakdownUseCase> advanceBreakdownUseCaseProvider =
+    Provider<AdvanceBreakdownUseCase>(
+      (Ref ref) => AdvanceBreakdownUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
+      ),
+    );
+
+/// Record a maintenance or calibration event.
+final Provider<RecordMaintenanceUseCase> recordMaintenanceUseCaseProvider =
+    Provider<RecordMaintenanceUseCase>(
+      (Ref ref) => RecordMaintenanceUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
+      ),
+    );
+
+/// Read the biomedical board.
+final Provider<ReadBiomedicalUseCase> readBiomedicalUseCaseProvider =
+    Provider<ReadBiomedicalUseCase>(
+      (Ref ref) => ReadBiomedicalUseCase(
+        repository: ref.watch(biomedicalRepositoryProvider),
       ),
     );
 

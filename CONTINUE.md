@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 61 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 62 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1137 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1151 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -285,13 +285,36 @@ roster and dispatch and an append-only policy for the ping. The `/fleet` screen
 is a two-tab board: a dispatch board with stage progression and vehicle
 assignment, and a vehicle registry with live duty rosters.
 
-The agreed run of four modules (13 → 06 → 42 → 40) is complete, and module 27
-continues the sequence into Domain C. Next: continue with the remaining clinical
+**Biomedical Assets & Calibration (module 29)** followed, over three tables:
+`biomedical_assets` (the equipment registry), `biomedical_breakdown_tickets`
+(the fault report, a guarded state machine) and `biomedical_maintenance_records`
+(the append-only service history covering maintenance and calibration alike).
+This is the serialized equipment estate, distinct from central inventory
+(Module 28), which holds consumable stock: an asset is an individually
+accountable instrument with a location, a lifecycle and a calibration
+obligation, not a quantity on a shelf. The calibration-due state is *derived*
+from the latest record's next-due date rather than stored twice and allowed to
+drift. An asset with an open breakdown ticket cannot be decommissioned, a rule
+the database enforces and the client checks so the answer is immediate offline;
+a ticket advances one stage at a time (`reported → acknowledged → in_repair →
+resolved`, cancellable from any live stage) and moves the instrument's lifecycle
+with it — into repair takes it out of service, resolving returns it. Recording a
+service does not need the registry, so `biomedical.maintain` is separate from
+`biomedical.manage`: `biomedical.read` is standard and offline, both write tiers
+are elevated and offline. A `biomedical` PowerSync bucket scopes all three tables
+to `biomedical.read`, with server-authoritative policies for the registry and
+tickets and an append-only policy for the service history. The `/biomedical`
+screen is a two-tab board: the equipment list with derived calibration state and
+open-ticket counts, and the breakdown queue.
+
+The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27 and 29
+continue the sequence into Domain C. Next: continue with the remaining clinical
 modules one vertical slice at a time, following the same pattern (Postgres schema
 + RLS, PowerSync local schema, repository + test seam, `*.write`-gated use cases,
 screens, sync bucket, mutation-handler registration, conflict policy, tests, then
-format/analyze/test). Hardware barcode scanning, PowerSync device verification
-and clinical deployment validation also remain across all slices.
+format/analyze/test). The next unbuilt slice in Domain C sequence is **module 30,
+Bio-Medical Waste Management**. Hardware barcode scanning, PowerSync device
+verification and clinical deployment validation also remain across all slices.
 
 ---
 
@@ -308,7 +331,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1137 tests).
+  mutation-verified (1151 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

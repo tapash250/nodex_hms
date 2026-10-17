@@ -299,6 +299,16 @@ abstract final class ConflictPolicyRegistry {
   /// Ambulance last-known position ping.
   static const String ambulanceTrackingPing = 'ambulance_tracking_ping';
 
+  /// Biomedical equipment registry entry.
+  static const String biomedicalAsset = 'biomedical_asset';
+
+  /// Biomedical equipment breakdown ticket.
+  static const String biomedicalBreakdownTicket = 'biomedical_breakdown_ticket';
+
+  /// Biomedical maintenance or calibration record.
+  static const String biomedicalMaintenanceRecord =
+      'biomedical_maintenance_record';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -843,6 +853,31 @@ abstract final class ConflictPolicyRegistry {
           'a later row, not a correction of the earlier one, so pings '
           'resolve without conflict and form the last-known-position trail.',
     ),
+    biomedicalAsset: ConflictPolicyEntry(
+      resourceType: biomedicalAsset,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'An asset tag and serial identify one instrument that breakdown '
+          'tickets and service records name. Two devices cannot disagree '
+          'about where a serialized unit is or whether it is in service, so '
+          'the server owns the registry and the client reconciles.',
+    ),
+    biomedicalBreakdownTicket: ConflictPolicyEntry(
+      resourceType: biomedicalBreakdownTicket,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A breakdown ticket is claimed and progressed by one responder. Two '
+          'offline devices must not both acknowledge and repair the same '
+          'fault, so the server holds the ticket and the client reconciles.',
+    ),
+    biomedicalMaintenanceRecord: ConflictPolicyEntry(
+      resourceType: biomedicalMaintenanceRecord,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A calibration, service or repair is a thing that happened at a '
+          'time. A later service is a later row, not an edit of the earlier '
+          'one, so the service history resolves without conflict.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1173,6 +1208,9 @@ abstract final class ConflictPolicyRegistry {
     'ambulance_duty_assignments': ambulanceDuty,
     'ambulance_dispatches': ambulanceDispatch,
     'ambulance_tracking_pings': ambulanceTrackingPing,
+    'biomedical_assets': biomedicalAsset,
+    'biomedical_breakdown_tickets': biomedicalBreakdownTicket,
+    'biomedical_maintenance_records': biomedicalMaintenanceRecord,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

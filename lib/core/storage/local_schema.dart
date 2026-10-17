@@ -49,6 +49,17 @@ abstract final class LocalTables {
   /// Ambulance last-known position pings (Module 27).
   static const String ambulanceTrackingPings = 'ambulance_tracking_pings';
 
+  /// Biomedical equipment registry (Module 29).
+  static const String biomedicalAssets = 'biomedical_assets';
+
+  /// Biomedical equipment breakdown tickets (Module 29).
+  static const String biomedicalBreakdownTickets =
+      'biomedical_breakdown_tickets';
+
+  /// Biomedical maintenance and calibration history (Module 29).
+  static const String biomedicalMaintenanceRecords =
+      'biomedical_maintenance_records';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -320,6 +331,9 @@ abstract final class NodexLocalSchema {
     _ambulanceDutyAssignments,
     _ambulanceDispatches,
     _ambulanceTrackingPings,
+    _biomedicalAssets,
+    _biomedicalBreakdownTickets,
+    _biomedicalMaintenanceRecords,
     _wards,
     _appUsers,
     _roles,
@@ -656,6 +670,108 @@ abstract final class NodexLocalSchema {
       Index('ambulance_tracking_dispatch', <IndexedColumn>[
         IndexedColumn('dispatch_id'),
         IndexedColumn('recorded_at'),
+      ]),
+    ],
+  );
+
+  /// Biomedical equipment registry (Module 29). Mirrors
+  /// `public.biomedical_assets`.
+  static const Table _biomedicalAssets = Table(
+    LocalTables.biomedicalAssets,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('department_id'),
+      Column.text('asset_tag'),
+      Column.text('name'),
+      Column.text('category'),
+      Column.text('manufacturer'),
+      Column.text('model_no'),
+      Column.text('serial_no'),
+      Column.text('criticality'),
+      Column.text('status'),
+      Column.text('commissioned_on'),
+      Column.text('warranty_until'),
+      Column.text('notes'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('biomedical_asset_facility', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('facility_id'),
+        IndexedColumn('status'),
+      ]),
+      Index('biomedical_asset_department', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('department_id'),
+      ]),
+    ],
+  );
+
+  /// Biomedical equipment breakdown tickets (Module 29). Mirrors
+  /// `public.biomedical_breakdown_tickets`.
+  static const Table _biomedicalBreakdownTickets = Table(
+    LocalTables.biomedicalBreakdownTickets,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('asset_id'),
+      Column.text('facility_id'),
+      Column.text('reported_by'),
+      Column.text('reported_at'),
+      Column.text('priority'),
+      Column.text('symptom'),
+      Column.text('status'),
+      Column.text('acknowledged_at'),
+      Column.text('resolved_at'),
+      Column.text('resolution_notes'),
+      Column.text('cancellation_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('biomedical_ticket_asset', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('asset_id'),
+        IndexedColumn('reported_at'),
+      ]),
+      Index('biomedical_ticket_open', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('priority'),
+      ]),
+    ],
+  );
+
+  /// Biomedical maintenance and calibration history (Module 29). Mirrors
+  /// `public.biomedical_maintenance_records`.
+  static const Table _biomedicalMaintenanceRecords = Table(
+    LocalTables.biomedicalMaintenanceRecords,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('asset_id'),
+      Column.text('ticket_id'),
+      Column.text('kind'),
+      Column.text('result'),
+      Column.text('performed_at'),
+      Column.text('performed_by'),
+      Column.text('provider'),
+      Column.text('next_due_at'),
+      Column.text('reference'),
+      Column.text('notes'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('biomedical_maintenance_asset', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('asset_id'),
+        IndexedColumn('performed_at'),
+      ]),
+      Index('biomedical_maintenance_due', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('next_due_at'),
       ]),
     ],
   );

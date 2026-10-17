@@ -248,6 +248,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Biomedical assets & calibration (Module 29).
+  static const NavigationDestinationSpec biomedical = NavigationDestinationSpec(
+    routePath: '/biomedical',
+    label: 'Biomedical',
+    icon: Icons.precision_manufacturing_outlined,
+    selectedIcon: Icons.precision_manufacturing,
+    requiredPermissions: <String>{NodexPermissions.biomedicalRead},
+    moduleCode: 'M29',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -348,6 +359,7 @@ abstract final class NodexDestinations {
         contacts,
         calendar,
         fleet,
+        biomedical,
         inventory,
         syncDiagnostics,
         aiGovernance,

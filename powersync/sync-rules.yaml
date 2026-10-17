@@ -563,6 +563,25 @@ sync_rules:
         - select * from public.ambulance_duty_assignments where tenant_id = bucket.tenant_id
         - select * from public.ambulance_dispatches where tenant_id = bucket.tenant_id
         - select * from public.ambulance_tracking_pings where tenant_id = bucket.tenant_id
+    # Module 29 (biomedical assets & calibration): the equipment registry,
+    # breakdown tickets and the append-only service history, scoped by
+    # biomedical.read so a ward can see the state of the equipment around it and
+    # a technician can record a calibration offline.
+    biomedical:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'biomedical.read'
+      data:
+        - select * from public.biomedical_assets where tenant_id = bucket.tenant_id
+        - select * from public.biomedical_breakdown_tickets where tenant_id = bucket.tenant_id
+        - select * from public.biomedical_maintenance_records where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

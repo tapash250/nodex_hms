@@ -70,7 +70,10 @@ carries the emergency numbers and help desks it needs), and `calendar`
 overlay reads the Module 09 `workforce` rows the device already holds rather
 than syncing a copy), and `fleet` (Module 27, the ambulance registry, driver
 duty rosters, dispatch jobs and coarse position pings, scoped by `fleet.read` so
-a dispatcher can answer "where was it last seen" offline). The `emr_encounters` bucket also
+a dispatcher can answer "where was it last seen" offline), and `biomedical`
+(Module 29, the equipment registry, breakdown tickets and the append-only service
+history, scoped by `biomedical.read` so a ward sees the state of the equipment
+around it and a technician can record a calibration offline). The `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on
 it. Remaining: the rest of the 54-module scope.

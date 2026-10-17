@@ -23,6 +23,7 @@ import 'package:nodex_hms/features/audit/audit_screen.dart';
 import 'package:nodex_hms/features/auth/sign_in_screen.dart';
 import 'package:nodex_hms/features/beds/ward_census_screen.dart';
 import 'package:nodex_hms/features/billing/invoice_detail_screen.dart';
+import 'package:nodex_hms/features/biomedical/biomedical_assets_screen.dart';
 import 'package:nodex_hms/features/blood_bank/blood_bank_list_screen.dart';
 import 'package:nodex_hms/features/blood_bank/blood_unit_detail_screen.dart';
 import 'package:nodex_hms/features/blood_bank/transfusion_request_detail_screen.dart';
@@ -308,6 +309,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.fleet.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const FleetDispatchScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.biomedical.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const BiomedicalAssetsScreen(),
           ),
           GoRoute(
             path: NodexDestinations.staffDirectory.routePath,
