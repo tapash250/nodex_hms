@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 64 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 65 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1210 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1271 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -359,15 +359,55 @@ server-authoritative policy on every one, since a payer's decision and a claim
 reference are single facts the server owns. The `/insurance` screen is a
 patient-scoped four-tab board: cover, pre-auth, claims and payers.
 
-The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29, 30
-and 32 continue the sequence into Domain C. Next: continue with the remaining
-clinical modules one vertical slice at a time, following the same pattern
-(Postgres schema + RLS, PowerSync local schema, repository + test seam,
+**Documents & Biometric E-Consent Vault (module 33)** followed, over
+`consent_templates`, `consent_records` and `document_vault_documents`. This is
+the documentary estate: the moment a patient agrees to a procedure and the
+artefact that proves it, distinct from the encounter that records the treatment
+the consent authorises. A template version is immutable once written — the words
+a patient signed must never change under them — so a correction is a new version,
+a duplicate version of a code is refused offline against the rows on the device,
+and retiring a version only flips `is_active`; the row is never edited or deleted.
+A consent record is a guarded state machine (`drafted → awaiting_signature →
+signed`, declined from either live stage, `signed → revoked` one-way) and a
+signed consent is frozen but for the revocation: what it attests is the record of
+an act. The vault holds one artefact per object path, each with a mandatory
+lowercase hexadecimal SHA-256 digest — the same digest the storage bucket
+requires in the object metadata — and an optional detached signature that is
+validated as a coherent (signature, algorithm, key id) triple or not at all,
+because NODEX does not fabricate a signature it cannot verify. The address and the
+digest of a vault entry are immutable once issued, and its two endings
+(`superseded`, naming the replacement; `voided`, with a reason) are both one-way.
+Two facts are derived rather than stored: the validity of a consent (pending,
+awaiting signature, signed, expired, declined, revoked) from its status and
+expiry, and what is still to be captured before it may be signed (signature,
+biometric, witness, vaulted artefact) from the template's requirements.
+`documents.read` is standard and offline; `documents.consent` (raise, capture,
+sign, decline, revoke), `documents.vault` (index, supersede, void) and
+`documents.manage` (template versions) are elevated and offline, so a ward nurse
+can take a signature at the bedside without being able to register or retire what
+the vault holds. A `documents` PowerSync bucket scopes all three tables to
+`documents.read` with a server-authoritative policy on every one, since one
+signature at one moment is a single fact the server owns. The `/consents` screen
+is a three-tab board — consents, templates, vault — whose capture dialog records
+the stylus signature on a canvas, rasterises it to PNG, uploads it under its
+digest and signs the consent against the vault entry that indexes it.
+
+Two gaps are named rather than papered over: the vault upload needs
+connectivity, so a consent can be raised, witnessed and prepared offline but the
+signature itself completes when the artefact reaches the vault; and thumbprint
+capture awaits device hardware, so a template version that requires a biometric
+attestation is refused on a device without a reader instead of being signed
+without one.
+
+The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
+30, 32 and 33 continue the sequence into Domain C. Next: continue with the
+remaining clinical modules one vertical slice at a time, following the same
+pattern (Postgres schema + RLS, PowerSync local schema, repository + test seam,
 `*.write`-gated use cases, screens, sync bucket, mutation-handler registration,
 conflict policy, tests, then format/analyze/test). The next unbuilt slice in
-Domain C sequence is **module 33** (modules 31 and 32 are built; 33–39 remain).
-Hardware barcode scanning, PowerSync device verification and clinical deployment
-validation also remain across all slices.
+Domain C sequence is **module 34** (modules 31, 32 and 33 are built; 34–39
+remain). Hardware barcode scanning, thumbprint capture, PowerSync device
+verification and clinical deployment validation also remain across all slices.
 
 ---
 
@@ -384,7 +424,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1210 tests).
+  mutation-verified (1271 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

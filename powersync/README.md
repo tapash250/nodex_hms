@@ -80,7 +80,12 @@ log a bin offline and a compliance officer can read the certificates that back
 it). The `insurance` bucket (Module 32, the payer registry, the patient policies,
 the pre-authorisation requests and the electronic claims, scoped by
 `insurance.read` so a desk can verify cover, raise an authorisation and submit a
-claim offline) rounds out Domain C's payer side. The `emr_encounters` bucket also
+claim offline) rounds out Domain C's payer side, and the `documents` bucket
+(Module 33, the versioned consent template catalogue, the consent records with
+their stylus and biometric attestations, and the document vault index, scoped by
+`documents.read` so a ward can capture a consent at the bedside offline and an
+auditor can read what was signed) carries the documentary estate. The
+`emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on
 it. Remaining: the rest of the 54-module scope.

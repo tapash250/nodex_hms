@@ -32,6 +32,7 @@ import 'package:nodex_hms/features/contacts/contacts_directory_screen.dart';
 import 'package:nodex_hms/features/departments/department_registry_screen.dart';
 import 'package:nodex_hms/features/diagnostics/sync_diagnostics_screen.dart';
 import 'package:nodex_hms/features/discharge/discharge_detail_screen.dart';
+import 'package:nodex_hms/features/documents/consent_vault_screen.dart';
 import 'package:nodex_hms/features/encounters/encounter_editor_screen.dart';
 import 'package:nodex_hms/features/er/er_list_screen.dart';
 import 'package:nodex_hms/features/er/er_visit_detail_screen.dart';
@@ -326,6 +327,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.insurance.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const InsuranceBoardScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.consents.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const ConsentVaultScreen(),
           ),
           GoRoute(
             path: NodexDestinations.staffDirectory.routePath,

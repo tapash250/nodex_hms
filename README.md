@@ -18,7 +18,7 @@ authoritative system of record.
 ## Status
 
 **Phase 1 (Platform Foundation) is complete.** Phase 2 clinical vertical slices
-are substantially built: **29 of the 54 clinical modules** have a full vertical
+are substantially built: **30 of the 54 clinical modules** have a full vertical
 slice (Postgres schema + RLS, PowerSync local schema, repository, `*.write`-gated
 use cases, screens, sync bucket and mutation-handler registration), plus the
 full application shell and session lifecycle.
@@ -32,12 +32,12 @@ full application shell and session lifecycle.
 | Conflict policies | Per-entity deterministic strategies, registered and tested |
 | AI subsystem | Orchestrator, Gateway, model registry, deterministic routing, circuit breaker — with stub adapters |
 | Application shell | Role-aware GoRouter, Material 3 adaptive navigation, session lifecycle |
-| Clinical modules (29) | Appointments, Beds, ER/triage, ICU, Nurse ward station, Patients/MPI, Encounters, Laboratory, Radiology, Operation theatre, Physiotherapy, Nutrition, Telemedicine, Discharge, Floor map, Doctor & specialist directory, Clinical departments, Hospital contacts directory, Institutional calendar, Allied staff & workforce, Human resources & payroll, Prescriptions/pharmacy, Blood bank, Inventory, Billing, Fleet & ambulance dispatch, Biomedical assets & calibration, Bio-medical waste, Health insurance & TPA |
+| Clinical modules (30) | Appointments, Beds, ER/triage, ICU, Nurse ward station, Patients/MPI, Encounters, Laboratory, Radiology, Operation theatre, Physiotherapy, Nutrition, Telemedicine, Discharge, Floor map, Doctor & specialist directory, Clinical departments, Hospital contacts directory, Institutional calendar, Allied staff & workforce, Human resources & payroll, Prescriptions/pharmacy, Blood bank, Inventory, Billing, Fleet & ambulance dispatch, Biomedical assets & calibration, Bio-medical waste, Health insurance & TPA, Documents & biometric e-consent vault |
 | Mutation path | Edge `mutation-handler` with per-table validators, idempotency ledger, SHA-256 `payload_digest`, device provenance, audit-before-apply |
-| Object storage | Three private tenant-scoped buckets with membership-derived RLS, checksum-on-upload, 60-second signed URLs, and a client `StorageService` wired to radiology and telemedicine |
-| Verification | 1210 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
+| Object storage | Three private tenant-scoped buckets with membership-derived RLS, checksum-on-upload, 60-second signed URLs, and a client `StorageService` wired to radiology, telemedicine and the consent vault |
+| Verification | 1271 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
 
-Not yet built: the remaining ~25 clinical modules, the PowerSync instance
+Not yet built: the remaining ~24 clinical modules, the PowerSync instance
 itself (rules are written), real AI provider adapters, the on-device vision and
 speech pipelines, WebRTC telehealth, and thermal printing.
 

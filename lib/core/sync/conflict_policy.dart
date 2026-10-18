@@ -330,6 +330,15 @@ abstract final class ConflictPolicyRegistry {
   /// Electronic insurance claim.
   static const String insuranceClaim = 'insurance_claim';
 
+  /// A versioned consent template (Module 33).
+  static const String consentTemplate = 'consent_template';
+
+  /// A patient's consent decision (Module 33).
+  static const String consentRecord = 'consent_record';
+
+  /// An artefact indexed in the document vault (Module 33).
+  static const String vaultDocument = 'vault_document';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -958,6 +967,33 @@ abstract final class ConflictPolicyRegistry {
           'submit or settle it, so the server is authoritative and the client '
           'reconciles.',
     ),
+    consentTemplate: ConflictPolicyEntry(
+      resourceType: consentTemplate,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A template version is the text a patient signed. Two devices cannot '
+          'each be holding a different wording of the same version, so the '
+          'server owns the catalogue and the client reconciles rather than '
+          'merging.',
+    ),
+    consentRecord: ConflictPolicyEntry(
+      resourceType: consentRecord,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A consent is the record of one signature at one moment, with one '
+          'artefact carrying it. Two offline devices must not both sign or '
+          'revoke it, so the server is authoritative and the client '
+          'reconciles.',
+    ),
+    vaultDocument: ConflictPolicyEntry(
+      resourceType: vaultDocument,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A vault entry asserts a content digest for one object path. Because '
+          'the address and the digest are immutable once issued, the server '
+          'holds the index and the client reconciles rather than merging two '
+          'claims about the same bytes.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1298,6 +1334,9 @@ abstract final class ConflictPolicyRegistry {
     'insurance_policies': insurancePolicy,
     'pre_authorisation_requests': preAuthorisation,
     'insurance_claims': insuranceClaim,
+    'consent_templates': consentTemplate,
+    'consent_records': consentRecord,
+    'document_vault_documents': vaultDocument,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

@@ -250,7 +250,10 @@ failure class, circuit state and the human review decision.
 - **Storage buckets.** Migration `20260917260000_phase3_storage_buckets.sql`
   defines three private, tenant-scoped buckets (`clinical-images`,
   `clinical-documents`, `clinical-signatures`) with membership-derived RLS,
-  a SHA-256 checksum required on upload, and no delete policy. Apply with
+  a SHA-256 checksum required on upload, and no delete policy. Module 33 adds
+  permissive insert/update policies on `clinical-signatures` and
+  `clinical-documents` gated on `documents.consent`, so a bedside consent
+  capture can be written without the `encounter.write` tier. Apply with
   `supabase db push`. Still to do: the app-side client that uploads under
   `<tenant_id>/…/…` and reads via a 60s `createSignedUrl` (the clinical tables
   already hold only references).

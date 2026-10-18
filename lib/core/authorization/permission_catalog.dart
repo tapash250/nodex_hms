@@ -138,6 +138,18 @@ abstract final class NodexPermissions {
   /// Maintain the payer registry and register or cancel patient policies.
   static const String insuranceManage = 'insurance.manage';
 
+  /// View consent templates, consent records and the document vault index.
+  static const String documentsRead = 'documents.read';
+
+  /// Raise consent records and capture stylus and biometric attestations.
+  static const String documentsConsent = 'documents.consent';
+
+  /// Register vaulted artefacts and supersede or void them.
+  static const String documentsVault = 'documents.vault';
+
+  /// Publish consent template versions and activate or retire them.
+  static const String documentsManage = 'documents.manage';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

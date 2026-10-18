@@ -637,6 +637,9 @@ void main() {
       'waste_categories',
       'waste_disposal_certificates',
       'waste_generation_logs',
+      'consent_records',
+      'consent_templates',
+      'document_vault_documents',
     ];
 
     test('every writable table resolves to a registered policy', () {

@@ -621,6 +621,25 @@ sync_rules:
         - select * from public.insurance_policies where tenant_id = bucket.tenant_id
         - select * from public.pre_authorisation_requests where tenant_id = bucket.tenant_id
         - select * from public.insurance_claims where tenant_id = bucket.tenant_id
+    # Module 33 (documents & biometric e-consent vault): the versioned consent
+    # template catalogue, the consent records with their attestations and the
+    # vault index, scoped by documents.read so a ward can capture a consent at
+    # the bedside offline and an auditor can read what was signed.
+    documents:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'documents.read'
+      data:
+        - select * from public.consent_templates where tenant_id = bucket.tenant_id
+        - select * from public.consent_records where tenant_id = bucket.tenant_id
+        - select * from public.document_vault_documents where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

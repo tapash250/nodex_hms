@@ -281,6 +281,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Documents & biometric e-consent vault (Module 33).
+  static const NavigationDestinationSpec consents = NavigationDestinationSpec(
+    routePath: '/consents',
+    label: 'Consents',
+    icon: Icons.draw_outlined,
+    selectedIcon: Icons.draw,
+    requiredPermissions: <String>{NodexPermissions.documentsRead},
+    moduleCode: 'M33',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -384,6 +395,7 @@ abstract final class NodexDestinations {
         biomedical,
         waste,
         insurance,
+        consents,
         inventory,
         syncDiagnostics,
         aiGovernance,

@@ -40,6 +40,8 @@ import 'package:nodex_hms/domain/discharge/discharge_management_repository.dart'
 import 'package:nodex_hms/domain/discharge/discharge_management_use_cases.dart';
 import 'package:nodex_hms/domain/discharge/discharge_repository.dart';
 import 'package:nodex_hms/domain/discharge/discharge_use_cases.dart';
+import 'package:nodex_hms/domain/documents/documents_repository.dart';
+import 'package:nodex_hms/domain/documents/documents_use_cases.dart';
 import 'package:nodex_hms/domain/encounters/encounter_repository.dart';
 import 'package:nodex_hms/domain/encounters/encounter_use_cases.dart';
 import 'package:nodex_hms/domain/encounters/problem_list_repository.dart';
@@ -996,6 +998,101 @@ final Provider<ReadInsuranceUseCase> readInsuranceUseCaseProvider =
     Provider<ReadInsuranceUseCase>(
       (Ref ref) => ReadInsuranceUseCase(
         repository: ref.watch(insuranceRepositoryProvider),
+      ),
+    );
+
+/// Documents & Biometric E-Consent Vault repository over the encrypted local
+/// projection.
+final Provider<DocumentsRepository> documentsRepositoryProvider =
+    Provider<DocumentsRepository>(
+      (Ref ref) => DefaultDocumentsRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Publish a consent template version.
+final Provider<RegisterConsentTemplateUseCase>
+registerConsentTemplateUseCaseProvider =
+    Provider<RegisterConsentTemplateUseCase>(
+      (Ref ref) => RegisterConsentTemplateUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Activate or retire a consent template version.
+final Provider<SetConsentTemplateActiveUseCase>
+setConsentTemplateActiveUseCaseProvider =
+    Provider<SetConsentTemplateActiveUseCase>(
+      (Ref ref) => SetConsentTemplateActiveUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Raise a patient consent.
+final Provider<RaiseConsentUseCase> raiseConsentUseCaseProvider =
+    Provider<RaiseConsentUseCase>(
+      (Ref ref) => RaiseConsentUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Capture a stylus signature, biometric or witness attestation.
+final Provider<CaptureConsentAttestationUseCase>
+captureConsentAttestationUseCaseProvider =
+    Provider<CaptureConsentAttestationUseCase>(
+      (Ref ref) => CaptureConsentAttestationUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Sign a consent against a vaulted artefact.
+final Provider<SignConsentUseCase> signConsentUseCaseProvider =
+    Provider<SignConsentUseCase>(
+      (Ref ref) => SignConsentUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Record that the patient declined a consent.
+final Provider<DeclineConsentUseCase> declineConsentUseCaseProvider =
+    Provider<DeclineConsentUseCase>(
+      (Ref ref) => DeclineConsentUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Revoke a signed consent.
+final Provider<RevokeConsentUseCase> revokeConsentUseCaseProvider =
+    Provider<RevokeConsentUseCase>(
+      (Ref ref) => RevokeConsentUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Index an artefact in the document vault.
+final Provider<RegisterVaultDocumentUseCase>
+registerVaultDocumentUseCaseProvider = Provider<RegisterVaultDocumentUseCase>(
+  (Ref ref) => RegisterVaultDocumentUseCase(
+    repository: ref.watch(documentsRepositoryProvider),
+  ),
+);
+
+/// Supersede or void a vault entry.
+final Provider<RetireVaultDocumentUseCase> retireVaultDocumentUseCaseProvider =
+    Provider<RetireVaultDocumentUseCase>(
+      (Ref ref) => RetireVaultDocumentUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
+      ),
+    );
+
+/// Read the consent board, the template catalogue and the vault index.
+final Provider<ReadConsentVaultUseCase> readConsentVaultUseCaseProvider =
+    Provider<ReadConsentVaultUseCase>(
+      (Ref ref) => ReadConsentVaultUseCase(
+        repository: ref.watch(documentsRepositoryProvider),
       ),
     );
 

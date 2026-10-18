@@ -81,6 +81,15 @@ abstract final class LocalTables {
   /// Electronic insurance claims (Module 32).
   static const String insuranceClaims = 'insurance_claims';
 
+  /// Versioned consent templates (Module 33).
+  static const String consentTemplates = 'consent_templates';
+
+  /// Patient consent records and their attestations (Module 33).
+  static const String consentRecords = 'consent_records';
+
+  /// Document vault index (Module 33).
+  static const String documentVaultDocuments = 'document_vault_documents';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -362,6 +371,9 @@ abstract final class NodexLocalSchema {
     _insurancePolicies,
     _preAuthorisationRequests,
     _insuranceClaims,
+    _consentTemplates,
+    _consentRecords,
+    _documentVaultDocuments,
     _wards,
     _appUsers,
     _roles,
@@ -1057,6 +1069,133 @@ abstract final class NodexLocalSchema {
       Index('insurance_claim_invoice', <IndexedColumn>[
         IndexedColumn('tenant_id'),
         IndexedColumn('invoice_id'),
+      ]),
+    ],
+  );
+
+  /// Versioned consent templates (Module 33). Mirrors
+  /// `public.consent_templates`.
+  static const Table _consentTemplates = Table(
+    LocalTables.consentTemplates,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('code'),
+      Column.text('title'),
+      Column.text('procedure_category'),
+      Column.text('body_text'),
+      Column.integer('version'),
+      Column.integer('requires_witness'),
+      Column.integer('requires_biometric'),
+      Column.integer('validity_days'),
+      Column.integer('is_active'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('consent_template_code', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('code'),
+        IndexedColumn('is_active'),
+      ]),
+    ],
+  );
+
+  /// Patient consent records (Module 33). Mirrors
+  /// `public.consent_records`.
+  static const Table _consentRecords = Table(
+    LocalTables.consentRecords,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('facility_id'),
+      Column.text('encounter_id'),
+      Column.text('template_id'),
+      Column.text('procedure_text'),
+      Column.text('status'),
+      Column.text('signer_name'),
+      Column.text('signer_relationship'),
+      Column.text('signature_sha256'),
+      Column.integer('signature_point_count'),
+      Column.text('signature_captured_at'),
+      Column.text('biometric_method'),
+      Column.text('biometric_template_sha256'),
+      Column.text('biometric_captured_at'),
+      Column.integer('biometric_quality'),
+      Column.text('witnessed_by'),
+      Column.text('witnessed_at'),
+      Column.text('document_id'),
+      Column.text('signed_at'),
+      Column.text('expires_at'),
+      Column.text('declined_at'),
+      Column.text('decline_reason'),
+      Column.text('revoked_at'),
+      Column.text('revocation_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('consent_record_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('consent_record_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('consent_record_template', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('template_id'),
+      ]),
+    ],
+  );
+
+  /// Document vault index (Module 33). Mirrors
+  /// `public.document_vault_documents`.
+  static const Table _documentVaultDocuments = Table(
+    LocalTables.documentVaultDocuments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('consent_id'),
+      Column.text('kind'),
+      Column.text('title'),
+      Column.text('bucket'),
+      Column.text('object_path'),
+      Column.text('mime_type'),
+      Column.integer('size_bytes'),
+      Column.text('sha256'),
+      Column.text('signature'),
+      Column.text('signature_algorithm'),
+      Column.text('signing_key_id'),
+      Column.text('status'),
+      Column.text('issued_by'),
+      Column.text('issued_at'),
+      Column.text('superseded_at'),
+      Column.text('superseded_by'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('document_vault_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('issued_at'),
+      ]),
+      Index('document_vault_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('issued_at'),
+      ]),
+      Index('document_vault_consent', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('consent_id'),
       ]),
     ],
   );
