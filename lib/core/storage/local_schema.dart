@@ -132,6 +132,19 @@ abstract final class LocalTables {
   /// Append-only thermal badge print log (Module 37).
   static const String visitorBadgePrints = 'visitor_badge_prints';
 
+  /// Report catalogue (Module 38).
+  static const String analyticsReportDefinitions =
+      'analytics_report_definitions';
+
+  /// Materialised rolling rollups (Module 38).
+  static const String analyticsRollups = 'analytics_rollups';
+
+  /// Report runs (Module 38).
+  static const String analyticsReportRuns = 'analytics_report_runs';
+
+  /// Append-only export log (Module 38).
+  static const String analyticsExports = 'analytics_exports';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -430,6 +443,10 @@ abstract final class NodexLocalSchema {
     _visitorRegistrations,
     _visitorPasses,
     _visitorBadgePrints,
+    _analyticsReportDefinitions,
+    _analyticsRollups,
+    _analyticsReportRuns,
+    _analyticsExports,
     _wards,
     _appUsers,
     _roles,
@@ -1805,6 +1822,144 @@ abstract final class NodexLocalSchema {
         IndexedColumn('tenant_id'),
         IndexedColumn('pass_id'),
         IndexedColumn('print_ordinal'),
+      ]),
+    ],
+  );
+
+  /// Report catalogue (Module 38). Mirrors
+  /// `public.analytics_report_definitions`.
+  static const Table _analyticsReportDefinitions = Table(
+    LocalTables.analyticsReportDefinitions,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('code'),
+      Column.text('display_name'),
+      Column.text('description'),
+      Column.text('category'),
+      Column.text('primary_source'),
+      Column.text('grain'),
+      Column.integer('retention_days'),
+      Column.text('status'),
+      Column.text('published_at'),
+      Column.text('published_by'),
+      Column.text('retired_at'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('analytics_definition_category', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('category'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Materialised rolling rollups (Module 38). Mirrors
+  /// `public.analytics_rollups`.
+  static const Table _analyticsRollups = Table(
+    LocalTables.analyticsRollups,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('definition_id'),
+      Column.text('facility_id'),
+      Column.text('grain'),
+      Column.text('period_start'),
+      Column.text('period_end'),
+      Column.integer('row_count'),
+      Column.integer('numerator'),
+      Column.integer('denominator'),
+      Column.integer('income_minor'),
+      Column.integer('expenditure_minor'),
+      Column.text('materialised_at'),
+      Column.text('materialised_by'),
+      Column.text('status'),
+      Column.text('superseded_at'),
+      Column.text('supersede_note'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('analytics_rollup_period', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('definition_id'),
+        IndexedColumn('grain'),
+        IndexedColumn('period_start'),
+      ]),
+      Index('analytics_rollup_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('materialised_at'),
+      ]),
+    ],
+  );
+
+  /// Report runs (Module 38). Mirrors `public.analytics_report_runs`.
+  static const Table _analyticsReportRuns = Table(
+    LocalTables.analyticsReportRuns,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('definition_id'),
+      Column.text('facility_id'),
+      Column.text('run_number'),
+      Column.text('grain'),
+      Column.text('period_start'),
+      Column.text('period_end'),
+      Column.text('filter_note'),
+      Column.text('status'),
+      Column.text('served_from'),
+      Column.integer('row_count'),
+      Column.text('requested_by'),
+      Column.text('started_at'),
+      Column.text('finished_at'),
+      Column.text('failure_reason'),
+      Column.text('cancelled_at'),
+      Column.text('cancel_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('analytics_run_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('analytics_run_definition', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('definition_id'),
+        IndexedColumn('period_start'),
+      ]),
+    ],
+  );
+
+  /// Append-only export log (Module 38). Mirrors
+  /// `public.analytics_exports`.
+  static const Table _analyticsExports = Table(
+    LocalTables.analyticsExports,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('run_id'),
+      Column.text('artifact_label'),
+      Column.text('format'),
+      Column.text('destination'),
+      Column.integer('byte_size'),
+      Column.text('checksum'),
+      Column.text('note'),
+      Column.text('exported_at'),
+      Column.text('exported_by'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('analytics_export_run', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('run_id'),
+        IndexedColumn('exported_at'),
       ]),
     ],
   );

@@ -340,6 +340,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Reports & operational analytics (Module 38).
+  static const NavigationDestinationSpec analytics = NavigationDestinationSpec(
+    routePath: '/analytics',
+    label: 'Analytics',
+    icon: Icons.insights_outlined,
+    selectedIcon: Icons.insights,
+    requiredPermissions: <String>{NodexPermissions.analyticsRead},
+    moduleCode: 'M38',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -448,6 +459,7 @@ abstract final class NodexDestinations {
         quality,
         feedback,
         visitor,
+        analytics,
         inventory,
         syncDiagnostics,
         aiGovernance,

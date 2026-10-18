@@ -102,7 +102,11 @@ carries the patient's voice, and the `visitor` bucket (Module 37, the gate
 registrations, the entry passes, the ward visiting hours the passes are judged
 against and the append-only badge print log, scoped by `visitor.read` so a nurse
 can read who is inside a ward without being able to issue a pass into it) carries
-the front door. The
+the front door, and the `analytics` bucket (Module 38, the report catalogue, the
+materialised rolling rollups, the runs and the append-only export log, scoped by
+`analytics.read` so a ward clerk can read the board's figures without being able to
+materialise one or take the balance sheet out of the building) carries the
+warehouse. The
 `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on

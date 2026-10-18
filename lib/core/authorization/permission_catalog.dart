@@ -195,6 +195,18 @@ abstract final class NodexPermissions {
   /// Set and retire a ward's visiting window and its visitor limit.
   static const String visitorConfigure = 'visitor.configure';
 
+  /// View report definitions, materialised rollups, report runs and exports.
+  static const String analyticsRead = 'analytics.read';
+
+  /// Add a report to the catalogue, publish it and retire it.
+  static const String analyticsDefine = 'analytics.define';
+
+  /// Run a report and write its rolling rollup against the read replica.
+  static const String analyticsMaterialise = 'analytics.materialise';
+
+  /// Take a finished report out of the hospital.
+  static const String analyticsExport = 'analytics.export';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

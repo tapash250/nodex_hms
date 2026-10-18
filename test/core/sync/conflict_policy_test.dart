@@ -654,6 +654,10 @@ void main() {
       'visitor_registrations',
       'visitor_passes',
       'visitor_badge_prints',
+      'analytics_report_definitions',
+      'analytics_rollups',
+      'analytics_report_runs',
+      'analytics_exports',
     ];
 
     test('every writable table resolves to a registered policy', () {

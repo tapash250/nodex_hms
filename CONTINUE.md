@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 69 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 70 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1636 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1751 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -544,14 +544,52 @@ server-authoritative policy on the three registers and `appendOnly` on the print
 log, and the `/visitors` screen is a three-tab desk — the gate, the passes and the
 ward hours — that reads the badge print log in the pass sheet.
 
+**Reports & Operational Analytics Warehouse (module 38)** followed, over
+`analytics_report_definitions`, `analytics_rollups`, `analytics_report_runs` and
+`analytics_exports`. This is the warehouse the spec asks for — morbidity reports,
+department productivity, pharmacy burn rate and financial balance sheets — and it
+stores conclusions rather than facts: an encounter, a dispense and an invoice stay
+in the modules that own them, and what lives here is what those add up to over a
+period, plus the record of who asked. A definition runs `draft → published →
+retired`, and its code, category, source, grain and facility are frozen at
+publication because a device that re-scoped them locally would quietly change what
+every figure it already holds means. A rollup runs `materialised → superseded |
+voided`, one current row per definition, grain and period: re-materialising a
+period supersedes the row already holding it rather than sitting beside it, because
+two current rows for one period are two answers to one question, and the superseded
+row is kept so a figure that was published can still be explained. A run runs
+`queued → running → succeeded | failed`, with `cancelled` from either live stage,
+and records whether the rolling rollup or the read replica answered it. The export
+log is append-only, because the question a balance sheet raises is not what it says
+but who has one. Nothing that could drift is stored: what period a grain covers is
+`analyticsPeriodEnd`, a rate is the rollup's own ratio (null over an empty
+denominator — a rate of zero would be a claim), a bottom line is
+`rollupNetPosition`, growth needs a non-zero period before it, and whether a figure
+has gone out of date is the clock against the period it claims. Period starts are
+date-only `YYYY-MM-DD` text parsed by splitting the parts into a UTC midnight, so a
+device west of UTC does not report the previous month's rollup. Permissions follow
+the warehouse and the counter: `analytics.read` is standard and offline, so a nurse
+can see the board's figures; `analytics.define` is elevated and offline, because a
+report's contract is settled at a desk; and `analytics.materialise` and
+`analytics.export` are elevated and **require a network**, because both read the
+read replica and a rollup computed from a stale local copy would be a number no
+other device agrees with. A report code is unique per tenant, a run number is
+unique per tenant and an artefact name is unique per run, because two rows sharing
+one make the log unreadable. The `analytics` PowerSync bucket scopes all four
+tables to `analytics.read`, with a server-authoritative policy on the definition,
+the rollup and the run (each is a conclusion only the warehouse can observe) and
+`appendOnly` on the export log, and the `/analytics` screen is a three-tab
+warehouse — the catalogue, the runs and the figures — that reads the export log in
+the run sheet.
+
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
-30, 32, 33, 34, 35, 36 and 37 continue the sequence into Domain C. Next: continue
+30, 32, 33, 34, 35, 36, 37 and 38 continue the sequence into Domain C. Next: continue
 with the remaining clinical modules one vertical slice at a time, following the
 same pattern (Postgres schema + RLS, PowerSync local schema, repository + test
 seam, `*.write`-gated use cases, screens, sync bucket, mutation-handler
 registration, conflict policy, tests, then format/analyze/test). The next unbuilt
-slice in Domain C sequence is **module 38** (modules 31, 32, 33, 34, 35, 36 and 37
-are built; 38–39 remain). Hardware barcode scanning, thumbprint capture, PowerSync device
+slice in Domain C sequence is **module 39** (modules 31, 32, 33, 34, 35, 36, 37 and
+38 are built; 39 remains). Hardware barcode scanning, thumbprint capture, PowerSync device
 verification and clinical deployment validation also remain across all slices.
 
 ---
@@ -569,7 +607,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1636 tests).
+  mutation-verified (1751 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

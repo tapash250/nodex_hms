@@ -17,6 +17,7 @@ import 'package:nodex_hms/app/router/navigation_destinations.dart';
 import 'package:nodex_hms/app/shell/adaptive_shell.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
 import 'package:nodex_hms/features/ai_governance/ai_governance_screen.dart';
+import 'package:nodex_hms/features/analytics/analytics_warehouse_screen.dart';
 import 'package:nodex_hms/features/appointments/appointment_detail_screen.dart';
 import 'package:nodex_hms/features/appointments/appointment_schedule_screen.dart';
 import 'package:nodex_hms/features/audit/audit_screen.dart';
@@ -356,6 +357,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.visitor.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const VisitorDeskScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.analytics.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const AnalyticsWarehouseScreen(),
           ),
           GoRoute(
             path: NodexDestinations.staffDirectory.routePath,

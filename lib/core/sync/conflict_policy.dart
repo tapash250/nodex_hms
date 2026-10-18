@@ -381,6 +381,18 @@ abstract final class ConflictPolicyRegistry {
   /// An append-only thermal badge print (Module 37).
   static const String visitorBadgePrint = 'visitor_badge_print';
 
+  /// A report definition (Module 38).
+  static const String analyticsReportDefinition = 'analytics_report_definition';
+
+  /// A materialised rolling rollup (Module 38).
+  static const String analyticsRollup = 'analytics_rollup';
+
+  /// A report run (Module 38).
+  static const String analyticsReportRun = 'analytics_report_run';
+
+  /// An append-only export (Module 38).
+  static const String analyticsExport = 'analytics_export';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -1155,6 +1167,44 @@ abstract final class ConflictPolicyRegistry {
           'as a reprint, and the ordinal is what makes the count a fact rather '
           'than a race.',
     ),
+    analyticsReportDefinition: ConflictPolicyEntry(
+      resourceType: analyticsReportDefinition,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A report definition is a contract: a period grain and a source that '
+          'the rollups behind it were materialised against. A device that '
+          're-scoped one locally would silently change what every figure it '
+          'holds means, so the server owns the definition and the client '
+          'reconciles.',
+    ),
+    analyticsRollup: ConflictPolicyEntry(
+      resourceType: analyticsRollup,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A rollup is a figure the hospital may already have been shown, '
+          'stapled to one period. Two devices materialising the same period '
+          'would produce two answers to one question, so the server owns the '
+          'row and a re-materialisation is a supersession rather than an edit.',
+    ),
+    analyticsReportRun: ConflictPolicyEntry(
+      resourceType: analyticsReportRun,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A run is progress that only the warehouse can observe: what it read, '
+          'how many rows came back and whether the rolling rollup or the read '
+          'replica answered. A device holding its own copy of a running report '
+          'would invent results, so the server owns the run.',
+    ),
+    analyticsExport: ConflictPolicyEntry(
+      resourceType: analyticsExport,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'An export is a thing that left the building at a moment, to a named '
+          'destination. Appending both keeps a second download visible as a '
+          'second download, which is the whole point of keeping the log: '
+          '"who has a copy of the balance sheet" is answered by the records, '
+          'not by the last writer winning.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1512,6 +1562,10 @@ abstract final class ConflictPolicyRegistry {
     'visitor_registrations': visitorRegistration,
     'visitor_passes': visitorPass,
     'visitor_badge_prints': visitorBadgePrint,
+    'analytics_report_definitions': analyticsReportDefinition,
+    'analytics_rollups': analyticsRollup,
+    'analytics_report_runs': analyticsReportRun,
+    'analytics_exports': analyticsExport,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

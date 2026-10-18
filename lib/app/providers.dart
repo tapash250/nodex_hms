@@ -20,6 +20,8 @@ import 'package:nodex_hms/core/security/secure_key_store.dart';
 import 'package:nodex_hms/core/storage/storage_service.dart';
 import 'package:nodex_hms/data/local/local_database.dart';
 import 'package:nodex_hms/data/remote/supabase_gateway.dart';
+import 'package:nodex_hms/domain/analytics/analytics_repository.dart';
+import 'package:nodex_hms/domain/analytics/analytics_use_cases.dart';
 import 'package:nodex_hms/domain/appointments/appointment_repository.dart';
 import 'package:nodex_hms/domain/appointments/appointment_use_cases.dart';
 import 'package:nodex_hms/domain/beds/bed_repository.dart';
@@ -1573,6 +1575,112 @@ final Provider<ReadVisitorDeskUseCase> readVisitorDeskUseCaseProvider =
         repository: ref.watch(visitorRepositoryProvider),
       ),
     );
+
+/// Analytics warehouse repository over the encrypted local projection.
+final Provider<AnalyticsRepository> analyticsRepositoryProvider =
+    Provider<AnalyticsRepository>(
+      (Ref ref) => DefaultAnalyticsRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Add a report to the catalogue.
+final Provider<DefineReportUseCase> defineReportUseCaseProvider =
+    Provider<DefineReportUseCase>(
+      (Ref ref) => DefineReportUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Publish a report, freezing its query contract.
+final Provider<PublishReportUseCase> publishReportUseCaseProvider =
+    Provider<PublishReportUseCase>(
+      (Ref ref) => PublishReportUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Retire a report.
+final Provider<RetireReportUseCase> retireReportUseCaseProvider =
+    Provider<RetireReportUseCase>(
+      (Ref ref) => RetireReportUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Write the rolling rollup for a period.
+final Provider<MaterialiseRollupUseCase> materialiseRollupUseCaseProvider =
+    Provider<MaterialiseRollupUseCase>(
+      (Ref ref) => MaterialiseRollupUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Withdraw a figure that should not stand.
+final Provider<VoidRollupUseCase> voidRollupUseCaseProvider =
+    Provider<VoidRollupUseCase>(
+      (Ref ref) =>
+          VoidRollupUseCase(repository: ref.watch(analyticsRepositoryProvider)),
+    );
+
+/// Queue a run of a published report.
+final Provider<QueueReportRunUseCase> queueReportRunUseCaseProvider =
+    Provider<QueueReportRunUseCase>(
+      (Ref ref) => QueueReportRunUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Start a queued run against the read replica.
+final Provider<StartReportRunUseCase> startReportRunUseCaseProvider =
+    Provider<StartReportRunUseCase>(
+      (Ref ref) => StartReportRunUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Finish a run with rows.
+final Provider<CompleteReportRunUseCase> completeReportRunUseCaseProvider =
+    Provider<CompleteReportRunUseCase>(
+      (Ref ref) => CompleteReportRunUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Finish a run without rows.
+final Provider<FailReportRunUseCase> failReportRunUseCaseProvider =
+    Provider<FailReportRunUseCase>(
+      (Ref ref) => FailReportRunUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Abandon a run.
+final Provider<CancelReportRunUseCase> cancelReportRunUseCaseProvider =
+    Provider<CancelReportRunUseCase>(
+      (Ref ref) => CancelReportRunUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Take a report artefact out of the hospital.
+final Provider<ExportReportRunUseCase> exportReportRunUseCaseProvider =
+    Provider<ExportReportRunUseCase>(
+      (Ref ref) => ExportReportRunUseCase(
+        repository: ref.watch(analyticsRepositoryProvider),
+      ),
+    );
+
+/// Read the analytics warehouse and its derived markers.
+final Provider<ReadAnalyticsWarehouseUseCase>
+readAnalyticsWarehouseUseCaseProvider = Provider<ReadAnalyticsWarehouseUseCase>(
+  (Ref ref) => ReadAnalyticsWarehouseUseCase(
+    repository: ref.watch(analyticsRepositoryProvider),
+  ),
+);
 
 /// Institutional calendar repository over the encrypted local projection.
 final Provider<CalendarRepository> calendarRepositoryProvider =
