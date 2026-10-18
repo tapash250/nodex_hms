@@ -339,6 +339,18 @@ abstract final class ConflictPolicyRegistry {
   /// An artefact indexed in the document vault (Module 33).
   static const String vaultDocument = 'vault_document';
 
+  /// A statutory birth registration (Module 34).
+  static const String birthRecord = 'birth_record';
+
+  /// A statutory death registration (Module 34).
+  static const String deathRecord = 'death_record';
+
+  /// A medico-legal case police intimation (Module 34).
+  static const String mlcIntimation = 'mlc_intimation';
+
+  /// An append-only statutory correction (Module 34).
+  static const String statutoryAmendment = 'statutory_amendment';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -994,6 +1006,40 @@ abstract final class ConflictPolicyRegistry {
           'holds the index and the client reconciles rather than merging two '
           'claims about the same bytes.',
     ),
+    birthRecord: ConflictPolicyEntry(
+      resourceType: birthRecord,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A birth is registered once, under one register number, and the entry '
+          'freezes when it is registered. Two offline devices must not both '
+          'assign the number, so the server is authoritative and the client '
+          'reconciles.',
+    ),
+    deathRecord: ConflictPolicyEntry(
+      resourceType: deathRecord,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A death is registered once with one coded cause. The coding is what a '
+          'mortality review and an inquest turn on, so the server owns the row '
+          'and the client reconciles rather than merging two causes of death.',
+    ),
+    mlcIntimation: ConflictPolicyEntry(
+      resourceType: mlcIntimation,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A medico-legal case is one file with one police reference and one '
+          'acknowledgement. The server owns the intimation record so two devices '
+          'cannot both report it to different stations.',
+    ),
+    statutoryAmendment: ConflictPolicyEntry(
+      resourceType: statutoryAmendment,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'An amendment is an appended event, never an edit: the value a reader '
+          'acts on is the latest amendment for a field. Appending both versions '
+          'keeps the whole correction history legible and lets the derived value '
+          'be recomputed on every device.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1337,6 +1383,10 @@ abstract final class ConflictPolicyRegistry {
     'consent_templates': consentTemplate,
     'consent_records': consentRecord,
     'document_vault_documents': vaultDocument,
+    'statutory_birth_records': birthRecord,
+    'statutory_death_records': deathRecord,
+    'statutory_mlc_intimations': mlcIntimation,
+    'statutory_record_amendments': statutoryAmendment,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

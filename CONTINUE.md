@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 65 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 66 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1271 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1337 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -399,13 +399,46 @@ capture awaits device hardware, so a template version that requires a biometric
 attestation is refused on a device without a reader instead of being signed
 without one.
 
+**Statutory Records & Birth/Death Registry (module 34)** followed, over
+`statutory_birth_records`, `statutory_death_records`,
+`statutory_mlc_intimations` and `statutory_record_amendments`. This is the
+register a hospital is legally obliged to keep, distinct from the clinical record
+that holds the care and from the document vault that holds the artefacts: a birth
+registration is the fact the civil registry is told, and a medico-legal
+intimation is the fact the police are told. Each register is a guarded state
+machine advancing one stage at a time — a birth and a death run `drafted →
+registered → certified`, a case runs `reported → intimated → acknowledged →
+closed` — and registration is a freeze: after it, a fact changes only by an
+appended amendment naming the field, the previous value, the new value, the
+reason and who attested it, never by an edit. That invariant is enforced in three
+places, as the encounters amendment pattern does: the row guard refuses a fact
+edit once registered, the amendment table has no update or delete policy, and an
+append-only trigger blocks both. A death cannot be registered until its cause is
+coded — free text plus a validated ICD-10 code plus the manner of death — because
+an uncoded death is an unfinished record rather than a registration, and the
+client checks the same rule so the answer is immediate offline. Registering and
+certifying are separated: `statutory.read` is standard and offline,
+`statutory.register` (raise, code, log, intimate, acknowledge, close) and
+`statutory.amend` (append a correction, withdraw a live entry) are elevated and
+offline, and `statutory.certify` is elevated and `requires_online`, because a
+certificate is a finalization act like a discharge; the trigger enforces that
+tier because RLS alone cannot tell the transition from a draft edit. Two facts
+are derived rather than stored, so changing a window re-derives every marker:
+whether a registration is past its statutory window (21 days for a birth, 7 for a
+death) and whether a case is past its 24-hour intimation window. The
+`statutory` PowerSync bucket scopes all four tables to `statutory.read`, with the
+three registers server-authoritative and the amendment log append-only, and the
+`/statutory` screen is a three-tab board — births, deaths, medico-legal — that
+marks the overdue rows and offers the amendment sheet as the only edit control on
+a registered row.
+
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
-30, 32 and 33 continue the sequence into Domain C. Next: continue with the
+30, 32, 33 and 34 continue the sequence into Domain C. Next: continue with the
 remaining clinical modules one vertical slice at a time, following the same
 pattern (Postgres schema + RLS, PowerSync local schema, repository + test seam,
 `*.write`-gated use cases, screens, sync bucket, mutation-handler registration,
 conflict policy, tests, then format/analyze/test). The next unbuilt slice in
-Domain C sequence is **module 34** (modules 31, 32 and 33 are built; 34–39
+Domain C sequence is **module 35** (modules 31, 32, 33 and 34 are built; 35–39
 remain). Hardware barcode scanning, thumbprint capture, PowerSync device
 verification and clinical deployment validation also remain across all slices.
 
@@ -424,7 +457,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1271 tests).
+  mutation-verified (1337 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

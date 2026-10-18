@@ -80,11 +80,16 @@ log a bin offline and a compliance officer can read the certificates that back
 it). The `insurance` bucket (Module 32, the payer registry, the patient policies,
 the pre-authorisation requests and the electronic claims, scoped by
 `insurance.read` so a desk can verify cover, raise an authorisation and submit a
-claim offline) rounds out Domain C's payer side, and the `documents` bucket
+claim offline) rounds out Domain C's payer side, the `documents` bucket
 (Module 33, the versioned consent template catalogue, the consent records with
 their stylus and biometric attestations, and the document vault index, scoped by
 `documents.read` so a ward can capture a consent at the bedside offline and an
-auditor can read what was signed) carries the documentary estate. The
+auditor can read what was signed) carries the documentary estate, and the
+`statutory` bucket (Module 34, the birth and death registers with their
+cause-of-death coding, the medico-legal case log and the append-only amendment
+stream, scoped by `statutory.read` so a ward can register a birth at the bedside
+offline and an auditor can read the register without being able to sign it)
+carries the statutory register. The
 `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on

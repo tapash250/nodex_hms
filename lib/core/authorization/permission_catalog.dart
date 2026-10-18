@@ -150,6 +150,18 @@ abstract final class NodexPermissions {
   /// Publish consent template versions and activate or retire them.
   static const String documentsManage = 'documents.manage';
 
+  /// View the statutory birth and death registers and medico-legal cases.
+  static const String statutoryRead = 'statutory.read';
+
+  /// Raise statutory entries, record cause-of-death coding and log cases.
+  static const String statutoryRegister = 'statutory.register';
+
+  /// Issue birth and death certificates against a registered entry.
+  static const String statutoryCertify = 'statutory.certify';
+
+  /// Append a correction to a registered fact and void a withdrawn entry.
+  static const String statutoryAmend = 'statutory.amend';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 
@@ -400,6 +412,7 @@ abstract final class NodexPermissions {
     ventilatorEventRecord,
     staffDirectoryAdminister,
     payrollManage,
+    statutoryCertify,
   };
 
   /// Permissions classified `high_risk` in the database catalogue.

@@ -90,6 +90,18 @@ abstract final class LocalTables {
   /// Document vault index (Module 33).
   static const String documentVaultDocuments = 'document_vault_documents';
 
+  /// Statutory birth registrations (Module 34).
+  static const String statutoryBirthRecords = 'statutory_birth_records';
+
+  /// Statutory death registrations with cause-of-death coding (Module 34).
+  static const String statutoryDeathRecords = 'statutory_death_records';
+
+  /// Medico-legal case police intimations (Module 34).
+  static const String statutoryMlcIntimations = 'statutory_mlc_intimations';
+
+  /// Append-only statutory corrections (Module 34).
+  static const String statutoryRecordAmendments = 'statutory_record_amendments';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -374,6 +386,10 @@ abstract final class NodexLocalSchema {
     _consentTemplates,
     _consentRecords,
     _documentVaultDocuments,
+    _statutoryBirthRecords,
+    _statutoryDeathRecords,
+    _statutoryMlcIntimations,
+    _statutoryRecordAmendments,
     _wards,
     _appUsers,
     _roles,
@@ -1196,6 +1212,169 @@ abstract final class NodexLocalSchema {
       Index('document_vault_consent', <IndexedColumn>[
         IndexedColumn('tenant_id'),
         IndexedColumn('consent_id'),
+      ]),
+    ],
+  );
+
+  /// Statutory birth registrations (Module 34). Mirrors
+  /// `public.statutory_birth_records`.
+  static const Table _statutoryBirthRecords = Table(
+    LocalTables.statutoryBirthRecords,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('registration_number'),
+      Column.text('child_name'),
+      Column.text('sex'),
+      Column.text('birth_at'),
+      Column.text('place_of_birth'),
+      Column.text('delivery_type'),
+      Column.text('plurality'),
+      Column.integer('weight_grams'),
+      Column.text('mother_patient_id'),
+      Column.text('mother_name'),
+      Column.text('father_name'),
+      Column.text('informant_name'),
+      Column.text('attended_by'),
+      Column.text('status'),
+      Column.text('registration_at'),
+      Column.text('certificate_number'),
+      Column.text('certified_by'),
+      Column.text('certified_at'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('statutory_birth_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('birth_at'),
+      ]),
+      Index('statutory_birth_mother', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('mother_patient_id'),
+      ]),
+    ],
+  );
+
+  /// Statutory death registrations (Module 34). Mirrors
+  /// `public.statutory_death_records`.
+  static const Table _statutoryDeathRecords = Table(
+    LocalTables.statutoryDeathRecords,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('registration_number'),
+      Column.text('patient_id'),
+      Column.text('deceased_name'),
+      Column.text('sex'),
+      Column.integer('age_years'),
+      Column.text('death_at'),
+      Column.text('place_of_death'),
+      Column.text('cause_of_death_text'),
+      Column.text('icd10_code'),
+      Column.text('manner_of_death'),
+      Column.integer('is_medico_legal'),
+      Column.text('certifying_clinician'),
+      Column.text('informant_name'),
+      Column.text('informant_relationship'),
+      Column.text('status'),
+      Column.text('registration_at'),
+      Column.text('certificate_number'),
+      Column.text('certified_by'),
+      Column.text('certified_at'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('statutory_death_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('death_at'),
+      ]),
+      Index('statutory_death_coding', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('icd10_code'),
+      ]),
+    ],
+  );
+
+  /// Medico-legal case police intimations (Module 34). Mirrors
+  /// `public.statutory_mlc_intimations`.
+  static const Table _statutoryMlcIntimations = Table(
+    LocalTables.statutoryMlcIntimations,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('case_number'),
+      Column.text('patient_id'),
+      Column.text('subject_name'),
+      Column.text('case_type'),
+      Column.text('incident_at'),
+      Column.text('reported_at'),
+      Column.text('reporting_clinician'),
+      Column.text('police_station'),
+      Column.text('police_officer_name'),
+      Column.text('police_contact'),
+      Column.text('police_reference'),
+      Column.text('status'),
+      Column.text('intimated_at'),
+      Column.text('acknowledged_at'),
+      Column.text('closed_at'),
+      Column.text('closure_reason'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('statutory_mlc_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('reported_at'),
+      ]),
+      Index('statutory_mlc_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+      ]),
+    ],
+  );
+
+  /// Append-only statutory corrections (Module 34). Mirrors
+  /// `public.statutory_record_amendments`.
+  static const Table _statutoryRecordAmendments = Table(
+    LocalTables.statutoryRecordAmendments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('birth_record_id'),
+      Column.text('death_record_id'),
+      Column.text('mlc_intimation_id'),
+      Column.text('subject_field'),
+      Column.text('previous_value'),
+      Column.text('new_value'),
+      Column.text('reason'),
+      Column.text('amended_by'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('statutory_amendment_birth', <IndexedColumn>[
+        IndexedColumn('birth_record_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('statutory_amendment_death', <IndexedColumn>[
+        IndexedColumn('death_record_id'),
+        IndexedColumn('created_at'),
+      ]),
+      Index('statutory_amendment_mlc', <IndexedColumn>[
+        IndexedColumn('mlc_intimation_id'),
+        IndexedColumn('created_at'),
       ]),
     ],
   );

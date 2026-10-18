@@ -640,6 +640,27 @@ sync_rules:
         - select * from public.consent_templates where tenant_id = bucket.tenant_id
         - select * from public.consent_records where tenant_id = bucket.tenant_id
         - select * from public.document_vault_documents where tenant_id = bucket.tenant_id
+    # Module 34 (statutory records & birth/death registry): the birth and death
+    # registers, their cause-of-death coding and the medico-legal case log, with
+    # the append-only amendment stream, scoped by statutory.read so a ward can
+    # register a birth at the bedside offline and an auditor can read the
+    # register without being able to sign it.
+    statutory:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'statutory.read'
+      data:
+        - select * from public.statutory_birth_records where tenant_id = bucket.tenant_id
+        - select * from public.statutory_death_records where tenant_id = bucket.tenant_id
+        - select * from public.statutory_mlc_intimations where tenant_id = bucket.tenant_id
+        - select * from public.statutory_record_amendments where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

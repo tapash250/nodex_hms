@@ -79,6 +79,8 @@ import 'package:nodex_hms/domain/radiology/radiology_use_cases.dart';
 import 'package:nodex_hms/domain/roster/practitioner_repository.dart';
 import 'package:nodex_hms/domain/roster/practitioner_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
+import 'package:nodex_hms/domain/statutory/statutory_repository.dart';
+import 'package:nodex_hms/domain/statutory/statutory_use_cases.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
 import 'package:nodex_hms/domain/waste/waste_repository.dart';
@@ -1095,6 +1097,128 @@ final Provider<ReadConsentVaultUseCase> readConsentVaultUseCaseProvider =
         repository: ref.watch(documentsRepositoryProvider),
       ),
     );
+
+/// Statutory Records & Birth/Death Registry repository over the encrypted local
+/// projection.
+final Provider<StatutoryRepository> statutoryRepositoryProvider =
+    Provider<StatutoryRepository>(
+      (Ref ref) => DefaultStatutoryRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Raise a draft birth registration.
+final Provider<RaiseBirthUseCase> raiseBirthUseCaseProvider =
+    Provider<RaiseBirthUseCase>(
+      (Ref ref) =>
+          RaiseBirthUseCase(repository: ref.watch(statutoryRepositoryProvider)),
+    );
+
+/// Enter a draft birth in the register.
+final Provider<RegisterBirthUseCase> registerBirthUseCaseProvider =
+    Provider<RegisterBirthUseCase>(
+      (Ref ref) => RegisterBirthUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Issue a birth certificate.
+final Provider<CertifyBirthUseCase> certifyBirthUseCaseProvider =
+    Provider<CertifyBirthUseCase>(
+      (Ref ref) => CertifyBirthUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Raise a draft death registration.
+final Provider<RaiseDeathUseCase> raiseDeathUseCaseProvider =
+    Provider<RaiseDeathUseCase>(
+      (Ref ref) =>
+          RaiseDeathUseCase(repository: ref.watch(statutoryRepositoryProvider)),
+    );
+
+/// Record or correct the cause-of-death coding.
+final Provider<RecordDeathCodingUseCase> recordDeathCodingUseCaseProvider =
+    Provider<RecordDeathCodingUseCase>(
+      (Ref ref) => RecordDeathCodingUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Enter a draft death in the register.
+final Provider<RegisterDeathUseCase> registerDeathUseCaseProvider =
+    Provider<RegisterDeathUseCase>(
+      (Ref ref) => RegisterDeathUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Issue a death certificate.
+final Provider<CertifyDeathUseCase> certifyDeathUseCaseProvider =
+    Provider<CertifyDeathUseCase>(
+      (Ref ref) => CertifyDeathUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Log a medico-legal case.
+final Provider<RaiseMlcIntimationUseCase> raiseMlcIntimationUseCaseProvider =
+    Provider<RaiseMlcIntimationUseCase>(
+      (Ref ref) => RaiseMlcIntimationUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Record that the police have been told about a case.
+final Provider<IntimatePoliceUseCase> intimatePoliceUseCaseProvider =
+    Provider<IntimatePoliceUseCase>(
+      (Ref ref) => IntimatePoliceUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Record the police acknowledgement and reference.
+final Provider<AcknowledgeMlcUseCase> acknowledgeMlcUseCaseProvider =
+    Provider<AcknowledgeMlcUseCase>(
+      (Ref ref) => AcknowledgeMlcUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Close an acknowledged medico-legal case.
+final Provider<CloseMlcUseCase> closeMlcUseCaseProvider =
+    Provider<CloseMlcUseCase>(
+      (Ref ref) =>
+          CloseMlcUseCase(repository: ref.watch(statutoryRepositoryProvider)),
+    );
+
+/// Withdraw a live statutory record.
+final Provider<VoidStatutoryRecordUseCase> voidStatutoryRecordUseCaseProvider =
+    Provider<VoidStatutoryRecordUseCase>(
+      (Ref ref) => VoidStatutoryRecordUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Append a correction to a registered statutory fact.
+final Provider<AppendStatutoryAmendmentUseCase>
+appendStatutoryAmendmentUseCaseProvider =
+    Provider<AppendStatutoryAmendmentUseCase>(
+      (Ref ref) => AppendStatutoryAmendmentUseCase(
+        repository: ref.watch(statutoryRepositoryProvider),
+      ),
+    );
+
+/// Read the statutory registers and the amendment log.
+final Provider<ReadStatutoryRegistryUseCase>
+readStatutoryRegistryUseCaseProvider = Provider<ReadStatutoryRegistryUseCase>(
+  (Ref ref) => ReadStatutoryRegistryUseCase(
+    repository: ref.watch(statutoryRepositoryProvider),
+  ),
+);
 
 /// Institutional calendar repository over the encrypted local projection.
 final Provider<CalendarRepository> calendarRepositoryProvider =

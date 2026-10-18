@@ -640,6 +640,10 @@ void main() {
       'consent_records',
       'consent_templates',
       'document_vault_documents',
+      'statutory_birth_records',
+      'statutory_death_records',
+      'statutory_mlc_intimations',
+      'statutory_record_amendments',
     ];
 
     test('every writable table resolves to a registered policy', () {

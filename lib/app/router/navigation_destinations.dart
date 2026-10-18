@@ -292,6 +292,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Statutory records & birth/death registry (Module 34).
+  static const NavigationDestinationSpec statutory = NavigationDestinationSpec(
+    routePath: '/statutory',
+    label: 'Statutory registry',
+    icon: Icons.fact_check_outlined,
+    selectedIcon: Icons.fact_check,
+    requiredPermissions: <String>{NodexPermissions.statutoryRead},
+    moduleCode: 'M34',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -396,6 +407,7 @@ abstract final class NodexDestinations {
         waste,
         insurance,
         consents,
+        statutory,
         inventory,
         syncDiagnostics,
         aiGovernance,
