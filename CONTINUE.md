@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 70 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 71 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1751 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1819 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -582,14 +582,59 @@ the rollup and the run (each is a conclusion only the warehouse can observe) and
 warehouse — the catalogue, the runs and the figures — that reads the export log in
 the run sheet.
 
+**Master Settings & AI Configuration Hub (module 39)** closed Domain C, over
+`settings_profiles`, `branding_assets`, `department_hierarchies`, `billing_tariffs`
+and `ai_routing_profiles`. This is the hospital's own description of itself, and
+every clause of the scope is versioned rather than edited: a settings profile and a
+branding asset run `draft → active → superseded`, a department is archived, and a
+tariff and a routing profile run `draft → active → retired`. A past bill, a past
+letterhead and a past analytics figure all have to resolve to the configuration they
+were produced under, and a row that could be deleted could not do that. Hospital
+configuration is kept as versions per tenant and facility with exactly one profile
+active at a time, because two profiles in force are two timezones on one screen; the
+currency and its minor units live there so two screens cannot disagree about where
+the point goes, and the fiscal-year start, appointment slot and session idle window
+are read from it rather than hard-coded. The department tree is self-referencing and
+its depth and ancestry are derived on read (`departmentLevel`, `departmentAncestors`,
+`departmentPath`) rather than stored, because a stored level goes stale the first
+time a branch is re-parented; a cycle is refused at the database by a recursive
+guard, and a department with live branches under it is not closed. A tariff carries
+its amount in minor units and its tax in basis points, so a line item is exactly
+reproducible; a draft is approved into life and then retired, and two live tariffs
+for one code may not overlap in time because an invoice that has two answers is a
+dispute. A routing profile names a model from the Phase 1 governance registry (the
+foreign key is what stops a profile routing to a model the hospital never admitted),
+holds the warmth in basis points and the residency, and a profile whose data may
+leave the country must redact PHI — a CHECK constraint, not a review note, because
+it is the one clause here that protects patients rather than money. Nothing is
+computed twice: contrast is `brandingContrastRatio`, tax is `tariffTaxMinor`, a
+tariff is live only inside its own window, and a profile is usable only if it is
+routing and lawful. The security clause is met in three ways: the changes are
+restricted to `hospital_super_admin` by role before the permission is even weighed,
+the permissions (`settings.configure`, `settings.tariff`, `ai.configure`) carry
+`requires_online` so the offline permission subset never contains them, and every
+mutating use case demands a fresh `SecondFactorAssertion` whose identity, purpose and
+expiry are checked — the verifier is a port because a code this app generated and
+this app checked would be a code an attacker on this device could generate too, and
+`StubSecondFactorVerifier` stands in for the identity provider's own challenge until
+Supabase Auth MFA is wired. Reading stays offline, because a device needs the
+hospital's timezone, currency and branding to render a screen while the network is
+down, and none of those are secrets. All five tables are server-authoritative for one
+reason rather than five: every change to them is made online with a second factor,
+so there is no offline edit to reconcile. The `settings` PowerSync bucket scopes all
+five to `settings.read`, and `/master-settings` is a five-tab hub — configuration,
+branding, departments, tariffs and AI routing — whose every write asks for the code
+first and hands the use case the assertion, not the code.
+
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
-30, 32, 33, 34, 35, 36, 37 and 38 continue the sequence into Domain C. Next: continue
+30, 32, 33, 34, 35, 36, 37, 38 and 39 continue the sequence into Domain C. Next:
+continue
 with the remaining clinical modules one vertical slice at a time, following the
 same pattern (Postgres schema + RLS, PowerSync local schema, repository + test
 seam, `*.write`-gated use cases, screens, sync bucket, mutation-handler
 registration, conflict policy, tests, then format/analyze/test). The next unbuilt
-slice in Domain C sequence is **module 39** (modules 31, 32, 33, 34, 35, 36, 37 and
-38 are built; 39 remains). Hardware barcode scanning, thumbprint capture, PowerSync device
+slice is **module 31** (patient accounts & billing engine), the last outstanding
+slice of Domain C; module 41 then opens Domain D. Hardware barcode scanning, thumbprint capture, PowerSync device
 verification and clinical deployment validation also remain across all slices.
 
 ---
@@ -604,10 +649,20 @@ Deferred deliberately, not overlooked.
   it still falls back to the debug key when absent so CI verification builds
   pass. Supplying the keystore + passwords (see the example file) is the step left
   before distributing anything. No Android toolchain here to build-verify it.
+- **Second-factor step-up is a port with a stub behind it.** The Module 39 master
+  settings use cases demand a fresh `SecondFactorAssertion`, and the gate itself is
+  real and tested (identity, purpose and expiry are all checked, and the signature
+  of an assertion this app generated is refused by the domain, not by the stub).
+  What stands behind the port is `StubSecondFactorVerifier`, which accepts a
+  well-formed six-digit code. The real factor belongs to the identity provider:
+  Supabase Auth MFA (`auth.mfa.enroll` / `challenge` / `verify`, and the
+  `aal2` assurance level) is the implementation to wire, at which point the stub is
+  replaced rather than extended. Until then the hub is usable in development and
+  the step-up is honest about being a placeholder.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1751 tests).
+  mutation-verified (1819 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

@@ -16,6 +16,7 @@ import 'package:nodex_hms/ai/orchestrator/ai_orchestrator.dart';
 import 'package:nodex_hms/core/config/nodex_environment.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
 import 'package:nodex_hms/core/security/database_key_manager.dart';
+import 'package:nodex_hms/core/security/second_factor.dart';
 import 'package:nodex_hms/core/security/secure_key_store.dart';
 import 'package:nodex_hms/core/storage/storage_service.dart';
 import 'package:nodex_hms/data/local/local_database.dart';
@@ -85,6 +86,8 @@ import 'package:nodex_hms/domain/radiology/radiology_use_cases.dart';
 import 'package:nodex_hms/domain/roster/practitioner_repository.dart';
 import 'package:nodex_hms/domain/roster/practitioner_use_cases.dart';
 import 'package:nodex_hms/domain/session/session_repository.dart';
+import 'package:nodex_hms/domain/settings/settings_repository.dart';
+import 'package:nodex_hms/domain/settings/settings_use_cases.dart';
 import 'package:nodex_hms/domain/statutory/statutory_repository.dart';
 import 'package:nodex_hms/domain/statutory/statutory_use_cases.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
@@ -1681,6 +1684,131 @@ readAnalyticsWarehouseUseCaseProvider = Provider<ReadAnalyticsWarehouseUseCase>(
     repository: ref.watch(analyticsRepositoryProvider),
   ),
 );
+
+/// The second-factor verifier the master settings hub steps up with.
+///
+/// The stub stands in for the identity provider's own multi-factor challenge,
+/// which is where a real code belongs: a code this app generated and this app
+/// checked would be a code an attacker on this device could generate too.
+final Provider<SecondFactorVerifier> secondFactorVerifierProvider =
+    Provider<SecondFactorVerifier>(
+      (Ref ref) => const StubSecondFactorVerifier(),
+    );
+
+/// Master settings repository over the encrypted local projection.
+final Provider<SettingsRepository> settingsRepositoryProvider =
+    Provider<SettingsRepository>(
+      (Ref ref) => DefaultSettingsRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Write a new draft hospital configuration.
+final Provider<DraftSettingsProfileUseCase>
+draftSettingsProfileUseCaseProvider = Provider<DraftSettingsProfileUseCase>(
+  (Ref ref) => DraftSettingsProfileUseCase(
+    repository: ref.watch(settingsRepositoryProvider),
+  ),
+);
+
+/// Bring a hospital configuration into force.
+final Provider<ActivateSettingsProfileUseCase>
+activateSettingsProfileUseCaseProvider =
+    Provider<ActivateSettingsProfileUseCase>(
+      (Ref ref) => ActivateSettingsProfileUseCase(
+        repository: ref.watch(settingsRepositoryProvider),
+      ),
+    );
+
+/// Register a branding asset, awaiting publication.
+final Provider<DraftBrandingAssetUseCase> draftBrandingAssetUseCaseProvider =
+    Provider<DraftBrandingAssetUseCase>(
+      (Ref ref) => DraftBrandingAssetUseCase(
+        repository: ref.watch(settingsRepositoryProvider),
+      ),
+    );
+
+/// Publish a branding asset.
+final Provider<PublishBrandingAssetUseCase>
+publishBrandingAssetUseCaseProvider = Provider<PublishBrandingAssetUseCase>(
+  (Ref ref) => PublishBrandingAssetUseCase(
+    repository: ref.watch(settingsRepositoryProvider),
+  ),
+);
+
+/// Add a department to the tree.
+final Provider<DefineDepartmentUseCase> defineDepartmentUseCaseProvider =
+    Provider<DefineDepartmentUseCase>(
+      (Ref ref) => DefineDepartmentUseCase(
+        repository: ref.watch(settingsRepositoryProvider),
+      ),
+    );
+
+/// Close a department.
+final Provider<CloseDepartmentUseCase> closeDepartmentUseCaseProvider =
+    Provider<CloseDepartmentUseCase>(
+      (Ref ref) => CloseDepartmentUseCase(
+        repository: ref.watch(settingsRepositoryProvider),
+      ),
+    );
+
+/// Price a service into a draft tariff.
+final Provider<SetTariffUseCase> setTariffUseCaseProvider =
+    Provider<SetTariffUseCase>(
+      (Ref ref) =>
+          SetTariffUseCase(repository: ref.watch(settingsRepositoryProvider)),
+    );
+
+/// Approve a tariff into life.
+final Provider<ApproveTariffUseCase> approveTariffUseCaseProvider =
+    Provider<ApproveTariffUseCase>(
+      (Ref ref) => ApproveTariffUseCase(
+        repository: ref.watch(settingsRepositoryProvider),
+      ),
+    );
+
+/// Retire a tariff.
+final Provider<RetireTariffUseCase> retireTariffUseCaseProvider =
+    Provider<RetireTariffUseCase>(
+      (Ref ref) => RetireTariffUseCase(
+        repository: ref.watch(settingsRepositoryProvider),
+      ),
+    );
+
+/// Propose an AI routing profile.
+final Provider<DefineRoutingProfileUseCase>
+defineRoutingProfileUseCaseProvider = Provider<DefineRoutingProfileUseCase>(
+  (Ref ref) => DefineRoutingProfileUseCase(
+    repository: ref.watch(settingsRepositoryProvider),
+  ),
+);
+
+/// Put an AI routing profile to work.
+final Provider<ActivateRoutingProfileUseCase>
+activateRoutingProfileUseCaseProvider = Provider<ActivateRoutingProfileUseCase>(
+  (Ref ref) => ActivateRoutingProfileUseCase(
+    repository: ref.watch(settingsRepositoryProvider),
+  ),
+);
+
+/// Retire an AI routing profile.
+final Provider<RetireRoutingProfileUseCase>
+retireRoutingProfileUseCaseProvider = Provider<RetireRoutingProfileUseCase>(
+  (Ref ref) => RetireRoutingProfileUseCase(
+    repository: ref.watch(settingsRepositoryProvider),
+  ),
+);
+
+/// Read the master settings hub and its derived markers.
+final Provider<ReadMasterSettingsUseCase> readMasterSettingsUseCaseProvider =
+    Provider<ReadMasterSettingsUseCase>(
+      (Ref ref) => ReadMasterSettingsUseCase(
+        repository: ref.watch(settingsRepositoryProvider),
+      ),
+    );
 
 /// Institutional calendar repository over the encrypted local projection.
 final Provider<CalendarRepository> calendarRepositoryProvider =

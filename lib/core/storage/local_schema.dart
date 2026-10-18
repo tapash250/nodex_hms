@@ -145,6 +145,21 @@ abstract final class LocalTables {
   /// Append-only export log (Module 38).
   static const String analyticsExports = 'analytics_exports';
 
+  /// Hospital configuration, versioned (Module 39).
+  static const String settingsProfiles = 'settings_profiles';
+
+  /// Branding assets (Module 39).
+  static const String brandingAssets = 'branding_assets';
+
+  /// The organisational tree (Module 39).
+  static const String departmentHierarchies = 'department_hierarchies';
+
+  /// Billing tariff masters (Module 39).
+  static const String billingTariffs = 'billing_tariffs';
+
+  /// AI routing profiles (Module 39).
+  static const String aiRoutingProfiles = 'ai_routing_profiles';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -447,6 +462,11 @@ abstract final class NodexLocalSchema {
     _analyticsRollups,
     _analyticsReportRuns,
     _analyticsExports,
+    _settingsProfiles,
+    _brandingAssets,
+    _departmentHierarchies,
+    _billingTariffs,
+    _aiRoutingProfiles,
     _wards,
     _appUsers,
     _roles,
@@ -1960,6 +1980,174 @@ abstract final class NodexLocalSchema {
         IndexedColumn('tenant_id'),
         IndexedColumn('run_id'),
         IndexedColumn('exported_at'),
+      ]),
+    ],
+  );
+
+  /// Hospital configuration, versioned (Module 39). Mirrors
+  /// `public.settings_profiles`.
+  static const Table _settingsProfiles = Table(
+    LocalTables.settingsProfiles,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.integer('version'),
+      Column.text('status'),
+      Column.text('hospital_name'),
+      Column.text('timezone'),
+      Column.text('default_locale'),
+      Column.text('date_format'),
+      Column.text('currency_code'),
+      Column.integer('currency_minor_units'),
+      Column.integer('fiscal_year_start_month'),
+      Column.integer('appointment_slot_minutes'),
+      Column.integer('session_idle_minutes'),
+      Column.integer('require_two_factor'),
+      Column.text('activated_at'),
+      Column.text('activated_by'),
+      Column.text('superseded_at'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('settings_profile_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('version'),
+      ]),
+    ],
+  );
+
+  /// Branding assets (Module 39). Mirrors `public.branding_assets`.
+  static const Table _brandingAssets = Table(
+    LocalTables.brandingAssets,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('asset_kind'),
+      Column.text('label'),
+      Column.text('storage_path'),
+      Column.text('checksum'),
+      Column.text('mime_type'),
+      Column.integer('byte_size'),
+      Column.text('primary_color'),
+      Column.text('secondary_color'),
+      Column.text('status'),
+      Column.text('activated_at'),
+      Column.text('activated_by'),
+      Column.text('superseded_at'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('branding_asset_kind', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('asset_kind'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// The organisational tree (Module 39). Mirrors
+  /// `public.department_hierarchies`.
+  static const Table _departmentHierarchies = Table(
+    LocalTables.departmentHierarchies,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('parent_id'),
+      Column.text('code'),
+      Column.text('name'),
+      Column.text('kind'),
+      Column.text('cost_centre'),
+      Column.integer('is_billable'),
+      Column.integer('sort_order'),
+      Column.text('status'),
+      Column.text('archived_at'),
+      Column.text('archive_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('department_hierarchy_parent', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('parent_id'),
+        IndexedColumn('sort_order'),
+      ]),
+    ],
+  );
+
+  /// Billing tariff masters (Module 39). Mirrors `public.billing_tariffs`.
+  static const Table _billingTariffs = Table(
+    LocalTables.billingTariffs,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('department_id'),
+      Column.text('code'),
+      Column.text('service_name'),
+      Column.text('category'),
+      Column.text('currency_code'),
+      Column.integer('amount_minor'),
+      Column.integer('tax_rate_bps'),
+      Column.integer('insurance_capable'),
+      Column.text('status'),
+      Column.text('effective_from'),
+      Column.text('effective_to'),
+      Column.text('approved_at'),
+      Column.text('approved_by'),
+      Column.text('retired_at'),
+      Column.text('retire_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('billing_tariff_code', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('code'),
+        IndexedColumn('status'),
+      ]),
+      Index('billing_tariff_department', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('department_id'),
+        IndexedColumn('effective_from'),
+      ]),
+    ],
+  );
+
+  /// AI routing profiles (Module 39). Mirrors `public.ai_routing_profiles`.
+  static const Table _aiRoutingProfiles = Table(
+    LocalTables.aiRoutingProfiles,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('profile_code'),
+      Column.text('display_name'),
+      Column.text('task_kind'),
+      Column.text('primary_model_key'),
+      Column.text('fallback_model_key'),
+      Column.integer('temperature_bps'),
+      Column.integer('max_output_tokens'),
+      Column.text('data_residency'),
+      Column.integer('redact_phi'),
+      Column.text('status'),
+      Column.text('activated_at'),
+      Column.text('activated_by'),
+      Column.text('retired_at'),
+      Column.text('retire_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ai_routing_profile_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('task_kind'),
       ]),
     ],
   );

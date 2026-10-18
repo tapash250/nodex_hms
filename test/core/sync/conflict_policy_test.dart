@@ -658,6 +658,11 @@ void main() {
       'analytics_rollups',
       'analytics_report_runs',
       'analytics_exports',
+      'settings_profiles',
+      'branding_assets',
+      'department_hierarchies',
+      'billing_tariffs',
+      'ai_routing_profiles',
     ];
 
     test('every writable table resolves to a registered policy', () {

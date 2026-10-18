@@ -207,6 +207,18 @@ abstract final class NodexPermissions {
   /// Take a finished report out of the hospital.
   static const String analyticsExport = 'analytics.export';
 
+  /// View master settings: configuration, branding, the tree, tariffs and routing.
+  static const String settingsRead = 'settings.read';
+
+  /// Change hospital configuration and branding, and maintain the tree.
+  static const String settingsConfigure = 'settings.configure';
+
+  /// Draft, approve and retire billing tariffs.
+  static const String settingsTariff = 'settings.tariff';
+
+  /// Draft, activate and retire AI routing profiles.
+  static const String aiConfigure = 'ai.configure';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

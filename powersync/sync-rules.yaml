@@ -742,6 +742,29 @@ sync_rules:
         - select * from public.analytics_rollups where tenant_id = bucket.tenant_id
         - select * from public.analytics_report_runs where tenant_id = bucket.tenant_id
         - select * from public.analytics_exports where tenant_id = bucket.tenant_id
+    # Module 39 (master settings & AI configuration hub): the hospital's own
+    # description of itself. Scoped by `settings.read` rather than by the
+    # configuration permissions, because a device needs its timezone, currency
+    # and branding to render a screen while the network is down, and none of
+    # those are secrets. Changing any of it needs a network and a second factor,
+    # so no device can author a divergent copy offline.
+    settings:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'settings.read'
+      data:
+        - select * from public.settings_profiles where tenant_id = bucket.tenant_id
+        - select * from public.branding_assets where tenant_id = bucket.tenant_id
+        - select * from public.department_hierarchies where tenant_id = bucket.tenant_id
+        - select * from public.billing_tariffs where tenant_id = bucket.tenant_id
+        - select * from public.ai_routing_profiles where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

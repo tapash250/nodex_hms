@@ -351,6 +351,21 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Master settings & AI configuration hub (Module 39).
+  ///
+  /// Reading the hub needs `settings.read`; every change inside it needs the
+  /// hospital-administrator role, a network and a second factor.
+  static const NavigationDestinationSpec masterSettings =
+      NavigationDestinationSpec(
+        routePath: '/master-settings',
+        label: 'Master settings',
+        icon: Icons.tune_outlined,
+        selectedIcon: Icons.tune,
+        requiredPermissions: <String>{NodexPermissions.settingsRead},
+        moduleCode: 'M39',
+        isPrimary: false,
+      );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -460,6 +475,7 @@ abstract final class NodexDestinations {
         feedback,
         visitor,
         analytics,
+        masterSettings,
         inventory,
         syncDiagnostics,
         aiGovernance,

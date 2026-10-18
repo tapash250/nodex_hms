@@ -393,6 +393,21 @@ abstract final class ConflictPolicyRegistry {
   /// An append-only export (Module 38).
   static const String analyticsExport = 'analytics_export';
 
+  /// A versioned hospital settings profile (Module 39).
+  static const String settingsProfile = 'settings_profile';
+
+  /// A branding asset (Module 39).
+  static const String brandingAsset = 'branding_asset';
+
+  /// An entry in the departmental tree (Module 39).
+  static const String departmentTree = 'department_tree';
+
+  /// A billing tariff (Module 39).
+  static const String billingTariff = 'billing_tariff';
+
+  /// An AI routing profile (Module 39).
+  static const String aiRoutingProfile = 'ai_routing_profile';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -1205,6 +1220,56 @@ abstract final class ConflictPolicyRegistry {
           '"who has a copy of the balance sheet" is answered by the records, '
           'not by the last writer winning.',
     ),
+    // Module 39's five resources are all server-authoritative, and for one
+    // reason rather than five: every change to them is made online with a
+    // second factor, so there is no offline edit to reconcile. A device cannot
+    // hold a divergent currency, tree or price, because it was never allowed to
+    // author one.
+    settingsProfile: ConflictPolicyEntry(
+      resourceType: settingsProfile,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'The configuration in force is what every figure and every timestamp '
+          'on every device means. A device that edited its own copy would write '
+          'money and time differently from the rest of the hospital, so the '
+          'server owns the profile and a new version supersedes the old one.',
+    ),
+    brandingAsset: ConflictPolicyEntry(
+      resourceType: brandingAsset,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'Branding is a published file plus the two colours a theme is built '
+          'from, and both are chosen at a desk with a second factor. A device '
+          'holding its own colours would render a screen nobody signed off, so '
+          'the server owns the asset.',
+    ),
+    departmentTree: ConflictPolicyEntry(
+      resourceType: departmentTree,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'The department tree is one structure: ancestry, and therefore every '
+          'cost centre and every rollup by department, is read from it. Two '
+          'devices each editing a branch could parent each other and make every '
+          'read of the tree non-terminating, so the server owns the tree.',
+    ),
+    billingTariff: ConflictPolicyEntry(
+      resourceType: billingTariff,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A tariff is a price an approver put their name to. A device holding '
+          'its own price would bill a patient from a rule nobody approved, so '
+          'the server owns the tariff and an approved one is retired rather '
+          'than rewritten.',
+    ),
+    aiRoutingProfile: ConflictPolicyEntry(
+      resourceType: aiRoutingProfile,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A routing profile decides which model sees a note and whether that '
+          'payload is redacted before it leaves the country. That decision is '
+          'not one a device may make for itself, so the server owns the profile '
+          'and the client reconciles.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1566,6 +1631,11 @@ abstract final class ConflictPolicyRegistry {
     'analytics_rollups': analyticsRollup,
     'analytics_report_runs': analyticsReportRun,
     'analytics_exports': analyticsExport,
+    'settings_profiles': settingsProfile,
+    'branding_assets': brandingAsset,
+    'department_hierarchies': departmentTree,
+    'billing_tariffs': billingTariff,
+    'ai_routing_profiles': aiRoutingProfile,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

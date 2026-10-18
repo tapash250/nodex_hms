@@ -106,7 +106,12 @@ the front door, and the `analytics` bucket (Module 38, the report catalogue, the
 materialised rolling rollups, the runs and the append-only export log, scoped by
 `analytics.read` so a ward clerk can read the board's figures without being able to
 materialise one or take the balance sheet out of the building) carries the
-warehouse. The
+warehouse, and the `settings` bucket (Module 39, the versioned hospital
+configuration, the branding assets, the self-referencing department tree, the
+tariff masters and the AI routing profiles, scoped by `settings.read` so a device
+can render money and time the way the hospital writes them even while the network
+is down, while every change to them needs a network and a second factor) carries
+the hospital's own description of itself. The
 `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on

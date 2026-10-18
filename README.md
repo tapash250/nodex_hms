@@ -32,12 +32,12 @@ full application shell and session lifecycle.
 | Conflict policies | Per-entity deterministic strategies, registered and tested |
 | AI subsystem | Orchestrator, Gateway, model registry, deterministic routing, circuit breaker — with stub adapters |
 | Application shell | Role-aware GoRouter, Material 3 adaptive navigation, session lifecycle |
-| Clinical modules (35) | Appointments, Beds, ER/triage, ICU, Nurse ward station, Patients/MPI, Encounters, Laboratory, Radiology, Operation theatre, Physiotherapy, Nutrition, Telemedicine, Discharge, Floor map, Doctor & specialist directory, Clinical departments, Hospital contacts directory, Institutional calendar, Allied staff & workforce, Human resources & payroll, Prescriptions/pharmacy, Blood bank, Inventory, Billing, Fleet & ambulance dispatch, Biomedical assets & calibration, Bio-medical waste, Health insurance & TPA, Documents & biometric e-consent vault, Statutory records & birth/death registry, Quality & NABH compliance hub, Patient feedback & grievance redressal, Visitor & pass security, Reports & operational analytics |
+| Clinical modules (36) | Appointments, Beds, ER/triage, ICU, Nurse ward station, Patients/MPI, Encounters, Laboratory, Radiology, Operation theatre, Physiotherapy, Nutrition, Telemedicine, Discharge, Floor map, Doctor & specialist directory, Clinical departments, Hospital contacts directory, Institutional calendar, Allied staff & workforce, Human resources & payroll, Prescriptions/pharmacy, Blood bank, Inventory, Billing, Fleet & ambulance dispatch, Biomedical assets & calibration, Bio-medical waste, Health insurance & TPA, Documents & biometric e-consent vault, Statutory records & birth/death registry, Quality & NABH compliance hub, Patient feedback & grievance redressal, Visitor & pass security, Reports & operational analytics, Master settings & AI configuration |
 | Mutation path | Edge `mutation-handler` with per-table validators, idempotency ledger, SHA-256 `payload_digest`, device provenance, audit-before-apply |
 | Object storage | Three private tenant-scoped buckets with membership-derived RLS, checksum-on-upload, 60-second signed URLs, and a client `StorageService` wired to radiology, telemedicine and the consent vault |
-| Verification | 1751 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
+| Verification | 1819 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
 
-Not yet built: the remaining ~19 clinical modules, the PowerSync instance
+Not yet built: the remaining ~18 clinical modules, the PowerSync instance
 itself (rules are written), real AI provider adapters, the on-device vision and
 speech pipelines, WebRTC telehealth, and thermal printing.
 
