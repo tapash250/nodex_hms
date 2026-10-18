@@ -38,6 +38,7 @@ import 'package:nodex_hms/features/er/er_list_screen.dart';
 import 'package:nodex_hms/features/er/er_visit_detail_screen.dart';
 import 'package:nodex_hms/features/er/triage_detail_screen.dart';
 import 'package:nodex_hms/features/er/triage_intake_screen.dart';
+import 'package:nodex_hms/features/feedback/feedback_grievance_screen.dart';
 import 'package:nodex_hms/features/fleet/fleet_dispatch_screen.dart';
 import 'package:nodex_hms/features/floormap/floor_map_screen.dart';
 import 'package:nodex_hms/features/home/home_screen.dart';
@@ -344,6 +345,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.quality.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const QualityHubScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.feedback.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const FeedbackGrievanceScreen(),
           ),
           GoRoute(
             path: NodexDestinations.staffDirectory.routePath,

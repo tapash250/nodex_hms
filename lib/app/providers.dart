@@ -48,6 +48,8 @@ import 'package:nodex_hms/domain/encounters/problem_list_repository.dart';
 import 'package:nodex_hms/domain/encounters/problem_list_use_cases.dart';
 import 'package:nodex_hms/domain/er/er_repository.dart';
 import 'package:nodex_hms/domain/er/er_use_cases.dart';
+import 'package:nodex_hms/domain/feedback/feedback_repository.dart';
+import 'package:nodex_hms/domain/feedback/feedback_use_cases.dart';
 import 'package:nodex_hms/domain/fleet/fleet_repository.dart';
 import 'package:nodex_hms/domain/fleet/fleet_use_cases.dart';
 import 'package:nodex_hms/domain/floormap/floormap_repository.dart';
@@ -1338,6 +1340,120 @@ final Provider<ReadQualityHubUseCase> readQualityHubUseCaseProvider =
     Provider<ReadQualityHubUseCase>(
       (Ref ref) => ReadQualityHubUseCase(
         repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Patient feedback and grievance repository over the encrypted local projection.
+final Provider<FeedbackRepository> feedbackRepositoryProvider =
+    Provider<FeedbackRepository>(
+      (Ref ref) => DefaultFeedbackRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Capture a Net Promoter Score response.
+final Provider<RecordSurveyUseCase> recordSurveyUseCaseProvider =
+    Provider<RecordSurveyUseCase>(
+      (Ref ref) => RecordSurveyUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Record what was done about a detractor.
+final Provider<ActionSurveyUseCase> actionSurveyUseCaseProvider =
+    Provider<ActionSurveyUseCase>(
+      (Ref ref) => ActionSurveyUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Withdraw a survey response.
+final Provider<VoidSurveyUseCase> voidSurveyUseCaseProvider =
+    Provider<VoidSurveyUseCase>(
+      (Ref ref) =>
+          VoidSurveyUseCase(repository: ref.watch(feedbackRepositoryProvider)),
+    );
+
+/// Log a grievance at the desk that took it.
+final Provider<LogComplaintUseCase> logComplaintUseCaseProvider =
+    Provider<LogComplaintUseCase>(
+      (Ref ref) => LogComplaintUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Acknowledge a grievance.
+final Provider<AcknowledgeComplaintUseCase>
+acknowledgeComplaintUseCaseProvider = Provider<AcknowledgeComplaintUseCase>(
+  (Ref ref) => AcknowledgeComplaintUseCase(
+    repository: ref.watch(feedbackRepositoryProvider),
+  ),
+);
+
+/// Route or re-route a grievance.
+final Provider<RouteComplaintUseCase> routeComplaintUseCaseProvider =
+    Provider<RouteComplaintUseCase>(
+      (Ref ref) => RouteComplaintUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Escalate a grievance on the record.
+final Provider<EscalateComplaintUseCase> escalateComplaintUseCaseProvider =
+    Provider<EscalateComplaintUseCase>(
+      (Ref ref) => EscalateComplaintUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Open an investigation into a grievance.
+final Provider<InvestigateComplaintUseCase>
+investigateComplaintUseCaseProvider = Provider<InvestigateComplaintUseCase>(
+  (Ref ref) => InvestigateComplaintUseCase(
+    repository: ref.watch(feedbackRepositoryProvider),
+  ),
+);
+
+/// Answer a grievance.
+final Provider<ResolveComplaintUseCase> resolveComplaintUseCaseProvider =
+    Provider<ResolveComplaintUseCase>(
+      (Ref ref) => ResolveComplaintUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Close a resolved grievance.
+final Provider<CloseComplaintUseCase> closeComplaintUseCaseProvider =
+    Provider<CloseComplaintUseCase>(
+      (Ref ref) => CloseComplaintUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Dismiss a grievance that has no substance.
+final Provider<DismissComplaintUseCase> dismissComplaintUseCaseProvider =
+    Provider<DismissComplaintUseCase>(
+      (Ref ref) => DismissComplaintUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Withdraw a grievance filed in error.
+final Provider<VoidComplaintUseCase> voidComplaintUseCaseProvider =
+    Provider<VoidComplaintUseCase>(
+      (Ref ref) => VoidComplaintUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Read the feedback registers and their derived markers.
+final Provider<ReadFeedbackHubUseCase> readFeedbackHubUseCaseProvider =
+    Provider<ReadFeedbackHubUseCase>(
+      (Ref ref) => ReadFeedbackHubUseCase(
+        repository: ref.watch(feedbackRepositoryProvider),
       ),
     );
 

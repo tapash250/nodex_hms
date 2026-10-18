@@ -111,6 +111,15 @@ abstract final class LocalTables {
   /// Measured clinical indicators (Module 35).
   static const String clinicalIndicators = 'clinical_indicators';
 
+  /// Net Promoter Score survey responses (Module 36).
+  static const String feedbackSurveys = 'feedback_surveys';
+
+  /// Grievances (Module 36).
+  static const String feedbackComplaints = 'feedback_complaints';
+
+  /// Append-only grievance routing history (Module 36).
+  static const String complaintRoutingEvents = 'complaint_routing_events';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -402,6 +411,9 @@ abstract final class NodexLocalSchema {
     _complianceAudits,
     _incidentReports,
     _clinicalIndicators,
+    _feedbackSurveys,
+    _feedbackComplaints,
+    _complaintRoutingEvents,
     _wards,
     _appUsers,
     _roles,
@@ -1518,6 +1530,128 @@ abstract final class NodexLocalSchema {
         IndexedColumn('tenant_id'),
         IndexedColumn('category'),
         IndexedColumn('code'),
+      ]),
+    ],
+  );
+
+  /// Net Promoter Score survey responses (Module 36). Mirrors
+  /// `public.feedback_surveys`.
+  static const Table _feedbackSurveys = Table(
+    LocalTables.feedbackSurveys,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('survey_number'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('touchpoint'),
+      Column.integer('nps_score'),
+      Column.text('comment'),
+      Column.text('recorded_at'),
+      Column.text('status'),
+      Column.text('action_note'),
+      Column.text('actioned_by'),
+      Column.text('actioned_at'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('recorded_by'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('feedback_survey_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('recorded_at'),
+      ]),
+      Index('feedback_survey_touchpoint', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('touchpoint'),
+        IndexedColumn('nps_score'),
+      ]),
+    ],
+  );
+
+  /// Grievances (Module 36). Mirrors `public.feedback_complaints`.
+  static const Table _feedbackComplaints = Table(
+    LocalTables.feedbackComplaints,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('complaint_number'),
+      Column.text('patient_id'),
+      Column.text('complainant_name'),
+      Column.text('complainant_contact'),
+      Column.text('channel'),
+      Column.text('category'),
+      Column.text('severity'),
+      Column.text('description'),
+      Column.text('received_at'),
+      Column.text('routed_department_id'),
+      Column.text('routed_to'),
+      Column.text('routed_at'),
+      Column.text('status'),
+      Column.text('acknowledged_at'),
+      Column.text('investigation_started_at'),
+      Column.text('resolved_at'),
+      Column.text('resolved_by'),
+      Column.text('resolution_summary'),
+      Column.text('closed_at'),
+      Column.text('closure_note'),
+      Column.text('dismissed_at'),
+      Column.text('dismiss_reason'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('logged_by'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('feedback_complaint_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('received_at'),
+      ]),
+      Index('feedback_complaint_department', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('routed_department_id'),
+        IndexedColumn('status'),
+      ]),
+      Index('feedback_complaint_severity', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('severity'),
+        IndexedColumn('status'),
+      ]),
+      Index('feedback_complaint_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+      ]),
+    ],
+  );
+
+  /// Append-only grievance routing history (Module 36). Mirrors
+  /// `public.complaint_routing_events`.
+  static const Table _complaintRoutingEvents = Table(
+    LocalTables.complaintRoutingEvents,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('complaint_id'),
+      Column.text('event_type'),
+      Column.text('from_department_id'),
+      Column.text('to_department_id'),
+      Column.text('assigned_to'),
+      Column.text('note'),
+      Column.text('occurred_at'),
+      Column.text('recorded_by'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('complaint_routing_event_complaint', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('complaint_id'),
+        IndexedColumn('occurred_at'),
       ]),
     ],
   );

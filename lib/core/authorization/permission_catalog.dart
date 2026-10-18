@@ -174,6 +174,15 @@ abstract final class NodexPermissions {
   /// Record, publish and retract a measured clinical indicator.
   static const String qualityIndicator = 'quality.indicator';
 
+  /// View Net Promoter Score surveys, grievances and their routing history.
+  static const String feedbackRead = 'feedback.read';
+
+  /// Capture a survey response and log a grievance.
+  static const String feedbackRecord = 'feedback.record';
+
+  /// Acknowledge, route, investigate, resolve, dismiss and close a grievance.
+  static const String feedbackResolve = 'feedback.resolve';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

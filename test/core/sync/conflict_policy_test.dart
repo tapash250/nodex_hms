@@ -647,6 +647,9 @@ void main() {
       'compliance_audits',
       'incident_reports',
       'clinical_indicators',
+      'feedback_surveys',
+      'feedback_complaints',
+      'complaint_routing_events',
     ];
 
     test('every writable table resolves to a registered policy', () {

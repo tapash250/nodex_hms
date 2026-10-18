@@ -360,6 +360,15 @@ abstract final class ConflictPolicyRegistry {
   /// A measured clinical indicator (Module 35).
   static const String clinicalIndicator = 'clinical_indicator';
 
+  /// A Net Promoter Score survey response (Module 36).
+  static const String feedbackSurvey = 'feedback_survey';
+
+  /// A grievance (Module 36).
+  static const String feedbackComplaint = 'feedback_complaint';
+
+  /// An append-only grievance routing event (Module 36).
+  static const String complaintRoutingEvent = 'complaint_routing_event';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -1073,6 +1082,31 @@ abstract final class ConflictPolicyRegistry {
           'its value is derived from the counts it carries. The server owns the '
           'reading so two devices cannot publish two figures for one period.',
     ),
+    feedbackSurvey: ConflictPolicyEntry(
+      resourceType: feedbackSurvey,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A survey response is one answer from one patient, and the net '
+          'promoter score is derived from the set of them. A duplicated response '
+          'would move the headline number, so the server owns the row.',
+    ),
+    feedbackComplaint: ConflictPolicyEntry(
+      resourceType: feedbackComplaint,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A grievance is one file with one owner and one answer, and its '
+          'deadlines are measured from the moment it was received. The server '
+          'owns the row so two desks cannot both resolve the same complaint.',
+    ),
+    complaintRoutingEvent: ConflictPolicyEntry(
+      resourceType: complaintRoutingEvent,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A routing event is a thing that happened: the case went to that '
+          'department, on that day, for that reason. Appending both versions '
+          'keeps the history legible, and a reader answers "who had this and '
+          'when" from the log rather than from an overwritten column.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1423,6 +1457,9 @@ abstract final class ConflictPolicyRegistry {
     'compliance_audits': complianceAudit,
     'incident_reports': incidentReport,
     'clinical_indicators': clinicalIndicator,
+    'feedback_surveys': feedbackSurvey,
+    'feedback_complaints': feedbackComplaint,
+    'complaint_routing_events': complaintRoutingEvent,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

@@ -314,6 +314,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Patient feedback & grievances (Module 36).
+  static const NavigationDestinationSpec feedback = NavigationDestinationSpec(
+    routePath: '/feedback',
+    label: 'Feedback',
+    icon: Icons.forum_outlined,
+    selectedIcon: Icons.forum,
+    requiredPermissions: <String>{NodexPermissions.feedbackRead},
+    moduleCode: 'M36',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -420,6 +431,7 @@ abstract final class NodexDestinations {
         consents,
         statutory,
         quality,
+        feedback,
         inventory,
         syncDiagnostics,
         aiGovernance,

@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 67 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 68 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1437 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1527 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -479,14 +479,46 @@ and a published indicator are single facts the server owns, and the `/quality`
 screen is a three-tab board — audits, incidents, indicators — that marks the
 overdue and below-target rows from the row and the clock.
 
+**Patient Feedback & Grievance Redressal (module 36)** followed, over
+`feedback_surveys`, `feedback_complaints` and `complaint_routing_events`. This is
+the patient's voice: what the hospital hears about itself after the care is
+delivered. It is distinct from the clinical record (an encounter records what was
+done; a survey records how it was received) and from the quality hub (an incident
+is a harm the hospital found in itself; a complaint is a harm the patient brought
+to it). A survey response is `recorded → actioned | voided`, with the band a score
+falls in and the net promoter score itself derived from the responses, so the
+headline number cannot disagree with the answers behind it. A grievance runs
+`logged → acknowledged → investigating → resolved → closed`, with `dismissed`
+available from any live stage and `voided` only from a freshly logged one, because
+an old grievance is dismissed on its merits rather than erased. What a grievance
+records freezes once it is logged, since the acknowledgement and resolution
+deadlines are measured from that moment and from the severity, while where it is
+routed stays editable: re-routing a grievance to the right department is the point
+of the registry, and each move is appended to `complaint_routing_events` so the
+answer to "who had this and when" is a query over the log rather than an
+overwritten column. The deadlines are derived too: 24 hours to acknowledge and,
+by severity, three days to resolve a high-severity grievance, seven a medium one
+and fourteen a low one. Permissions follow the counter and the clinician:
+`feedback.read` is standard and offline, `feedback.record` is the front desk's
+tier and `feedback.resolve` is the clinical tier, so the person who takes a
+complaint at the counter cannot also be the person who decides it was unfounded.
+Nothing here is a legal finalization, so nothing requires a network. A complaint
+number is unique per tenant and a survey number is unique per tenant, because two
+files for one grievance split the deadline and two responses filed once would
+move the score. The `feedback` PowerSync bucket scopes all three tables to
+`feedback.read`, with a server-authoritative policy on the two registers and
+`appendOnly` on the routing log, and the `/feedback` screen is a two-tab board —
+surveys with the derived score, grievances with the missed deadlines marked — that
+shows the routing history in the grievance detail sheet.
+
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
-30, 32, 33, 34 and 35 continue the sequence into Domain C. Next: continue with the
-remaining clinical modules one vertical slice at a time, following the same
+30, 32, 33, 34, 35 and 36 continue the sequence into Domain C. Next: continue with
+the remaining clinical modules one vertical slice at a time, following the same
 pattern (Postgres schema + RLS, PowerSync local schema, repository + test seam,
 `*.write`-gated use cases, screens, sync bucket, mutation-handler registration,
 conflict policy, tests, then format/analyze/test). The next unbuilt slice in
-Domain C sequence is **module 36** (modules 31, 32, 33, 34 and 35 are built;
-36–39 remain). Hardware barcode scanning, thumbprint capture, PowerSync device
+Domain C sequence is **module 37** (modules 31, 32, 33, 34, 35 and 36 are built;
+37–39 remain). Hardware barcode scanning, thumbprint capture, PowerSync device
 verification and clinical deployment validation also remain across all slices.
 
 ---
@@ -504,7 +536,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1437 tests).
+  mutation-verified (1527 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

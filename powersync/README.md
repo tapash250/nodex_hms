@@ -94,7 +94,11 @@ accreditation audits with their criterion counts, the patient safety incident lo
 with its needle-stick and HAI events, and the measured clinical indicators,
 scoped by `quality.read` so a ward can log an incident at the bedside offline and
 an auditor can read the evidence without being able to score it) carries the
-quality estate. The
+quality estate, and the `feedback` bucket (Module 36, the Net Promoter Score
+responses, the complaints registry and the append-only routing history, scoped by
+`feedback.read` so a front desk can take a grievance at the counter offline and a
+manager can read the voice of the patient without being able to decide it)
+carries the patient's voice. The
 `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on
