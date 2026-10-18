@@ -120,6 +120,18 @@ abstract final class LocalTables {
   /// Append-only grievance routing history (Module 36).
   static const String complaintRoutingEvents = 'complaint_routing_events';
 
+  /// Ward visiting windows (Module 37).
+  static const String wardVisitingWindows = 'ward_visiting_windows';
+
+  /// Visitor registrations at the gate (Module 37).
+  static const String visitorRegistrations = 'visitor_registrations';
+
+  /// Digital entry passes (Module 37).
+  static const String visitorPasses = 'visitor_passes';
+
+  /// Append-only thermal badge print log (Module 37).
+  static const String visitorBadgePrints = 'visitor_badge_prints';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -414,6 +426,10 @@ abstract final class NodexLocalSchema {
     _feedbackSurveys,
     _feedbackComplaints,
     _complaintRoutingEvents,
+    _wardVisitingWindows,
+    _visitorRegistrations,
+    _visitorPasses,
+    _visitorBadgePrints,
     _wards,
     _appUsers,
     _roles,
@@ -1652,6 +1668,143 @@ abstract final class NodexLocalSchema {
         IndexedColumn('tenant_id'),
         IndexedColumn('complaint_id'),
         IndexedColumn('occurred_at'),
+      ]),
+    ],
+  );
+
+  /// Ward visiting windows (Module 37). Mirrors
+  /// `public.ward_visiting_windows`.
+  static const Table _wardVisitingWindows = Table(
+    LocalTables.wardVisitingWindows,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('ward_id'),
+      Column.integer('day_of_week'),
+      Column.integer('starts_minute'),
+      Column.integer('ends_minute'),
+      Column.integer('max_visitors'),
+      Column.integer('allows_children'),
+      Column.text('status'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('ward_visiting_window_ward', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('facility_id'),
+        IndexedColumn('ward_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
+  /// Visitor registrations at the gate (Module 37). Mirrors
+  /// `public.visitor_registrations`.
+  static const Table _visitorRegistrations = Table(
+    LocalTables.visitorRegistrations,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('registration_number'),
+      Column.text('full_name'),
+      Column.text('phone'),
+      Column.text('sex'),
+      Column.integer('age_years'),
+      Column.text('id_document_type'),
+      Column.text('id_document_number'),
+      Column.text('relationship'),
+      Column.text('purpose'),
+      Column.text('patient_id'),
+      Column.text('ward_id'),
+      Column.text('registered_at'),
+      Column.text('status'),
+      Column.text('checked_in_at'),
+      Column.text('checked_out_at'),
+      Column.text('refused_at'),
+      Column.text('refuse_reason'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('registered_by'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('visitor_registration_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('registered_at'),
+      ]),
+      Index('visitor_registration_ward', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('ward_id'),
+        IndexedColumn('status'),
+      ]),
+      Index('visitor_registration_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+        IndexedColumn('registered_at'),
+      ]),
+    ],
+  );
+
+  /// Digital entry passes (Module 37). Mirrors `public.visitor_passes`.
+  static const Table _visitorPasses = Table(
+    LocalTables.visitorPasses,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('registration_id'),
+      Column.text('badge_number'),
+      Column.text('access_scope'),
+      Column.integer('escort_count'),
+      Column.text('valid_from'),
+      Column.text('valid_until'),
+      Column.text('status'),
+      Column.text('activated_at'),
+      Column.text('returned_at'),
+      Column.text('revoked_at'),
+      Column.text('revoke_reason'),
+      Column.text('issued_by'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('visitor_pass_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('valid_until'),
+      ]),
+      Index('visitor_pass_registration', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('registration_id'),
+      ]),
+    ],
+  );
+
+  /// Append-only thermal badge print log (Module 37). Mirrors
+  /// `public.visitor_badge_prints`.
+  static const Table _visitorBadgePrints = Table(
+    LocalTables.visitorBadgePrints,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('pass_id'),
+      Column.text('badge_number'),
+      Column.integer('print_ordinal'),
+      Column.text('printer_label'),
+      Column.text('note'),
+      Column.text('printed_at'),
+      Column.text('printed_by'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('visitor_badge_print_pass', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('pass_id'),
+        IndexedColumn('print_ordinal'),
       ]),
     ],
   );

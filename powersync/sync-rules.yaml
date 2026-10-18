@@ -701,6 +701,26 @@ sync_rules:
         - select * from public.feedback_surveys where tenant_id = bucket.tenant_id
         - select * from public.feedback_complaints where tenant_id = bucket.tenant_id
         - select * from public.complaint_routing_events where tenant_id = bucket.tenant_id
+    # Module 37 (visitor & pass security): the gate the front desk works from
+    # offline. The registrations, the passes and the ward visiting hours the
+    # passes are judged against are scoped by visitor.read, so a nurse can read
+    # who is inside a ward without being able to issue a pass into it.
+    visitor:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'visitor.read'
+      data:
+        - select * from public.ward_visiting_windows where tenant_id = bucket.tenant_id
+        - select * from public.visitor_registrations where tenant_id = bucket.tenant_id
+        - select * from public.visitor_passes where tenant_id = bucket.tenant_id
+        - select * from public.visitor_badge_prints where tenant_id = bucket.tenant_id
     # Module 09 (allied staff & workforce): the ward rosters a device must
     # hold offline so an unplanned absence is visible at the bedside. Scoped by
     # its own read permission rather than the clinical encounter buckets.

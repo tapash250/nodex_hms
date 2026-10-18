@@ -98,7 +98,11 @@ quality estate, and the `feedback` bucket (Module 36, the Net Promoter Score
 responses, the complaints registry and the append-only routing history, scoped by
 `feedback.read` so a front desk can take a grievance at the counter offline and a
 manager can read the voice of the patient without being able to decide it)
-carries the patient's voice. The
+carries the patient's voice, and the `visitor` bucket (Module 37, the gate
+registrations, the entry passes, the ward visiting hours the passes are judged
+against and the append-only badge print log, scoped by `visitor.read` so a nurse
+can read who is inside a ward without being able to issue a pass into it) carries
+the front door. The
 `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on

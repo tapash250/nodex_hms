@@ -650,6 +650,10 @@ void main() {
       'feedback_surveys',
       'feedback_complaints',
       'complaint_routing_events',
+      'ward_visiting_windows',
+      'visitor_registrations',
+      'visitor_passes',
+      'visitor_badge_prints',
     ];
 
     test('every writable table resolves to a registered policy', () {

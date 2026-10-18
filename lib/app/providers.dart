@@ -87,6 +87,8 @@ import 'package:nodex_hms/domain/statutory/statutory_repository.dart';
 import 'package:nodex_hms/domain/statutory/statutory_use_cases.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
+import 'package:nodex_hms/domain/visitor/visitor_repository.dart';
+import 'package:nodex_hms/domain/visitor/visitor_use_cases.dart';
 import 'package:nodex_hms/domain/waste/waste_repository.dart';
 import 'package:nodex_hms/domain/waste/waste_use_cases.dart';
 import 'package:nodex_hms/domain/workforce/workforce_repository.dart';
@@ -1454,6 +1456,121 @@ final Provider<ReadFeedbackHubUseCase> readFeedbackHubUseCaseProvider =
     Provider<ReadFeedbackHubUseCase>(
       (Ref ref) => ReadFeedbackHubUseCase(
         repository: ref.watch(feedbackRepositoryProvider),
+      ),
+    );
+
+/// Visitor and pass repository over the encrypted local projection.
+final Provider<VisitorRepository> visitorRepositoryProvider =
+    Provider<VisitorRepository>(
+      (Ref ref) => DefaultVisitorRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Set the visiting window a ward admits visitors under.
+final Provider<SetVisitingWindowUseCase> setVisitingWindowUseCaseProvider =
+    Provider<SetVisitingWindowUseCase>(
+      (Ref ref) => SetVisitingWindowUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Retire a visiting window.
+final Provider<ArchiveVisitingWindowUseCase>
+archiveVisitingWindowUseCaseProvider = Provider<ArchiveVisitingWindowUseCase>(
+  (Ref ref) => ArchiveVisitingWindowUseCase(
+    repository: ref.watch(visitorRepositoryProvider),
+  ),
+);
+
+/// Take a visitor at the gate.
+final Provider<RegisterVisitorUseCase> registerVisitorUseCaseProvider =
+    Provider<RegisterVisitorUseCase>(
+      (Ref ref) => RegisterVisitorUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Admit a visitor.
+final Provider<AdmitVisitorUseCase> admitVisitorUseCaseProvider =
+    Provider<AdmitVisitorUseCase>(
+      (Ref ref) =>
+          AdmitVisitorUseCase(repository: ref.watch(visitorRepositoryProvider)),
+    );
+
+/// Record a visitor leaving.
+final Provider<RecordVisitorDepartureUseCase>
+recordVisitorDepartureUseCaseProvider = Provider<RecordVisitorDepartureUseCase>(
+  (Ref ref) => RecordVisitorDepartureUseCase(
+    repository: ref.watch(visitorRepositoryProvider),
+  ),
+);
+
+/// Turn a visitor away at the gate.
+final Provider<RefuseVisitorUseCase> refuseVisitorUseCaseProvider =
+    Provider<RefuseVisitorUseCase>(
+      (Ref ref) => RefuseVisitorUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Withdraw a registration entered in error.
+final Provider<VoidVisitorRegistrationUseCase>
+voidVisitorRegistrationUseCaseProvider =
+    Provider<VoidVisitorRegistrationUseCase>(
+      (Ref ref) => VoidVisitorRegistrationUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Issue a digital entry pass.
+final Provider<IssueVisitorPassUseCase> issueVisitorPassUseCaseProvider =
+    Provider<IssueVisitorPassUseCase>(
+      (Ref ref) => IssueVisitorPassUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Activate a pass as its holder goes in.
+final Provider<ActivateVisitorPassUseCase> activateVisitorPassUseCaseProvider =
+    Provider<ActivateVisitorPassUseCase>(
+      (Ref ref) => ActivateVisitorPassUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Record a badge handed back at the gate.
+final Provider<ReturnVisitorPassUseCase> returnVisitorPassUseCaseProvider =
+    Provider<ReturnVisitorPassUseCase>(
+      (Ref ref) => ReturnVisitorPassUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Revoke a pass before its window closed.
+final Provider<RevokeVisitorPassUseCase> revokeVisitorPassUseCaseProvider =
+    Provider<RevokeVisitorPassUseCase>(
+      (Ref ref) => RevokeVisitorPassUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Record a thermal badge print.
+final Provider<RecordBadgePrintUseCase> recordBadgePrintUseCaseProvider =
+    Provider<RecordBadgePrintUseCase>(
+      (Ref ref) => RecordBadgePrintUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
+      ),
+    );
+
+/// Read the visitor desk and its derived markers.
+final Provider<ReadVisitorDeskUseCase> readVisitorDeskUseCaseProvider =
+    Provider<ReadVisitorDeskUseCase>(
+      (Ref ref) => ReadVisitorDeskUseCase(
+        repository: ref.watch(visitorRepositoryProvider),
       ),
     );
 

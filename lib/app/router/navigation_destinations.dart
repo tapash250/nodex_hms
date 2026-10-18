@@ -325,6 +325,21 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Visitor & pass security (Module 37).
+  static const NavigationDestinationSpec visitor = NavigationDestinationSpec(
+    routePath: '/visitors',
+    label: 'Visitors',
+    icon: Icons.how_to_reg_outlined,
+    selectedIcon: Icons.how_to_reg,
+    requiredPermissions: <String>{
+      NodexPermissions.visitorRead,
+      NodexPermissions.visitorRegister,
+      NodexPermissions.visitorPass,
+    },
+    moduleCode: 'M37',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -432,6 +447,7 @@ abstract final class NodexDestinations {
         statutory,
         quality,
         feedback,
+        visitor,
         inventory,
         syncDiagnostics,
         aiGovernance,

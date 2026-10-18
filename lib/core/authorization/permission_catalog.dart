@@ -183,6 +183,18 @@ abstract final class NodexPermissions {
   /// Acknowledge, route, investigate, resolve, dismiss and close a grievance.
   static const String feedbackResolve = 'feedback.resolve';
 
+  /// View visitor registrations, entry passes and ward visiting windows.
+  static const String visitorRead = 'visitor.read';
+
+  /// Register a visitor at the gate, admit them and record their departure.
+  static const String visitorRegister = 'visitor.register';
+
+  /// Issue, activate, return and revoke a digital entry pass, and print the badge.
+  static const String visitorPass = 'visitor.pass';
+
+  /// Set and retire a ward's visiting window and its visitor limit.
+  static const String visitorConfigure = 'visitor.configure';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

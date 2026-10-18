@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 68 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 69 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1527 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1636 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -511,14 +511,47 @@ move the score. The `feedback` PowerSync bucket scopes all three tables to
 surveys with the derived score, grievances with the missed deadlines marked — that
 shows the routing history in the grievance detail sheet.
 
+**Visitor & Pass Security Management (module 37)** followed, over
+`ward_visiting_windows`, `visitor_registrations`, `visitor_passes` and
+`visitor_badge_prints`. This is the front door: who came in, on whose authority,
+where they were allowed to go, and what the gate printed for them. It is distinct
+from the clinical record (an encounter records the patient; a registration records
+the person who came to see them) and from the workforce rosters (a shift is staff
+on duty; a pass is a visitor allowed in). The visiting window is configuration
+rather than an event: one row per ward per weekday, archived rather than deleted so
+a past pass still resolves to the rule it was issued under. A registration runs
+`registered → on_site → left`, with `refused` and `voided` as the two ways out of
+the first stage, and what the gate recorded freezes the moment the visitor steps
+past it. A pass runs `issued → active → returned`, with `revoked` from either live
+stage, and carries no `expired` status: expiry is derived from the clock against
+the validity window, so a badge cannot sit on a device claiming to be valid after
+its own window closed, and activation refuses a pass whose window has already
+closed. The badge print log is append-only and numbered by ordinal, because a
+thermal badge is a physical token and the number of times it was made is a fact
+worth keeping. Window boundaries are stored as minutes from local midnight and the
+client passes the local minute of day, because visiting hours are a wall-clock rule
+and a `timestamptz` boundary would quietly move 10:00 for a server on another
+clock. Permissions follow the counter and the clinician: `visitor.read` is standard
+and offline, `visitor.register` and `visitor.pass` are elevated and offline (a gate
+works while the network does not), and `visitor.configure` is held only by the
+administrator and the medical officer, because a ward's visiting hours are a rule
+rather than a shift. Nothing here is a legal finalization, so nothing requires a
+network. A registration number is unique per tenant and a badge number is unique
+per tenant, because two gate rows sharing a number make the log unreadable and two
+badges sharing one number would let one person's access stand for another's. The
+`visitor` PowerSync bucket scopes all four tables to `visitor.read`, with a
+server-authoritative policy on the three registers and `appendOnly` on the print
+log, and the `/visitors` screen is a three-tab desk — the gate, the passes and the
+ward hours — that reads the badge print log in the pass sheet.
+
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
-30, 32, 33, 34, 35 and 36 continue the sequence into Domain C. Next: continue with
-the remaining clinical modules one vertical slice at a time, following the same
-pattern (Postgres schema + RLS, PowerSync local schema, repository + test seam,
-`*.write`-gated use cases, screens, sync bucket, mutation-handler registration,
-conflict policy, tests, then format/analyze/test). The next unbuilt slice in
-Domain C sequence is **module 37** (modules 31, 32, 33, 34, 35 and 36 are built;
-37–39 remain). Hardware barcode scanning, thumbprint capture, PowerSync device
+30, 32, 33, 34, 35, 36 and 37 continue the sequence into Domain C. Next: continue
+with the remaining clinical modules one vertical slice at a time, following the
+same pattern (Postgres schema + RLS, PowerSync local schema, repository + test
+seam, `*.write`-gated use cases, screens, sync bucket, mutation-handler
+registration, conflict policy, tests, then format/analyze/test). The next unbuilt
+slice in Domain C sequence is **module 38** (modules 31, 32, 33, 34, 35, 36 and 37
+are built; 38–39 remain). Hardware barcode scanning, thumbprint capture, PowerSync device
 verification and clinical deployment validation also remain across all slices.
 
 ---
@@ -536,7 +569,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1527 tests).
+  mutation-verified (1636 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

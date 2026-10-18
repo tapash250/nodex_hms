@@ -64,6 +64,7 @@ import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/settings_screen.dart';
 import 'package:nodex_hms/features/statutory/statutory_registry_screen.dart';
 import 'package:nodex_hms/features/telemedicine/telemedicine_consultation_screen.dart';
+import 'package:nodex_hms/features/visitor/visitor_desk_screen.dart';
 import 'package:nodex_hms/features/waste/waste_management_screen.dart';
 import 'package:nodex_hms/features/workforce/workforce_screen.dart';
 
@@ -350,6 +351,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.feedback.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const FeedbackGrievanceScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.visitor.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const VisitorDeskScreen(),
           ),
           GoRoute(
             path: NodexDestinations.staffDirectory.routePath,

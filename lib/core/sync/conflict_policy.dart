@@ -369,6 +369,18 @@ abstract final class ConflictPolicyRegistry {
   /// An append-only grievance routing event (Module 36).
   static const String complaintRoutingEvent = 'complaint_routing_event';
 
+  /// A ward visiting window (Module 37).
+  static const String wardVisitingWindow = 'ward_visiting_window';
+
+  /// A visitor registration at the gate (Module 37).
+  static const String visitorRegistration = 'visitor_registration';
+
+  /// A digital entry pass (Module 37).
+  static const String visitorPass = 'visitor_pass';
+
+  /// An append-only thermal badge print (Module 37).
+  static const String visitorBadgePrint = 'visitor_badge_print';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -1107,6 +1119,42 @@ abstract final class ConflictPolicyRegistry {
           'keeps the history legible, and a reader answers "who had this and '
           'when" from the log rather than from an overwritten column.',
     ),
+    wardVisitingWindow: ConflictPolicyEntry(
+      resourceType: wardVisitingWindow,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A visiting window is the rule a ward admits visitors under, and a '
+          'device may hold a stale copy of it. One row per ward per day is what '
+          'makes resolution unambiguous, so the server owns the rule and the '
+          'client reconciles rather than both inserting a window.',
+    ),
+    visitorRegistration: ConflictPolicyEntry(
+      resourceType: visitorRegistration,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A registration is one person at one gate, with the identity they '
+          'showed and the moment they were taken, and its number is unique per '
+          'tenant. The server owns the row so two desks cannot both admit the '
+          'same visitor.',
+    ),
+    visitorPass: ConflictPolicyEntry(
+      resourceType: visitorPass,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A pass is an authority with one badge number and one validity '
+          'window, and a badge number identifies one badge. The server owns it '
+          'so a revocation on one device cannot be undone by an activation on '
+          'another.',
+    ),
+    visitorBadgePrint: ConflictPolicyEntry(
+      resourceType: visitorBadgePrint,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A badge print is a physical object made at a named printer at a '
+          'moment, numbered by ordinal. Appending both keeps a reprint visible '
+          'as a reprint, and the ordinal is what makes the count a fact rather '
+          'than a race.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1460,6 +1508,10 @@ abstract final class ConflictPolicyRegistry {
     'feedback_surveys': feedbackSurvey,
     'feedback_complaints': feedbackComplaint,
     'complaint_routing_events': complaintRoutingEvent,
+    'ward_visiting_windows': wardVisitingWindow,
+    'visitor_registrations': visitorRegistration,
+    'visitor_passes': visitorPass,
+    'visitor_badge_prints': visitorBadgePrint,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,
