@@ -351,6 +351,15 @@ abstract final class ConflictPolicyRegistry {
   /// An append-only statutory correction (Module 34).
   static const String statutoryAmendment = 'statutory_amendment';
 
+  /// An accreditation compliance audit (Module 35).
+  static const String complianceAudit = 'compliance_audit';
+
+  /// A patient safety incident report (Module 35).
+  static const String incidentReport = 'incident_report';
+
+  /// A measured clinical indicator (Module 35).
+  static const String clinicalIndicator = 'clinical_indicator';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -1040,6 +1049,30 @@ abstract final class ConflictPolicyRegistry {
           'keeps the whole correction history legible and lets the derived value '
           'be recomputed on every device.',
     ),
+    complianceAudit: ConflictPolicyEntry(
+      resourceType: complianceAudit,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'An audit score is evidence presented to an accreditation body. Two '
+          'devices must not both settle the same chapter, so the server owns the '
+          'row and the client reconciles rather than merging two scores.',
+    ),
+    incidentReport: ConflictPolicyEntry(
+      resourceType: incidentReport,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'An incident report is one file with one investigation, one action '
+          'plan and one closure. The server owns the row so two investigators '
+          'cannot diverge on what happened and what was agreed.',
+    ),
+    clinicalIndicator: ConflictPolicyEntry(
+      resourceType: clinicalIndicator,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A published indicator is a figure an accreditation body has read, and '
+          'its value is derived from the counts it carries. The server owns the '
+          'reading so two devices cannot publish two figures for one period.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1387,6 +1420,9 @@ abstract final class ConflictPolicyRegistry {
     'statutory_death_records': deathRecord,
     'statutory_mlc_intimations': mlcIntimation,
     'statutory_record_amendments': statutoryAmendment,
+    'compliance_audits': complianceAudit,
+    'incident_reports': incidentReport,
+    'clinical_indicators': clinicalIndicator,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,

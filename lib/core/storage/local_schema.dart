@@ -102,6 +102,15 @@ abstract final class LocalTables {
   /// Append-only statutory corrections (Module 34).
   static const String statutoryRecordAmendments = 'statutory_record_amendments';
 
+  /// Accreditation compliance audits (Module 35).
+  static const String complianceAudits = 'compliance_audits';
+
+  /// Patient safety incident reports (Module 35).
+  static const String incidentReports = 'incident_reports';
+
+  /// Measured clinical indicators (Module 35).
+  static const String clinicalIndicators = 'clinical_indicators';
+
   /// Ward catalogue.
   static const String wards = 'wards';
 
@@ -390,6 +399,9 @@ abstract final class NodexLocalSchema {
     _statutoryDeathRecords,
     _statutoryMlcIntimations,
     _statutoryRecordAmendments,
+    _complianceAudits,
+    _incidentReports,
+    _clinicalIndicators,
     _wards,
     _appUsers,
     _roles,
@@ -1375,6 +1387,137 @@ abstract final class NodexLocalSchema {
       Index('statutory_amendment_mlc', <IndexedColumn>[
         IndexedColumn('mlc_intimation_id'),
         IndexedColumn('created_at'),
+      ]),
+    ],
+  );
+
+  /// Accreditation compliance audits (Module 35). Mirrors
+  /// `public.compliance_audits`.
+  static const Table _complianceAudits = Table(
+    LocalTables.complianceAudits,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('framework'),
+      Column.text('chapter'),
+      Column.text('title'),
+      Column.text('standard_reference'),
+      Column.text('auditor_id'),
+      Column.text('scheduled_for'),
+      Column.text('status'),
+      Column.text('conducted_at'),
+      Column.integer('total_criteria'),
+      Column.integer('compliant_criteria'),
+      Column.text('findings'),
+      Column.text('corrective_action_due_at'),
+      Column.text('completed_by'),
+      Column.text('cancelled_at'),
+      Column.text('cancel_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('compliance_audit_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('scheduled_for'),
+      ]),
+      Index('compliance_audit_framework', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('framework'),
+        IndexedColumn('chapter'),
+      ]),
+    ],
+  );
+
+  /// Patient safety incident reports (Module 35). Mirrors
+  /// `public.incident_reports`.
+  static const Table _incidentReports = Table(
+    LocalTables.incidentReports,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('report_number'),
+      Column.text('category'),
+      Column.text('severity'),
+      Column.text('title'),
+      Column.text('description'),
+      Column.text('occurred_at'),
+      Column.text('reported_at'),
+      Column.text('location'),
+      Column.text('patient_id'),
+      Column.text('reported_by'),
+      Column.text('assigned_to'),
+      Column.text('immediate_action'),
+      Column.text('status'),
+      Column.text('investigation_started_at'),
+      Column.text('action_plan'),
+      Column.text('action_plan_due_at'),
+      Column.text('follow_up_due_at'),
+      Column.text('closed_at'),
+      Column.text('closure_note'),
+      Column.text('voided_at'),
+      Column.text('void_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('incident_report_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('occurred_at'),
+      ]),
+      Index('incident_report_category', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('category'),
+        IndexedColumn('severity'),
+      ]),
+      Index('incident_report_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+      ]),
+    ],
+  );
+
+  /// Measured clinical indicators (Module 35). Mirrors
+  /// `public.clinical_indicators`.
+  static const Table _clinicalIndicators = Table(
+    LocalTables.clinicalIndicators,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('code'),
+      Column.text('name'),
+      Column.text('category'),
+      Column.text('unit'),
+      Column.text('direction'),
+      Column.text('period_start'),
+      Column.text('period_end'),
+      Column.integer('numerator'),
+      Column.integer('denominator'),
+      Column.integer('target_value'),
+      Column.text('source_note'),
+      Column.text('status'),
+      Column.text('published_by'),
+      Column.text('published_at'),
+      Column.text('retracted_at'),
+      Column.text('retract_reason'),
+      Column.text('created_by'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('clinical_indicator_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('period_start'),
+      ]),
+      Index('clinical_indicator_category', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('category'),
+        IndexedColumn('code'),
       ]),
     ],
   );

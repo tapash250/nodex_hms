@@ -74,6 +74,8 @@ import 'package:nodex_hms/domain/physio/physio_repository.dart';
 import 'package:nodex_hms/domain/physio/physio_use_cases.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_use_cases.dart';
+import 'package:nodex_hms/domain/quality/quality_repository.dart';
+import 'package:nodex_hms/domain/quality/quality_use_cases.dart';
 import 'package:nodex_hms/domain/radiology/radiology_repository.dart';
 import 'package:nodex_hms/domain/radiology/radiology_use_cases.dart';
 import 'package:nodex_hms/domain/roster/practitioner_repository.dart';
@@ -1219,6 +1221,125 @@ readStatutoryRegistryUseCaseProvider = Provider<ReadStatutoryRegistryUseCase>(
     repository: ref.watch(statutoryRepositoryProvider),
   ),
 );
+
+/// Quality & NABH Compliance Hub repository over the encrypted local projection.
+final Provider<QualityRepository> qualityRepositoryProvider =
+    Provider<QualityRepository>(
+      (Ref ref) => DefaultQualityRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Plan an accreditation compliance audit.
+final Provider<ScheduleComplianceAuditUseCase>
+scheduleComplianceAuditUseCaseProvider =
+    Provider<ScheduleComplianceAuditUseCase>(
+      (Ref ref) => ScheduleComplianceAuditUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Start a planned audit.
+final Provider<StartComplianceAuditUseCase>
+startComplianceAuditUseCaseProvider = Provider<StartComplianceAuditUseCase>(
+  (Ref ref) => StartComplianceAuditUseCase(
+    repository: ref.watch(qualityRepositoryProvider),
+  ),
+);
+
+/// Score and complete an audit.
+final Provider<CompleteComplianceAuditUseCase>
+completeComplianceAuditUseCaseProvider =
+    Provider<CompleteComplianceAuditUseCase>(
+      (Ref ref) => CompleteComplianceAuditUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Call an audit off with a reason.
+final Provider<CancelComplianceAuditUseCase>
+cancelComplianceAuditUseCaseProvider = Provider<CancelComplianceAuditUseCase>(
+  (Ref ref) => CancelComplianceAuditUseCase(
+    repository: ref.watch(qualityRepositoryProvider),
+  ),
+);
+
+/// Raise a patient safety incident report.
+final Provider<ReportIncidentUseCase> reportIncidentUseCaseProvider =
+    Provider<ReportIncidentUseCase>(
+      (Ref ref) => ReportIncidentUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Open an investigation into an incident.
+final Provider<InvestigateIncidentUseCase> investigateIncidentUseCaseProvider =
+    Provider<InvestigateIncidentUseCase>(
+      (Ref ref) => InvestigateIncidentUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Record the corrective action agreed for an incident.
+final Provider<PlanIncidentActionUseCase> planIncidentActionUseCaseProvider =
+    Provider<PlanIncidentActionUseCase>(
+      (Ref ref) => PlanIncidentActionUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Close an incident with a note.
+final Provider<CloseIncidentUseCase> closeIncidentUseCaseProvider =
+    Provider<CloseIncidentUseCase>(
+      (Ref ref) => CloseIncidentUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Withdraw an incident report.
+final Provider<VoidIncidentUseCase> voidIncidentUseCaseProvider =
+    Provider<VoidIncidentUseCase>(
+      (Ref ref) =>
+          VoidIncidentUseCase(repository: ref.watch(qualityRepositoryProvider)),
+    );
+
+/// Record a measured clinical indicator.
+final Provider<RecordClinicalIndicatorUseCase>
+recordClinicalIndicatorUseCaseProvider =
+    Provider<RecordClinicalIndicatorUseCase>(
+      (Ref ref) => RecordClinicalIndicatorUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Publish a recorded indicator.
+final Provider<PublishClinicalIndicatorUseCase>
+publishClinicalIndicatorUseCaseProvider =
+    Provider<PublishClinicalIndicatorUseCase>(
+      (Ref ref) => PublishClinicalIndicatorUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Retract a published indicator.
+final Provider<RetractClinicalIndicatorUseCase>
+retractClinicalIndicatorUseCaseProvider =
+    Provider<RetractClinicalIndicatorUseCase>(
+      (Ref ref) => RetractClinicalIndicatorUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
+
+/// Read the quality hub and its derived markers.
+final Provider<ReadQualityHubUseCase> readQualityHubUseCaseProvider =
+    Provider<ReadQualityHubUseCase>(
+      (Ref ref) => ReadQualityHubUseCase(
+        repository: ref.watch(qualityRepositoryProvider),
+      ),
+    );
 
 /// Institutional calendar repository over the encrypted local projection.
 final Provider<CalendarRepository> calendarRepositoryProvider =

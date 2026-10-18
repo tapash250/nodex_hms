@@ -644,6 +644,9 @@ void main() {
       'statutory_death_records',
       'statutory_mlc_intimations',
       'statutory_record_amendments',
+      'compliance_audits',
+      'incident_reports',
+      'clinical_indicators',
     ];
 
     test('every writable table resolves to a registered policy', () {

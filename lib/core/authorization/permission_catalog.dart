@@ -162,6 +162,18 @@ abstract final class NodexPermissions {
   /// Append a correction to a registered fact and void a withdrawn entry.
   static const String statutoryAmend = 'statutory.amend';
 
+  /// View accreditation audits, incident reports and clinical indicators.
+  static const String qualityRead = 'quality.read';
+
+  /// Plan, conduct, score, complete and cancel an accreditation audit.
+  static const String qualityAudit = 'quality.audit';
+
+  /// Raise, investigate, action-plan and close an incident report.
+  static const String qualityIncident = 'quality.incident';
+
+  /// Record, publish and retract a measured clinical indicator.
+  static const String qualityIndicator = 'quality.indicator';
+
   /// View shift rosters, duty allocations and attendance.
   static const String workforceRead = 'workforce.read';
 

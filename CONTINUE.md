@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 66 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 67 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1337 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 1437 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -432,14 +432,61 @@ three registers server-authoritative and the amendment log append-only, and the
 marks the overdue rows and offers the amendment sheet as the only edit control on
 a registered row.
 
+**Quality & NABH Compliance Hub (module 35)** followed, over `compliance_audits`,
+`incident_reports` and `clinical_indicators`. This is the evidence estate: the
+record a hospital presents to an accreditation body, distinct from the clinical
+record that holds the care (an encounter records the treatment; an audit records
+whether the treatment met a standard) and from the statutory register (the law
+requires a birth certificate; a surveyor requires a hand-hygiene rate). Each of
+the three is a guarded state machine. An audit is `planned → in_progress →
+completed`, cancellable with a reason from either live stage; a started audit
+stops being re-scoped, and a completed audit is frozen with its score because
+that score is what was presented. An incident is `reported → investigating →
+action_plan → closed`, voidable with a reason from either of the two live stages;
+what happened freezes once the investigation opens, and the corrective action
+cannot be agreed before the investigation and cannot be closed before the action
+plan exists. An indicator is `draft → published → retracted`; a published figure
+is frozen but for the retraction that withdraws it, because a figure an
+accreditation body has read is a fact and not a working note.
+
+The same discipline as Module 34 applies to what a stored copy would let drift:
+the values are derived, not stored. The compliance score is the met criteria as
+a whole percentage and the verdict follows from it against the conformance
+thresholds, so a score cannot disagree with the criteria it summarises. An
+indicator's value is its ratio times its unit's multiplier (a percentage by a
+hundred, a rate per thousand device days by a thousand, a count or an hours
+reading its numerator alone), and whether it meets its target reads the
+direction, so one rule serves a hand-hygiene rate that must rise and an infection
+rate that must fall. The response window an incident is held to is derived from
+its severity — a day for a sentinel event or major harm, three days for a
+moderate one, a week for a minor one or a near miss — so changing a threshold
+re-derives every overdue marker on every device, and an incident already under
+investigation is not overdue however late it was.
+
+Permissions follow the tiers: `quality.read` is standard and offline, and
+`quality.audit` (plan, start, score, complete, cancel), `quality.incident`
+(report, investigate, agree the action plan, close, withdraw) and
+`quality.indicator` (record, publish, retract) are elevated and offline. Nothing
+here is a legal finalization, so no permission is `requires_online`: a ward logs
+a needle-stick at the bedside and an audit is scored where it was conducted, and
+correctness is preserved by the guards and the derived values rather than by
+requiring a network. An incident number is unique per tenant and an indicator
+code is unique per tenant and period, because two files for one incident split
+the evidence and two readings of one period are one figure. The `quality`
+PowerSync bucket scopes all three tables to `quality.read`, with a
+server-authoritative policy on every one since an audit score, an incident file
+and a published indicator are single facts the server owns, and the `/quality`
+screen is a three-tab board — audits, incidents, indicators — that marks the
+overdue and below-target rows from the row and the clock.
+
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
-30, 32, 33 and 34 continue the sequence into Domain C. Next: continue with the
+30, 32, 33, 34 and 35 continue the sequence into Domain C. Next: continue with the
 remaining clinical modules one vertical slice at a time, following the same
 pattern (Postgres schema + RLS, PowerSync local schema, repository + test seam,
 `*.write`-gated use cases, screens, sync bucket, mutation-handler registration,
 conflict policy, tests, then format/analyze/test). The next unbuilt slice in
-Domain C sequence is **module 35** (modules 31, 32, 33 and 34 are built; 35–39
-remain). Hardware barcode scanning, thumbprint capture, PowerSync device
+Domain C sequence is **module 36** (modules 31, 32, 33, 34 and 35 are built;
+36–39 remain). Hardware barcode scanning, thumbprint capture, PowerSync device
 verification and clinical deployment validation also remain across all slices.
 
 ---
@@ -457,7 +504,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1337 tests).
+  mutation-verified (1437 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

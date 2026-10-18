@@ -89,7 +89,12 @@ auditor can read what was signed) carries the documentary estate, and the
 cause-of-death coding, the medico-legal case log and the append-only amendment
 stream, scoped by `statutory.read` so a ward can register a birth at the bedside
 offline and an auditor can read the register without being able to sign it)
-carries the statutory register. The
+carries the statutory register, and the `quality` bucket (Module 35, the
+accreditation audits with their criterion counts, the patient safety incident log
+with its needle-stick and HAI events, and the measured clinical indicators,
+scoped by `quality.read` so a ward can log an incident at the bedside offline and
+an auditor can read the evidence without being able to score it) carries the
+quality estate. The
 `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on

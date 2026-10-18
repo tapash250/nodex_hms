@@ -303,6 +303,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Quality & NABH compliance hub (Module 35).
+  static const NavigationDestinationSpec quality = NavigationDestinationSpec(
+    routePath: '/quality',
+    label: 'Quality hub',
+    icon: Icons.verified_outlined,
+    selectedIcon: Icons.verified,
+    requiredPermissions: <String>{NodexPermissions.qualityRead},
+    moduleCode: 'M35',
+    isPrimary: false,
+  );
+
   /// Human resources & payroll suite (Module 13).
   static const NavigationDestinationSpec humanResources =
       NavigationDestinationSpec(
@@ -408,6 +419,7 @@ abstract final class NodexDestinations {
         insurance,
         consents,
         statutory,
+        quality,
         inventory,
         syncDiagnostics,
         aiGovernance,
