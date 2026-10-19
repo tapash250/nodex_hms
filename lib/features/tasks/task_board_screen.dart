@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nodex_hms/app/adaptive/adaptive_breaks.dart';
 import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
@@ -338,6 +339,12 @@ class _TaskCard extends StatelessWidget {
     required this.onEscalate,
   });
 
+  /// A task is closed at a bedside, often with gloves on, so every action on
+  /// it is a full 48dp target rather than the 40dp a text button defaults to.
+  static final ButtonStyle _gloveStyle = TextButton.styleFrom(
+    minimumSize: const Size(48, nodexMinTouchTarget),
+  );
+
   final HospitalTask task;
   final bool canManage;
   final bool isMine;
@@ -401,24 +408,35 @@ class _TaskCard extends StatelessWidget {
                 spacing: 4,
                 children: <Widget>[
                   if (task.status == TaskStatus.open)
-                    TextButton(onPressed: onClaim, child: const Text('Claim')),
+                    TextButton(
+                      onPressed: onClaim,
+                      style: _gloveStyle,
+                      child: const Text('Claim'),
+                    ),
                   if (task.status == TaskStatus.claimed && isMine)
-                    TextButton(onPressed: onStart, child: const Text('Start')),
+                    TextButton(
+                      onPressed: onStart,
+                      style: _gloveStyle,
+                      child: const Text('Start'),
+                    ),
                   if ((task.status == TaskStatus.claimed ||
                           task.status == TaskStatus.inProgress) &&
                       isMine)
                     TextButton(
                       onPressed: onComplete,
+                      style: _gloveStyle,
                       child: const Text('Complete'),
                     ),
                   if (task.priority != TaskPriority.stat && task.status.isLive)
                     TextButton(
                       onPressed: onEscalate,
+                      style: _gloveStyle,
                       child: const Text('Escalate'),
                     ),
                   if (task.status.isLive)
                     TextButton(
                       onPressed: onCancel,
+                      style: _gloveStyle,
                       child: const Text('Cancel'),
                     ),
                 ],

@@ -14,20 +14,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nodex_hms/app/adaptive/adaptive_breaks.dart';
 import 'package:nodex_hms/app/router/navigation_destinations.dart';
 import 'package:nodex_hms/app/shell/session_status_bar.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
-
-/// Layout breakpoints, aligned with Material 3 window size classes and the
-/// specification's target devices.
-abstract final class NodexBreakpoints {
-  /// Below this width a phone layout is used.
-  static const double compact = 600;
-
-  /// At or above this width the rail is extended.
-  static const double expanded = 1000;
-}
 
 /// Adaptive navigation scaffold wrapping every authorized destination.
 class AdaptiveShell extends ConsumerWidget {

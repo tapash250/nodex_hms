@@ -12,6 +12,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:nodex_hms/app/adaptive/adaptive_breaks.dart';
 
 /// One column of a master data table.
 @immutable
@@ -108,8 +109,8 @@ class NodexDataTable<T> extends StatefulWidget {
     this.initialSort = const <TableSortSpec>[],
     this.onRowTap,
     this.emptyMessage = 'Nothing to show.',
-    this.rowHeight = 44,
-    this.headerHeight = 40,
+    this.rowHeight = nodexMinTouchTarget,
+    this.headerHeight = nodexMinTouchTarget,
     this.buildRowTrailing,
     super.key,
   });
@@ -130,9 +131,15 @@ class NodexDataTable<T> extends StatefulWidget {
   final String emptyMessage;
 
   /// Height of one row.
+  ///
+  /// The default is the 48dp glove-friendly touch target: a row is a control,
+  /// not a line of text.
   final double rowHeight;
 
   /// Height of the header.
+  ///
+  /// The default is the 48dp touch target, because the heading is what the
+  /// reader taps to sort.
   final double headerHeight;
 
   /// Optional trailing widget per row, for a row action.

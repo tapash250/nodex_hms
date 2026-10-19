@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nodex_hms/app/adaptive/adaptive_components.dart';
 import 'package:nodex_hms/app/charts/clinical_bar_chart.dart';
 import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/app/widgets/clinical_widgets.dart';
@@ -96,37 +97,44 @@ class _WardCensusScreenState extends ConsumerState<WardCensusScreen> {
                   },
                 ),
               ),
-              const _OccupancyGraph(),
+              // A clinical tablet has room for the occupancy graph beside the
+              // bed list; a phone stacks them, with the graph first because it
+              // is the summary of the list beneath it.
               Expanded(
-                child: census.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (Object error, StackTrace _) => Center(
-                    child: Text(
-                      error is NodexError
-                          ? error.message
-                          : 'Census unavailable.',
+                child: AdaptiveSplitView(
+                  secondaryFirst: true,
+                  secondary: const _OccupancyGraph(),
+                  primary: census.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (Object error, StackTrace _) => Center(
+                      child: Text(
+                        error is NodexError
+                            ? error.message
+                            : 'Census unavailable.',
+                      ),
                     ),
+                    data: (List<BedCensusEntry> entries) => entries.isEmpty
+                        ? const Center(child: Text('No beds registered.'))
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            itemCount: entries.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final BedCensusEntry entry = entries[index];
+                              return _BedCard(
+                                entry: entry,
+                                canAssign: canAssign,
+                                canAdminister: canAdminister,
+                                onAssign: () =>
+                                    _assign(context, ref, entry.bed),
+                                onRelease: () =>
+                                    _release(context, ref, entry.assignment!),
+                                onToggleMaintenance: () =>
+                                    _toggleMaintenance(context, ref, entry),
+                              );
+                            },
+                          ),
                   ),
-                  data: (List<BedCensusEntry> entries) => entries.isEmpty
-                      ? const Center(child: Text('No beds registered.'))
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          itemCount: entries.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            final BedCensusEntry entry = entries[index];
-                            return _BedCard(
-                              entry: entry,
-                              canAssign: canAssign,
-                              canAdminister: canAdminister,
-                              onAssign: () => _assign(context, ref, entry.bed),
-                              onRelease: () =>
-                                  _release(context, ref, entry.assignment!),
-                              onToggleMaintenance: () =>
-                                  _toggleMaintenance(context, ref, entry),
-                            );
-                          },
-                        ),
                 ),
               ),
             ],
