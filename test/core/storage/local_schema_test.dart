@@ -165,6 +165,7 @@ void main() {
           LocalTables.wardVitals,
           LocalTables.wardHandovers,
           LocalTables.wardTasks,
+          LocalTables.hospitalTasks,
           LocalTables.clinicalProblems,
           LocalTables.encounterScribeDrafts,
           LocalTables.aiDeploymentProfiles,

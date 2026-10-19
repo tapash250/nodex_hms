@@ -60,18 +60,20 @@ void main() {
     });
 
     test('reads a balance projection back from a row', () {
-      final PatientAccount account = PatientAccount.fromRow(<String, Object?>{
-        'id': 'account-1',
-        'tenant_id': 'tenant-1',
-        'patient_id': 'patient-1',
-        'account_code': 'ACC-001',
-        'currency': 'BDT',
-        'status': 'credit',
-        'balance_minor': -2500,
-        'last_activity_at': '2026-09-12T09:00:00.000Z',
-        'opened_at': '2026-09-01T08:00:00.000Z',
-        'closed_at': null,
-      });
+      final PatientAccount account = PatientAccount.fromRow(
+        const <String, Object?>{
+          'id': 'account-1',
+          'tenant_id': 'tenant-1',
+          'patient_id': 'patient-1',
+          'account_code': 'ACC-001',
+          'currency': 'BDT',
+          'status': 'credit',
+          'balance_minor': -2500,
+          'last_activity_at': '2026-09-12T09:00:00.000Z',
+          'opened_at': '2026-09-01T08:00:00.000Z',
+          'closed_at': null,
+        },
+      );
       expect(account.balanceMinor, -2500);
       expect(account.isInCredit, isTrue);
       expect(account.isSettled, isFalse);

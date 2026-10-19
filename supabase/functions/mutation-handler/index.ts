@@ -1491,6 +1491,38 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'nursing.task.created',
     auditActionPatch: 'nursing.task.updated',
   },
+  // Module 41 (clinical & administrative task engine). Every column a client
+  // may set is listed; the transition guard in the migration owns the state
+  // machine, so a patch can move a task but cannot invent a completion.
+  hospital_tasks: {
+    columns: {
+      tenant_id: 'uuid',
+      task_code: 'text',
+      title: 'text',
+      detail: 'text',
+      category: 'text',
+      priority: 'text',
+      status: 'text',
+      patient_id: 'uuid',
+      encounter_id: 'uuid',
+      from_location: 'text',
+      to_location: 'text',
+      requested_by: 'uuid',
+      assigned_to: 'uuid',
+      due_at: 'timestamp',
+      claimed_at: 'timestamp',
+      started_at: 'timestamp',
+      completed_by: 'uuid',
+      completed_at: 'timestamp',
+      completion_note: 'text',
+      cancellation_reason: 'text',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'tasks.task.raised',
+    auditActionPatch: 'tasks.task.transitioned',
+  },
   // Module 13 (human resources & payroll suite).
   hr_employees: {
     columns: {

@@ -294,6 +294,9 @@ abstract final class LocalTables {
   /// Ward nursing task queue (Module 06). Synced, tenant-scoped.
   static const String wardTasks = 'ward_tasks';
 
+  /// Cross-department task board (Module 41). Synced, tenant-scoped.
+  static const String hospitalTasks = 'hospital_tasks';
+
   /// Ward beds (Module 11). Synced, tenant-scoped.
   static const String beds = 'beds';
 
@@ -579,6 +582,7 @@ abstract final class NodexLocalSchema {
     _wardVitals,
     _wardHandovers,
     _wardTasks,
+    _hospitalTasks,
   ]);
 
   static const Table _tenants = Table(LocalTables.tenants, <Column>[
@@ -4665,6 +4669,52 @@ abstract final class NodexLocalSchema {
         IndexedColumn('assigned_to'),
         IndexedColumn('status'),
         IndexedColumn('due_at'),
+      ]),
+    ],
+  );
+
+  /// Cross-department task board (Module 41).
+  static const Table _hospitalTasks = Table(
+    LocalTables.hospitalTasks,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('task_code'),
+      Column.text('title'),
+      Column.text('detail'),
+      Column.text('category'),
+      Column.text('priority'),
+      Column.text('status'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('from_location'),
+      Column.text('to_location'),
+      Column.text('requested_by'),
+      Column.text('assigned_to'),
+      Column.text('completed_by'),
+      Column.text('completion_note'),
+      Column.text('cancellation_reason'),
+      Column.text('due_at'),
+      Column.text('claimed_at'),
+      Column.text('started_at'),
+      Column.text('completed_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('hospital_tasks_board', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('priority'),
+        IndexedColumn('due_at'),
+      ]),
+      Index('hospital_tasks_assignee', <IndexedColumn>[
+        IndexedColumn('assigned_to'),
+        IndexedColumn('status'),
+        IndexedColumn('due_at'),
+      ]),
+      Index('hospital_tasks_requester', <IndexedColumn>[
+        IndexedColumn('requested_by'),
+        IndexedColumn('created_at'),
       ]),
     ],
   );

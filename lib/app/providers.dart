@@ -90,6 +90,8 @@ import 'package:nodex_hms/domain/settings/settings_repository.dart';
 import 'package:nodex_hms/domain/settings/settings_use_cases.dart';
 import 'package:nodex_hms/domain/statutory/statutory_repository.dart';
 import 'package:nodex_hms/domain/statutory/statutory_use_cases.dart';
+import 'package:nodex_hms/domain/tasks/task_repository.dart';
+import 'package:nodex_hms/domain/tasks/task_use_cases.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
 import 'package:nodex_hms/domain/visitor/visitor_repository.dart';
@@ -1348,6 +1350,67 @@ final Provider<ReadQualityHubUseCase> readQualityHubUseCaseProvider =
       (Ref ref) => ReadQualityHubUseCase(
         repository: ref.watch(qualityRepositoryProvider),
       ),
+    );
+
+/// Task repository over the encrypted local projection.
+final Provider<TaskRepository> taskRepositoryProvider =
+    Provider<TaskRepository>(
+      (Ref ref) => DefaultTaskRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Raising a cross-department task.
+final Provider<RaiseTaskUseCase> raiseTaskUseCaseProvider =
+    Provider<RaiseTaskUseCase>(
+      (Ref ref) =>
+          RaiseTaskUseCase(repository: ref.watch(taskRepositoryProvider)),
+    );
+
+/// Claiming a task for the signed-in user.
+final Provider<ClaimTaskUseCase> claimTaskUseCaseProvider =
+    Provider<ClaimTaskUseCase>(
+      (Ref ref) =>
+          ClaimTaskUseCase(repository: ref.watch(taskRepositoryProvider)),
+    );
+
+/// Starting a claimed task.
+final Provider<StartTaskUseCase> startTaskUseCaseProvider =
+    Provider<StartTaskUseCase>(
+      (Ref ref) =>
+          StartTaskUseCase(repository: ref.watch(taskRepositoryProvider)),
+    );
+
+/// Completing a task with a note.
+final Provider<CompleteTaskUseCase> completeTaskUseCaseProvider =
+    Provider<CompleteTaskUseCase>(
+      (Ref ref) =>
+          CompleteTaskUseCase(repository: ref.watch(taskRepositoryProvider)),
+    );
+
+/// Cancelling a task with a reason.
+final Provider<CancelTaskUseCase> cancelTaskUseCaseProvider =
+    Provider<CancelTaskUseCase>(
+      (Ref ref) =>
+          CancelTaskUseCase(repository: ref.watch(taskRepositoryProvider)),
+    );
+
+/// Raising a task's priority.
+final Provider<ReprioritiseTaskUseCase> reprioritiseTaskUseCaseProvider =
+    Provider<ReprioritiseTaskUseCase>(
+      (Ref ref) => ReprioritiseTaskUseCase(
+        repository: ref.watch(taskRepositoryProvider),
+      ),
+    );
+
+/// Reading the task board.
+final Provider<ReadTaskBoardUseCase> readTaskBoardUseCaseProvider =
+    Provider<ReadTaskBoardUseCase>(
+      (Ref ref) =>
+          ReadTaskBoardUseCase(repository: ref.watch(taskRepositoryProvider)),
     );
 
 /// Patient feedback and grievance repository over the encrypted local projection.

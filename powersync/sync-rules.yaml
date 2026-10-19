@@ -841,3 +841,20 @@ sync_rules:
         - select * from public.ward_vitals where tenant_id = bucket.tenant_id
         - select * from public.ward_handovers where tenant_id = bucket.tenant_id
         - select * from public.ward_tasks where tenant_id = bucket.tenant_id
+
+    # Module 41 (task engine): the cross-department board, scoped by tasks.read.
+    # The whole board travels rather than only the caller's tasks: a porter who
+    # cannot see that a STAT errand is unclaimed cannot take it.
+    task_engine:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'tasks.read'
+      data:
+        - select * from public.hospital_tasks where tenant_id = bucket.tenant_id

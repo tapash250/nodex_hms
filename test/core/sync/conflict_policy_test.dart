@@ -590,6 +590,7 @@ void main() {
       'hr_payslips',
       'ward_handovers',
       'ward_tasks',
+      'hospital_tasks',
       'ward_vitals',
       'icu_beds',
       'icu_nursing_handover',

@@ -446,6 +446,17 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Cross-department task board (Module 41).
+  static const NavigationDestinationSpec tasks = NavigationDestinationSpec(
+    routePath: '/tasks',
+    label: 'Tasks',
+    icon: Icons.assignment_outlined,
+    selectedIcon: Icons.assignment,
+    requiredPermissions: <String>{NodexPermissions.tasksRead},
+    moduleCode: 'M41',
+    isPrimary: false,
+  );
+
   /// Every declared destination in navigation order.
   static const List<NavigationDestinationSpec> all =
       <NavigationDestinationSpec>[
@@ -481,6 +492,7 @@ abstract final class NodexDestinations {
         aiGovernance,
         audit,
         settings,
+        tasks,
       ];
 
   /// Destinations visible to [policy], in navigation order.

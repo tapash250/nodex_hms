@@ -438,6 +438,9 @@ abstract final class ConflictPolicyRegistry {
   /// Ward nursing task.
   static const String wardTask = 'ward_task';
 
+  /// Cross-department errand with one owner (Module 41).
+  static const String hospitalTask = 'hospital_task';
+
   /// Bed registry entry (code, type and lifecycle status).
   static const String bed = 'bed';
 
@@ -1542,6 +1545,15 @@ abstract final class ConflictPolicyRegistry {
           'holds it so two devices cannot both claim the task or record two '
           'different closers for the same piece of work.',
     ),
+    hospitalTask: ConflictPolicyEntry(
+      resourceType: hospitalTask,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A hospital task is defined by its claim: the first device that '
+          'takes it owns it, and two porters cannot both run the same STAT '
+          'errand. The server arbitrates the claim, and a device that lost the '
+          'race is told rather than silently overwriting the winner.',
+    ),
   };
 
   /// Maps a replicated table name onto its registered resource type.
@@ -1672,6 +1684,7 @@ abstract final class ConflictPolicyRegistry {
     'ward_vitals': wardVital,
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
+    'hospital_tasks': hospitalTask,
   };
 
   /// Resolves [resourceType], which may be a table name, to its entry.

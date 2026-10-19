@@ -397,6 +397,12 @@ abstract final class NodexPermissions {
   /// Create, delegate and close ward nursing tasks.
   static const String nursingTaskWrite = 'nursing_task.write';
 
+  /// Read the cross-department task board (Module 41).
+  static const String tasksRead = 'tasks.read';
+
+  /// Raise, claim, reprioritise and close hospital tasks (Module 41).
+  static const String tasksManage = 'tasks.manage';
+
   /// Approve and finalize a patient discharge.
   static const String dischargeFinalize = 'discharge.finalize';
 
