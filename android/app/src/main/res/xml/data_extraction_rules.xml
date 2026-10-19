@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NODEX Enterprise HMS - Android 12+ backup and transfer rules.
+
+  `android:allowBackup="false"` already refuses cloud backup and device-to-device
+  transfer. These rules state the same intent in the format API 31+ consults, so
+  a future manifest change cannot silently re-enable extraction of the encrypted
+  clinical database or the Keystore-held key reference.
+
+  Nothing is included. The encrypted local projection is a replica of the cloud
+  system of record and is rebuilt by re-replication; it is never the backup.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

@@ -499,7 +499,7 @@ void main() {
     test('append-only entities resolve automatically', () {
       expect(
         ConflictPolicyRegistry.canResolveAutomatically(
-          ConflictPolicyRegistry.vitalObservation,
+          ConflictPolicyRegistry.wardVital,
         ),
         isTrue,
       );

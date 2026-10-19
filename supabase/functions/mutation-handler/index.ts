@@ -708,7 +708,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
       recorded_at: 'timestamp',
       created_at: 'timestamp',
     },
-    operations: ['upsert', 'patch'],
+    operations: ['upsert'],
     auditActionUpsert: 'inventory.movement.recorded',
     auditActionPatch: 'inventory.movement.updated',
   },

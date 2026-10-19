@@ -63,6 +63,9 @@
         android:hardwareAccelerated="true"
         android:usesCleartextTraffic="false"
         android:networkSecurityConfig="@xml/network_security_config"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         tools:targetApi="33">
 
         <!--
@@ -70,10 +73,11 @@
           without its Keystore-held key is useless, and a backup that captured
           clinical data would create an uncontrolled copy outside the retention
           policy. Client devices are never the authoritative backup mechanism.
+
+          The attribute above is the one Android reads. `fullBackupContent` and
+          `dataExtractionRules` cover API 30 and API 31+ respectively; all three
+          are required because the manifest merger honours them independently.
         -->
-        <meta-data
-            android:name="android.app.allowBackup"
-            android:value="false" />
 
         <activity
             android:name=".MainActivity"

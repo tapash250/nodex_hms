@@ -190,6 +190,20 @@ abstract final class LocalTables {
   /// Per-engine routing policy, replicated as read-only configuration.
   static const String aiRoutingPolicies = 'ai_routing_policies';
 
+  /// Version-controlled AI deployment profiles, replicated read-only.
+  ///
+  /// The `ai_configuration` sync bucket selects only active profiles. Without a
+  /// local table the bucket cannot materialize and the gateway loses the
+  /// environment profile that names the active provider set.
+  static const String aiDeploymentProfiles = 'ai_deployment_profiles';
+
+  /// Audit rows authored by this device's user.
+  ///
+  /// The `audit_self` bucket replicates the caller's own history only; the full
+  /// trail stays server-side behind `audit.read`. Without a local table that
+  /// bucket cannot materialize.
+  static const String auditEvents = 'audit_events';
+
   /// Local-only mirror of the outbound mutation ledger.
   static const String localMutationLog = 'local_mutation_log';
 
@@ -477,6 +491,8 @@ abstract final class NodexLocalSchema {
     _syncCursors,
     _aiModelRegistry,
     _aiRoutingPolicies,
+    _aiDeploymentProfiles,
+    _auditEvents,
     _localMutationLog,
     _localDiagnostics,
     _patients,
@@ -2342,6 +2358,89 @@ abstract final class NodexLocalSchema {
     ],
     indexes: <Index>[
       Index('ai_routing_engine', <IndexedColumn>[IndexedColumn('engine_key')]),
+    ],
+  );
+
+  /// Version-controlled AI deployment profiles (Phase 1 governance).
+  ///
+  /// Mirrors `public.ai_deployment_profiles`. Read-only configuration: the
+  /// gateway resolves the active profile for its environment, so a device that
+  /// cannot see it must refuse AI work rather than guess a provider set.
+  static const Table _aiDeploymentProfiles = Table(
+    LocalTables.aiDeploymentProfiles,
+    <Column>[
+      Column.text('name'),
+      Column.text('environment'),
+      Column.text('profile_revision'),
+      Column.text('providers'),
+      Column.integer('is_active'),
+      Column.text('activated_at'),
+      Column.text('activated_by'),
+      Column.text('rollback_target_id'),
+      Column.text('notes'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('ai_deployment_environment', <IndexedColumn>[
+        IndexedColumn('environment'),
+        IndexedColumn('is_active'),
+      ]),
+    ],
+  );
+
+  /// Audit rows the signed-in user authored (Phase 1 audit envelope).
+  ///
+  /// Mirrors `public.audit_events` as replicated by the `audit_self` bucket.
+  /// Append-only server-side; the client treats it as read-only history and
+  /// never enqueues a mutation against it.
+  static const Table _auditEvents = Table(
+    LocalTables.auditEvents,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('actor_id'),
+      Column.text('actor_role_key'),
+      Column.text('on_behalf_of_id'),
+      Column.text('device_id'),
+      Column.text('session_reference'),
+      Column.text('occurred_at'),
+      Column.text('recorded_at'),
+      Column.text('action'),
+      Column.text('resource_type'),
+      Column.text('resource_id'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('correlation_id'),
+      Column.text('mutation_id'),
+      Column.text('origin'),
+      Column.text('outcome'),
+      Column.text('risk_tier'),
+      Column.text('before_state'),
+      Column.text('after_state'),
+      Column.text('event_reference'),
+      Column.text('reason'),
+      Column.integer('ai_involved'),
+      Column.text('ai_request_id'),
+      Column.text('ai_engine_key'),
+      Column.text('ai_model_key'),
+      Column.text('ai_model_revision'),
+      Column.text('ai_provider'),
+      Column.text('rule_engine_revision'),
+      Column.text('human_reviewer_id'),
+      Column.text('review_decision'),
+      Column.text('safety_decision_id'),
+      Column.text('metadata'),
+    ],
+    indexes: <Index>[
+      Index('audit_events_actor_time', <IndexedColumn>[
+        IndexedColumn('actor_id'),
+        IndexedColumn('occurred_at'),
+      ]),
+      Index('audit_events_resource', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('resource_type'),
+        IndexedColumn('resource_id'),
+      ]),
     ],
   );
 

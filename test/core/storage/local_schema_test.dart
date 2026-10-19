@@ -164,18 +164,22 @@ void main() {
           LocalTables.wardTasks,
           LocalTables.clinicalProblems,
           LocalTables.encounterScribeDrafts,
+          LocalTables.aiDeploymentProfiles,
+          LocalTables.auditEvents,
         });
       },
     );
 
-    test('does not replicate audit or clinical event tables to the device', () {
+    test('replicates only the caller-owned audit slice', () {
       // Append-only history is read through the server, not held locally: a
-      // device must not carry an unbounded audit trail.
+      // device must not carry an unbounded audit trail. The single exception is
+      // the `audit_self` bucket, which replicates rows the caller authored so a
+      // clinician can see their own recent actions while offline.
       final Set<String> tableNames = schema.tables
           .map((Table table) => table.name)
           .toSet();
 
-      expect(tableNames, isNot(contains('audit_events')));
+      expect(tableNames, contains('audit_events'));
       expect(tableNames, isNot(contains('clinical_events')));
       expect(tableNames, isNot(contains('authorization_snapshots')));
     });

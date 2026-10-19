@@ -160,9 +160,6 @@ abstract final class ConflictPolicyRegistry {
   /// Invoice or payment record.
   static const String billing = 'billing';
 
-  /// Vital sign observation.
-  static const String vitalObservation = 'vital_observation';
-
   /// Appointment booking.
   static const String appointment = 'appointment';
 
@@ -566,13 +563,6 @@ abstract final class ConflictPolicyRegistry {
       rationale:
           'Financial records reconcile as ledger transactions so that '
           'concurrent payments do not overwrite one another.',
-    ),
-    vitalObservation: ConflictPolicyEntry(
-      resourceType: vitalObservation,
-      policy: ConflictPolicy.appendOnly,
-      rationale:
-          'Observations are timestamped facts. Two nurses recording '
-          'vitals produce two observations, not a conflict.',
     ),
     appointment: ConflictPolicyEntry(
       resourceType: appointment,
@@ -1589,7 +1579,6 @@ abstract final class ConflictPolicyRegistry {
     'transfusions': transfusion,
     'triage_assessments': triageAssessment,
     'ventilator_events': ventilatorEvent,
-    'vital_observations': vitalObservation,
     'ward_rooms': wardRoom,
     'practitioner_profiles': practitionerProfile,
     'practitioner_on_calls': practitionerOnCall,
