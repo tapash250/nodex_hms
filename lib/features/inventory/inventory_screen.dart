@@ -1,10 +1,19 @@
 /// Inventory management screen (Module 13).
+///
+/// The item register is dense and long, so it is rendered with the Module 48
+/// table engine: the item code stays pinned while the facts scroll, the list
+/// builds only the rows on screen, and a department can export the register it
+/// is looking at as CSV or PDF.
 library;
+
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nodex_hms/app/providers.dart';
+import 'package:nodex_hms/app/tables/nodex_data_table.dart';
+import 'package:nodex_hms/app/tables/table_export.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/inventory/inventory.dart';
@@ -12,6 +21,7 @@ import 'package:nodex_hms/domain/session/session_state.dart' show SessionState;
 import 'package:nodex_hms/features/inventory/inventory_controller.dart';
 import 'package:nodex_hms/features/session/session_controller.dart'
     show sessionProvider;
+import 'package:path_provider/path_provider.dart';
 
 /// Inventory management screen.
 class InventoryScreen extends ConsumerWidget {
@@ -30,6 +40,25 @@ class InventoryScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Inventory'),
         actions: <Widget>[
+          PopupMenuButton<TableExportFormat>(
+            icon: const Icon(Icons.ios_share_outlined),
+            tooltip: 'Export the register',
+            onSelected: (TableExportFormat format) => _export(
+              context,
+              ref,
+              items.value ?? const <StockItem>[],
+              format,
+            ),
+            itemBuilder: (BuildContext context) =>
+                <PopupMenuEntry<TableExportFormat>>[
+                  for (final TableExportFormat format
+                      in TableExportFormat.values)
+                    PopupMenuItem<TableExportFormat>(
+                      value: format,
+                      child: Text('Export ${format.label}'),
+                    ),
+                ],
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
@@ -53,31 +82,107 @@ class InventoryScreen extends ConsumerWidget {
         ),
         data: (List<StockItem> values) => values.isEmpty
             ? const Center(child: Text('No stock items registered.'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: values.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final StockItem item = values[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      leading: Icon(
-                        item.status == StockItemStatus.discontinued
-                            ? Icons.block
-                            : Icons.inventory_2_outlined,
-                      ),
-                      title: Text(item.name),
-                      subtitle: Text(
-                        '${item.itemCode} · ${item.category} · ${item.status.wireValue}',
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.go('/inventory/${item.id}'),
-                    ),
-                  );
-                },
+            : NodexDataTable<StockItem>(
+                columns: _stockColumns,
+                rows: values,
+                emptyMessage: 'No stock items registered.',
+                initialSort: const <TableSortSpec>[TableSortSpec('name')],
+                onRowTap: (StockItem item) =>
+                    context.go('/inventory/${item.id}'),
               ),
       ),
     );
+  }
+
+  /// The register's columns, in reading order.
+  ///
+  /// The item code is pinned: a reader who scrolls to the reorder level must
+  /// not lose which item they are looking at.
+  static const List<NodexTableColumn<StockItem>> _stockColumns =
+      <NodexTableColumn<StockItem>>[
+        NodexTableColumn<StockItem>(
+          key: 'item_code',
+          label: 'Code',
+          width: 130,
+          pinned: true,
+          value: _itemCode,
+        ),
+        NodexTableColumn<StockItem>(
+          key: 'name',
+          label: 'Item',
+          width: 220,
+          value: _itemName,
+        ),
+        NodexTableColumn<StockItem>(
+          key: 'category',
+          label: 'Category',
+          width: 160,
+          value: _itemCategory,
+        ),
+        NodexTableColumn<StockItem>(
+          key: 'unit',
+          label: 'Unit',
+          width: 100,
+          value: _itemUnit,
+        ),
+        NodexTableColumn<StockItem>(
+          key: 'reorder_level',
+          label: 'Reorder at',
+          width: 110,
+          numeric: true,
+          value: _itemReorderLevel,
+          compare: _compareReorderLevel,
+        ),
+        NodexTableColumn<StockItem>(
+          key: 'status',
+          label: 'Status',
+          width: 140,
+          value: _itemStatus,
+        ),
+      ];
+
+  Future<void> _export(
+    BuildContext context,
+    WidgetRef ref,
+    List<StockItem> items,
+    TableExportFormat format,
+  ) async {
+    final List<StockItem> ordered = NodexDataTable.sortRows<StockItem>(
+      rows: items,
+      columns: _stockColumns,
+      sorts: const <TableSortSpec>[TableSortSpec('name')],
+    );
+    final String name =
+        'inventory_register_${DateTime.now().toUtc().toIso8601String().split('.').first.replaceAll(':', '')}'
+        '.${format.extension}';
+    try {
+      final Directory directory = await getApplicationDocumentsDirectory();
+      final File file = File('${directory.path}/$name');
+      switch (format) {
+        case TableExportFormat.csv:
+          await file.writeAsString(
+            tableToCsv<StockItem>(columns: _stockColumns, rows: ordered),
+          );
+        case TableExportFormat.pdf:
+          await file.writeAsBytes(
+            tableToPdf<StockItem>(
+              title: 'Stock register',
+              columns: _stockColumns,
+              rows: ordered,
+            ),
+          );
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Exported ${ordered.length} items to $name')),
+        );
+      }
+    } on Object catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Export failed: $error')));
+      }
+    }
   }
 
   Future<void> _showItemSheet(BuildContext context, WidgetRef ref) async {
@@ -292,4 +397,27 @@ class _ItemSheetState extends State<_ItemSheet> {
       ),
     );
   }
+}
+
+String _itemCode(StockItem item) => item.itemCode;
+String _itemName(StockItem item) => item.name;
+String _itemCategory(StockItem item) => item.category;
+String _itemUnit(StockItem item) => item.unit;
+String _itemStatus(StockItem item) => item.status.wireValue;
+
+/// Reorder level as text, with an explicit dash when none is set.
+String _itemReorderLevel(StockItem item) =>
+    item.reorderLevel == null ? '—' : '${item.reorderLevel}';
+
+/// Sorts reorder levels numerically, with "not set" first.
+///
+/// The rendered text would order 90 above 100; the comparison exists so the
+/// column sorts like a quantity rather than like a string.
+int _compareReorderLevel(StockItem a, StockItem b) {
+  final double? left = a.reorderLevel;
+  final double? right = b.reorderLevel;
+  if (left == null && right == null) return 0;
+  if (left == null) return -1;
+  if (right == null) return 1;
+  return left.compareTo(right);
 }
