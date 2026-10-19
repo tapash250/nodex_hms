@@ -457,6 +457,21 @@ abstract final class NodexDestinations {
     isPrimary: false,
   );
 
+  /// Shared clinical widget library gallery (Module 45).
+  ///
+  /// No permission gates the gallery: it renders no patient data, and the
+  /// components it demonstrates are already visible wherever they are used.
+  static const NavigationDestinationSpec widgetsLibrary =
+      NavigationDestinationSpec(
+        routePath: '/widgets',
+        label: 'Clinical widgets',
+        icon: Icons.widgets_outlined,
+        selectedIcon: Icons.widgets,
+        requiredPermissions: <String>{},
+        moduleCode: 'M45',
+        isPrimary: false,
+      );
+
   /// Every declared destination in navigation order.
   static const List<NavigationDestinationSpec> all =
       <NavigationDestinationSpec>[
@@ -493,6 +508,7 @@ abstract final class NodexDestinations {
         audit,
         settings,
         tasks,
+        widgetsLibrary,
       ];
 
   /// Destinations visible to [policy], in navigation order.

@@ -69,6 +69,7 @@ import 'package:nodex_hms/features/tasks/task_board_screen.dart';
 import 'package:nodex_hms/features/telemedicine/telemedicine_consultation_screen.dart';
 import 'package:nodex_hms/features/visitor/visitor_desk_screen.dart';
 import 'package:nodex_hms/features/waste/waste_management_screen.dart';
+import 'package:nodex_hms/features/widgets_library/widgets_library_screen.dart';
 import 'package:nodex_hms/features/workforce/workforce_screen.dart';
 
 /// Route paths that do not require an authorized session.
@@ -503,6 +504,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.tasks.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const TaskBoardScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.widgetsLibrary.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const WidgetsLibraryScreen(),
           ),
         ],
       ),

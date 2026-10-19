@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:nodex_hms/app/widgets/clinical_widgets.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/icu/icu.dart';
@@ -98,16 +99,79 @@ class IcuPatientSection extends ConsumerWidget {
               );
             }
             final latest = list.first;
-            return Text(
-              [
-                if (latest.heartRate != null) 'HR ${latest.heartRate}',
-                if (latest.spo2 != null) 'SpO₂ ${latest.spo2}%',
+            final IcuVitals? previous = list.length > 1 ? list[1] : null;
+            // The list arrives newest first; a trend reads oldest first.
+            final List<num> heartRates = <num>[
+              for (final IcuVitals vitals in list.reversed)
+                if (vitals.heartRate != null) vitals.heartRate!,
+            ];
+            final List<num> saturations = <num>[
+              for (final IcuVitals vitals in list.reversed)
+                if (vitals.spo2 != null) vitals.spo2!,
+            ];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                if (latest.heartRate != null)
+                  ClinicalMetricTile(
+                    label: 'Heart rate',
+                    value: latest.heartRate!,
+                    unit: 'bpm',
+                    referenceLow: 60,
+                    referenceHigh: 100,
+                    previous: previous?.heartRate,
+                  ),
+                if (latest.spo2 != null)
+                  ClinicalMetricTile(
+                    label: 'SpO₂',
+                    value: latest.spo2!,
+                    unit: '%',
+                    referenceLow: 94,
+                    referenceHigh: 100,
+                    previous: previous?.spo2,
+                  ),
                 if (latest.respiratoryRate != null)
-                  'RR ${latest.respiratoryRate}',
+                  ClinicalMetricTile(
+                    label: 'Respiratory rate',
+                    value: latest.respiratoryRate!,
+                    unit: '/min',
+                    referenceLow: 12,
+                    referenceHigh: 20,
+                    previous: previous?.respiratoryRate,
+                  ),
                 if (latest.temperatureCelsius != null)
-                  '${latest.temperatureCelsius}°C',
-              ].join(' · '),
-              style: theme.textTheme.bodySmall,
+                  ClinicalMetricTile(
+                    label: 'Temperature',
+                    value: latest.temperatureCelsius!,
+                    unit: '°C',
+                    referenceLow: 36.1,
+                    referenceHigh: 37.2,
+                    previous: previous?.temperatureCelsius,
+                  ),
+                if (heartRates.length > 1 ||
+                    saturations.length > 1) ...<Widget>[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: <Widget>[
+                      VitalSparkline(
+                        values: heartRates,
+                        label: 'Heart rate trend',
+                        unit: 'bpm',
+                        referenceLow: 60,
+                        referenceHigh: 100,
+                      ),
+                      const SizedBox(width: 16),
+                      VitalSparkline(
+                        values: saturations,
+                        label: 'SpO₂ trend',
+                        unit: '%',
+                        referenceLow: 94,
+                        referenceHigh: 100,
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             );
           },
         ),
