@@ -3,7 +3,9 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nodex_hms/app/charts/clinical_bar_chart.dart';
 import 'package:nodex_hms/app/providers.dart';
+import 'package:nodex_hms/app/widgets/clinical_widgets.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/beds/bed.dart';
@@ -23,7 +25,6 @@ class WardCensusScreen extends ConsumerStatefulWidget {
 
 class _WardCensusScreenState extends ConsumerState<WardCensusScreen> {
   String? _wardId;
-
   @override
   Widget build(BuildContext context) {
     final AsyncValue<List<WardInfo>> wards = ref.watch(censusWardsProvider);
@@ -95,6 +96,7 @@ class _WardCensusScreenState extends ConsumerState<WardCensusScreen> {
                   },
                 ),
               ),
+              const _OccupancyGraph(),
               Expanded(
                 child: census.when(
                   loading: () =>
@@ -312,6 +314,60 @@ class _WardCensusScreenState extends ConsumerState<WardCensusScreen> {
   static void _snack(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// How full each ward is, as a bar per ward.
+///
+/// The graph counts live assignments, so it cannot drift from the census list
+/// below it, and a ward that is over its staffed capacity is marked rather
+/// than left for the reader to compare.
+class _OccupancyGraph extends ConsumerWidget {
+  const _OccupancyGraph();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<List<WardOccupancy>> occupancies = ref.watch(
+      wardOccupancyProvider,
+    );
+    final ThemeData theme = Theme.of(context);
+    return occupancies.when(
+      loading: () => const SizedBox.shrink(),
+      error: (Object error, StackTrace _) => const SizedBox.shrink(),
+      data: (List<WardOccupancy> values) {
+        if (values.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('Occupancy', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  ClinicalBarChart(
+                    bars: <ChartBar>[
+                      for (final WardOccupancy occupancy in values)
+                        ChartBar(
+                          label: occupancy.name,
+                          value: occupancy.occupied.toDouble(),
+                          caption: '${occupancy.occupied}/${occupancy.total}',
+                          tone: occupancy.ratio >= 0.9
+                              ? ClinicalTone.critical
+                              : ClinicalTone.info,
+                        ),
+                    ],
+                    height: 168,
+                    showValues: true,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 

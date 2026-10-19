@@ -40,6 +40,10 @@ final class RecordingLabRepository implements LabRepository {
   Future<List<LabResult>> listResults(String orderId) async => <LabResult>[];
 
   @override
+  Future<List<LabResult>> listResultsForPatient(String patientId) async =>
+      <LabResult>[];
+
+  @override
   Future<String> createOrder(Map<String, Object?> row) async {
     orders.add(row);
     return 'order-new';

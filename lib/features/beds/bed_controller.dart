@@ -3,6 +3,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nodex_hms/app/providers.dart';
+import 'package:nodex_hms/domain/beds/bed.dart';
 import 'package:nodex_hms/domain/beds/bed_repository.dart';
 
 /// Wards in the local scope, for the census picker.
@@ -45,3 +46,63 @@ final bedOccupantNameProvider = FutureProvider.autoDispose
       if (patient == null) return patientId.substring(0, 8);
       return patient.displayName;
     });
+
+/// How full one ward is.
+final class WardOccupancy {
+  /// Creates an occupancy reading.
+  const WardOccupancy({
+    required this.wardId,
+    required this.name,
+    required this.total,
+    required this.occupied,
+  });
+
+  /// Ward identifier.
+  final String wardId;
+
+  /// Ward name.
+  final String name;
+
+  /// Beds registered in the ward.
+  final int total;
+
+  /// Beds with a live occupant.
+  final int occupied;
+
+  /// Beds free to take a patient.
+  int get free => total - occupied;
+
+  /// The share of the ward that is occupied, as a fraction.
+  double get ratio => total == 0 ? 0 : occupied / total;
+}
+
+/// Bed occupancy for every ward in scope (Module 49).
+///
+/// Occupancy is counted from the live assignments rather than from a stored
+/// number, so the graph cannot disagree with the board below it.
+final wardOccupancyProvider = FutureProvider.autoDispose<List<WardOccupancy>>((
+  Ref ref,
+) async {
+  final BedRepository repository = ref.watch(bedRepositoryProvider);
+  final List<WardInfo> wards = await repository.listWards();
+  final List<WardOccupancy> occupancies = <WardOccupancy>[];
+  for (final WardInfo ward in wards) {
+    final List<Bed> beds = await repository.listBedsForWard(ward.id);
+    int occupied = 0;
+    for (final Bed bed in beds) {
+      final BedAssignment? assignment = await repository.activeAssignmentForBed(
+        bed.id,
+      );
+      if (assignment != null) occupied++;
+    }
+    occupancies.add(
+      WardOccupancy(
+        wardId: ward.id,
+        name: ward.displayName,
+        total: beds.length,
+        occupied: occupied,
+      ),
+    );
+  }
+  return occupancies;
+});

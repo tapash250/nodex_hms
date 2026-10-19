@@ -25,6 +25,14 @@ abstract interface class LabRepository {
   /// Results for an order, newest correction first.
   Future<List<LabResult>> listResults(String orderId);
 
+  /// Every numeric result recorded for one patient, oldest first.
+  ///
+  /// A trend is a property of the patient, not of an order: the same analyte
+  /// is followed across three orders taken in three months. This walks the
+  /// patient's orders and collects the results, so the caller does not have to
+  /// hold an order to see a curve.
+  Future<List<LabResult>> listResultsForPatient(String patientId);
+
   /// Creates a local order.
   Future<String> createOrder(Map<String, Object?> row);
 
@@ -92,6 +100,37 @@ final class DefaultLabRepository implements LabRepository {
       <Object?>[orderId],
     );
     return rows.map(LabResult.fromRow).toList(growable: false);
+  }
+
+  @override
+  Future<List<LabResult>> listResultsForPatient(String patientId) async {
+    try {
+      final List<LabOrder> orders = await listOrdersForPatient(patientId);
+      final List<LabResult> results = <LabResult>[];
+      for (final LabOrder order in orders) {
+        results.addAll(await listResults(order.id));
+      }
+      // Oldest first: a trend reads forward in time.
+      results.sort(
+        (LabResult a, LabResult b) => a.enteredAt.compareTo(b.enteredAt),
+      );
+      return List<LabResult>.unmodifiable(results);
+    } on Object catch (error, stackTrace) {
+      if (error is NodexError) rethrow;
+      final NodexError mapped = NodexErrorMapper.map(
+        error,
+        operation: 'lab.results.forPatient',
+      );
+      _logger.error(
+        _module,
+        'Laboratory repository failure.',
+        operation: 'lab.results.forPatient',
+        outcome: 'failed',
+        errorCode: mapped.code,
+        stackTrace: stackTrace,
+      );
+      throw mapped;
+    }
   }
 
   @override

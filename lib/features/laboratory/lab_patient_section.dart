@@ -4,11 +4,15 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nodex_hms/app/charts/chart_geometry.dart';
+import 'package:nodex_hms/app/charts/clinical_line_chart.dart';
 import 'package:nodex_hms/app/providers.dart';
+import 'package:nodex_hms/app/widgets/clinical_widgets.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/laboratory/lab.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
+import 'package:nodex_hms/features/laboratory/lab_trend.dart';
 import 'package:nodex_hms/features/laboratory/laboratory_controller.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
@@ -96,6 +100,8 @@ class LabPatientSection extends ConsumerWidget {
                       .toList(growable: false),
                 ),
         ),
+        const SizedBox(height: 16),
+        _LabTrends(patientId: patientId),
       ],
     );
   }
@@ -134,6 +140,137 @@ class LabPatientSection extends ConsumerWidget {
             .showSnackBar(SnackBar(content: Text(error.message)));
       }
     }
+  }
+}
+
+/// The patient's numeric trends, drawn as curves.
+///
+/// A trend is drawn only when there is something to draw: an analyte with a
+/// single reading is a measurement, not a direction, so it is not shown here.
+class _LabTrends extends ConsumerWidget {
+  const _LabTrends({required this.patientId});
+
+  final String patientId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AsyncValue<List<LabTrend>> trends = ref.watch(
+      labTrendsProvider(patientId),
+    );
+    final ThemeData theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('Trends', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        trends.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (Object error, StackTrace _) => Text(
+            error is NodexError
+                ? error.message
+                : 'Trends unavailable on this device.',
+            style: theme.textTheme.bodySmall,
+          ),
+          data: (List<LabTrend> values) => values.isEmpty
+              ? Text(
+                  'No analyte has been measured twice yet.',
+                  style: theme.textTheme.bodySmall,
+                )
+              : Column(
+                  children: values
+                      .map((LabTrend trend) => _TrendCard(trend: trend))
+                      .toList(growable: false),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+/// One analyte's curve.
+class _TrendCard extends StatelessWidget {
+  const _TrendCard({required this.trend});
+
+  final LabTrend trend;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final String unit = trend.unit ?? '';
+    final List<ChartPoint> points = <ChartPoint>[
+      for (int i = 0; i < trend.points.length; i++)
+        ChartPoint(
+          i.toDouble(),
+          trend.points[i].value,
+          label: _day(trend.points[i].at),
+        ),
+    ];
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    '${trend.analyteName}${unit.isEmpty ? '' : ' ($unit)'}',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                ClinicalStatusBadge(
+                  label: trend.latestIsAbnormal ? 'Outside range' : 'In range',
+                  tone: trend.latestIsAbnormal
+                      ? ClinicalTone.critical
+                      : ClinicalTone.success,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClinicalLineChart(
+              series: <ChartSeries>[
+                ChartSeries(
+                  label: trend.analyteName,
+                  points: points,
+                  tone: trend.latestIsAbnormal
+                      ? ClinicalTone.critical
+                      : ClinicalTone.info,
+                ),
+              ],
+              bands: <ChartBand>[
+                if (trend.referenceLow != null && trend.referenceHigh != null)
+                  ChartBand(
+                    from: trend.referenceLow!,
+                    to: trend.referenceHigh!,
+                    label: 'Reference',
+                  ),
+              ],
+              unit: unit.isEmpty ? null : unit,
+              xLabelBuilder: (ChartPoint point) => point.label ?? '',
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Latest ${_number(trend.latest.value)} $unit · '
+              '${trend.points.length} readings'
+              '${trend.referenceLow != null ? ' · reference ${_number(trend.referenceLow!)}–${_number(trend.referenceHigh!)}' : ''}',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String _number(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toStringAsFixed(1);
+
+  static String _day(DateTime at) {
+    final DateTime local = at.toLocal();
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}';
   }
 }
 

@@ -6,6 +6,7 @@ import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/laboratory/lab.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
+import 'package:nodex_hms/features/laboratory/lab_trend.dart';
 
 /// Order detail bundle for the laboratory screen.
 final class LabOrderDetail {
@@ -30,6 +31,18 @@ final class LabOrderDetail {
 final labOrdersForPatientProvider = FutureProvider.autoDispose
     .family<List<LabOrder>, String>((Ref ref, String patientId) async {
       return ref.watch(labRepositoryProvider).listOrdersForPatient(patientId);
+    });
+
+/// The numeric trends held for one patient (Module 49).
+///
+/// The curve follows the analyte across orders, so it is built from the
+/// patient's results rather than from any single order.
+final labTrendsProvider = FutureProvider.autoDispose
+    .family<List<LabTrend>, String>((Ref ref, String patientId) async {
+      final List<LabResult> results = await ref
+          .watch(labRepositoryProvider)
+          .listResultsForPatient(patientId);
+      return buildLabTrends(results);
     });
 
 /// One order with specimens and results.
