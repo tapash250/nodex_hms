@@ -462,6 +462,15 @@ abstract final class ConflictPolicyRegistry {
   /// Refund against a payment.
   static const String refund = 'refund';
 
+  /// Running patient account balance (Module 31).
+  static const String patientAccount = 'patient_account';
+
+  /// Append-only financial journal entry (Module 31).
+  static const String ledgerEntry = 'ledger_entry';
+
+  /// Part of a split payment applied to one invoice (Module 31).
+  static const String paymentAllocation = 'payment_allocation';
+
   /// Laboratory order.
   static const String labOrder = 'lab_order';
 
@@ -1350,6 +1359,30 @@ abstract final class ConflictPolicyRegistry {
           'recorded event, and reversing it requires another refund rather '
           'than an edit.',
     ),
+    patientAccount: ConflictPolicyEntry(
+      resourceType: patientAccount,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'The balance is a projection over the journal, maintained by the '
+          'server. A client that computed a different balance is not making a '
+          'competing claim, it is out of date, so the server value wins.',
+    ),
+    ledgerEntry: ConflictPolicyEntry(
+      resourceType: ledgerEntry,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A journal entry records that money moved once. Two concurrent '
+          'charges are two entries, never a conflict, and a correction is a '
+          'new compensating entry.',
+    ),
+    paymentAllocation: ConflictPolicyEntry(
+      resourceType: paymentAllocation,
+      policy: ConflictPolicy.transactional,
+      rationale:
+          'Splitting one payment across invoices is a financial allocation. '
+          'The server arbitrates the sum so two devices cannot allocate the '
+          'same money twice.',
+    ),
     labOrder: ConflictPolicyEntry(
       resourceType: labOrder,
       policy: ConflictPolicy.appendOnly,
@@ -1559,6 +1592,9 @@ abstract final class ConflictPolicyRegistry {
     'ot_procedure_logs': otProcedureLog,
     'patient_allergies': patientAllergy,
     'patient_merge_history': patientMergeHistory,
+    'patient_accounts': patientAccount,
+    'ledger_entries': ledgerEntry,
+    'payment_allocations': paymentAllocation,
     'patients': patient,
     'payments': payment,
     'pharmacy_dispenses': pharmacyDispense,

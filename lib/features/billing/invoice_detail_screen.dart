@@ -4,8 +4,10 @@ import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart' show NodexError;
 import 'package:nodex_hms/domain/billing/invoice.dart';
+import 'package:nodex_hms/domain/billing/patient_account.dart';
 import 'package:nodex_hms/domain/session/session_state.dart' show SessionState;
 import 'package:nodex_hms/features/billing/billing_controller.dart';
+import 'package:nodex_hms/features/billing/patient_account_section.dart';
 import 'package:nodex_hms/features/session/session_controller.dart'
     show sessionProvider;
 
@@ -50,6 +52,9 @@ class _InvoiceBody extends ConsumerWidget {
     );
     final bool canDraft = session.authorization.can(
       NodexPermissions.billingSettle,
+    );
+    final bool canLedger = session.authorization.can(
+      NodexPermissions.billingLedger,
     );
     final AsyncValue<List<InvoiceLine>> lines = ref.watch(
       invoiceLinesProvider(value.id),
@@ -115,6 +120,12 @@ class _InvoiceBody extends ConsumerWidget {
                 icon: const Icon(Icons.add),
                 label: const Text('Add line'),
                 onPressed: () => _showLineSheet(context, ref),
+              ),
+            if (value.status == InvoiceStatus.issued && canLedger)
+              FilledButton.tonalIcon(
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+                label: const Text('Charge account'),
+                onPressed: () => _showChargeSheet(context, ref),
               ),
             if (value.status.isEditable && canDraft)
               OutlinedButton.icon(
@@ -344,6 +355,44 @@ class _InvoiceBody extends ConsumerWidget {
           );
       ref.invalidate(invoiceLinesProvider(value.id));
       ref.invalidate(invoiceDetailProvider(value.id));
+    } on NodexError catch (error) {
+      if (context.mounted) _snack(context, error.message);
+    }
+  }
+
+  Future<void> _showChargeSheet(BuildContext context, WidgetRef ref) async {
+    final PatientAccount? account = await ensurePatientAccount(
+      context: context,
+      ref: ref,
+      patientId: value.patientId,
+    );
+    if (account == null || !context.mounted) return;
+
+    final int outstanding = value.totalMinor - value.settledMinor;
+    final _ChargeDraft? draft = await showModalBottomSheet<_ChargeDraft>(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) => _ChargeSheet(
+        suggestedMinor: outstanding > 0 ? outstanding : value.totalMinor,
+      ),
+    );
+    if (draft == null) return;
+
+    final SessionState session = ref.read(sessionProvider);
+    final String? userId = session.user?.userId;
+    if (userId == null) return;
+    try {
+      await ref
+          .read(postChargeUseCaseProvider)
+          .call(
+            policy: session.authorization,
+            account: account,
+            invoice: value,
+            recordedBy: userId,
+            amountMinor: draft.amountMinor,
+            memo: draft.memo,
+          );
+      ref.invalidate(patientAccountStatementProvider(value.patientId));
     } on NodexError catch (error) {
       if (context.mounted) _snack(context, error.message);
     }
@@ -581,6 +630,89 @@ class _LineSheetState extends State<_LineSheet> {
               );
             },
             child: const Text('Add line'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChargeDraft {
+  const _ChargeDraft({required this.amountMinor, this.memo});
+
+  final int amountMinor;
+  final String? memo;
+}
+
+class _ChargeSheet extends StatefulWidget {
+  const _ChargeSheet({required this.suggestedMinor});
+
+  final int suggestedMinor;
+
+  @override
+  State<_ChargeSheet> createState() => _ChargeSheetState();
+}
+
+class _ChargeSheetState extends State<_ChargeSheet> {
+  late final TextEditingController _amount = TextEditingController(
+    text: widget.suggestedMinor.toString(),
+  );
+  final TextEditingController _memo = TextEditingController();
+
+  @override
+  void dispose() {
+    _amount.dispose();
+    _memo.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(24, 16, 24, 24 + keyboard),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Text(
+            'Charge the account',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'The invoice is billed to the patient as a receivable debit. '
+            'Settling it later is a separate event, so the charge never hides '
+            'whether the money arrived.',
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _amount,
+            decoration: const InputDecoration(
+              labelText: 'Amount (minor units) *',
+            ),
+            keyboardType: TextInputType.number,
+            autofocus: true,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _memo,
+            decoration: const InputDecoration(labelText: 'Memo (optional)'),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () {
+              final int? amount = int.tryParse(_amount.text.trim());
+              if (amount == null || amount <= 0) return;
+              Navigator.pop(
+                context,
+                _ChargeDraft(
+                  amountMinor: amount,
+                  memo: _memo.text.trim().isEmpty ? null : _memo.text.trim(),
+                ),
+              );
+            },
+            child: const Text('Post charge'),
           ),
         ],
       ),

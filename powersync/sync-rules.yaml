@@ -266,6 +266,11 @@ sync_rules:
           where i.tenant_id = bucket.tenant_id
         - select * from public.payments where tenant_id = bucket.tenant_id
         - select * from public.refunds where tenant_id = bucket.tenant_id
+        - select * from public.patient_accounts where tenant_id = bucket.tenant_id
+        - select * from public.ledger_entries where tenant_id = bucket.tenant_id
+        - select pa.* from public.payment_allocations pa
+          join public.payments p on p.id = pa.payment_id
+          where p.tenant_id = bucket.tenant_id
 
     # Module 13 (inventory): items, locations, batches and movements for the
     # caller's patient-read tenants (mirrors the inventory_select_member RLS

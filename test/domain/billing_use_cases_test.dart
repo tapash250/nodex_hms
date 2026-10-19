@@ -14,6 +14,7 @@ import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/billing/billing_repository.dart';
 import 'package:nodex_hms/domain/billing/billing_use_cases.dart';
 import 'package:nodex_hms/domain/billing/invoice.dart';
+import 'package:nodex_hms/domain/billing/patient_account.dart';
 
 /// Records what the billing commands were asked to write.
 final class RecordingBillingRepository implements BillingRepository {
@@ -73,6 +74,59 @@ final class RecordingBillingRepository implements BillingRepository {
     refunds.add(row);
     return 'refund-new';
   }
+
+  final List<Map<String, Object?>> accounts = <Map<String, Object?>>[];
+  final List<Map<String, Object?>> entries = <Map<String, Object?>>[];
+  final List<Map<String, Object?>> allocations = <Map<String, Object?>>[];
+
+  /// Accounts the repository should answer by patient id.
+  final Map<String, PatientAccount> storedAccounts = <String, PatientAccount>{};
+
+  /// Journal entries the repository should return for an account.
+  final Map<String, List<LedgerEntry>> storedEntries =
+      <String, List<LedgerEntry>>{};
+
+  /// Allocations already recorded against a payment.
+  final List<PaymentAllocation> storedAllocations = <PaymentAllocation>[];
+
+  /// Id minted for the next opened account.
+  String nextAccountId = 'account-new';
+
+  @override
+  Future<PatientAccount?> getAccountForPatient(String patientId) async =>
+      storedAccounts[patientId];
+
+  @override
+  Future<PatientAccount?> getAccountById(String id) async =>
+      storedAccounts.values.where((PatientAccount a) => a.id == id).firstOrNull;
+
+  @override
+  Future<List<LedgerEntry>> listLedgerEntries(
+    String accountId, {
+    int limit = 200,
+  }) async => storedEntries[accountId] ?? <LedgerEntry>[];
+
+  @override
+  Future<String> openAccount(Map<String, Object?> row) async {
+    accounts.add(row);
+    return nextAccountId;
+  }
+
+  @override
+  Future<String> postLedgerEntry(Map<String, Object?> row) async {
+    entries.add(row);
+    return 'entry-new';
+  }
+
+  @override
+  Future<List<PaymentAllocation>> listAllocations(String paymentId) async =>
+      storedAllocations;
+
+  @override
+  Future<String> allocatePayment(Map<String, Object?> row) async {
+    allocations.add(row);
+    return 'allocation-new';
+  }
 }
 
 /// Builds a policy holding exactly [permissions].
@@ -103,6 +157,8 @@ AuthorizationPolicy policyWith(Set<String> permissions) {
 Invoice invoiceWith({
   InvoiceStatus status = InvoiceStatus.draft,
   String id = 'invoice-1',
+  String currency = 'BDT',
+  int settledMinor = 0,
 }) => Invoice(
   id: id,
   tenantId: 'tenant-1',
@@ -110,10 +166,27 @@ Invoice invoiceWith({
   createdBy: 'accounts-1',
   invoiceCode: 'INV-001',
   status: status,
-  currency: 'BDT',
+  currency: currency,
   totalMinor: 45000,
-  settledMinor: status == InvoiceStatus.settled ? 45000 : 0,
+  settledMinor: status == InvoiceStatus.settled ? 45000 : settledMinor,
   createdAt: DateTime.utc(2026, 9, 12, 9),
+);
+
+/// The patient account the standard fixture identity owns.
+PatientAccount accountWith({
+  String id = 'account-1',
+  int balanceMinor = 0,
+  AccountStatus status = AccountStatus.open,
+}) => PatientAccount(
+  id: id,
+  tenantId: 'tenant-1',
+  patientId: 'patient-1',
+  accountCode: 'ACC-001',
+  currency: 'BDT',
+  status: status,
+  balanceMinor: balanceMinor,
+  lastActivityAt: DateTime.utc(2026, 9, 12, 11),
+  openedAt: DateTime.utc(2026, 9, 1, 8),
 );
 
 /// A recorded payment against [invoiceId].
@@ -485,6 +558,254 @@ void main() {
         ),
       );
       expect(repository.updates, isEmpty);
+    });
+  });
+
+  group('patient accounts and the ledger', () {
+    late RecordingBillingRepository repository;
+
+    setUp(() {
+      repository = RecordingBillingRepository();
+    });
+
+    test(
+      'opening an account returns the existing one rather than a second',
+      () async {
+        final PatientAccount existing = PatientAccount(
+          id: 'account-1',
+          tenantId: 'tenant-1',
+          patientId: 'patient-1',
+          accountCode: 'ACC-001',
+          currency: 'BDT',
+          status: AccountStatus.open,
+          balanceMinor: 12000,
+          lastActivityAt: DateTime.utc(2026, 9, 12, 11),
+          openedAt: DateTime.utc(2026, 9, 1, 8),
+        );
+        repository.storedAccounts['patient-1'] = existing;
+
+        final PatientAccount result =
+            await OpenPatientAccountUseCase(repository: repository).call(
+              policy: policyWith(<String>{NodexPermissions.billingLedger}),
+              tenantId: 'tenant-1',
+              patientId: 'patient-1',
+              accountCode: 'ACC-002',
+            );
+
+        expect(result.id, 'account-1');
+        expect(repository.accounts, isEmpty);
+      },
+    );
+
+    test('opening an account requires the ledger permission', () async {
+      await expectLater(
+        OpenPatientAccountUseCase(repository: repository).call(
+          policy: policyWith(<String>{NodexPermissions.billingRead}),
+          tenantId: 'tenant-1',
+          patientId: 'patient-1',
+          accountCode: 'ACC-001',
+        ),
+        throwsA(isA<AuthorizationError>()),
+      );
+    });
+
+    test('a charge cannot be posted against a draft invoice', () async {
+      final PatientAccount account = accountWith();
+      await expectLater(
+        PostChargeUseCase(repository: repository).call(
+          policy: policyWith(<String>{NodexPermissions.billingLedger}),
+          account: account,
+          invoice: invoiceWith(),
+          recordedBy: 'accounts-1',
+          amountMinor: 45000,
+        ),
+        throwsA(
+          isA<AuthorizationError>().having(
+            (AuthorizationError error) => error.code,
+            'code',
+            'invoice_not_issued',
+          ),
+        ),
+      );
+      expect(repository.entries, isEmpty);
+    });
+
+    test('a charge is posted as a receivable debit against revenue', () async {
+      await PostChargeUseCase(repository: repository).call(
+        policy: policyWith(<String>{NodexPermissions.billingLedger}),
+        account: accountWith(),
+        invoice: invoiceWith(status: InvoiceStatus.issued),
+        recordedBy: 'accounts-1',
+        amountMinor: 45000,
+      );
+
+      expect(repository.entries, hasLength(1));
+      final Map<String, Object?> row = repository.entries.single;
+      expect(row['direction'], 'debit');
+      expect(row['account_code'], 'patient_receivable');
+      expect(row['transaction_type'], 'charge');
+      expect(row['amount_minor'], 45000);
+    });
+
+    test('a charge in another currency is refused', () async {
+      await expectLater(
+        PostChargeUseCase(repository: repository).call(
+          policy: policyWith(<String>{NodexPermissions.billingLedger}),
+          account: accountWith(),
+          invoice: invoiceWith(status: InvoiceStatus.issued, currency: 'USD'),
+          recordedBy: 'accounts-1',
+          amountMinor: 100,
+        ),
+        throwsA(
+          isA<ValidationError>().having(
+            (ValidationError error) => error.code,
+            'code',
+            'ledger_currency_mismatch',
+          ),
+        ),
+      );
+    });
+
+    test('an adjustment without a reason is refused', () async {
+      await expectLater(
+        PostAdjustmentUseCase(repository: repository).call(
+          policy: policyWith(<String>{NodexPermissions.billingLedger}),
+          account: accountWith(),
+          recordedBy: 'accounts-1',
+          amountMinor: 500,
+          direction: LedgerDirection.credit,
+          reason: '  ',
+        ),
+        throwsA(
+          isA<ValidationError>().having(
+            (ValidationError error) => error.code,
+            'code',
+            'ledger_adjustment_reason_required',
+          ),
+        ),
+      );
+      expect(repository.entries, isEmpty);
+    });
+
+    test('an allocation beyond what the payment holds is refused', () async {
+      repository.storedAllocations.add(
+        const PaymentAllocation(
+          id: 'allocation-1',
+          tenantId: 'tenant-1',
+          paymentId: 'payment-1',
+          invoiceId: 'invoice-1',
+          amountMinor: 40000,
+        ),
+      );
+
+      await expectLater(
+        AllocatePaymentUseCase(repository: repository).call(
+          policy: policyWith(<String>{NodexPermissions.billingSettle}),
+          payment: paymentWith(),
+          invoice: invoiceWith(status: InvoiceStatus.issued),
+          amountMinor: 10000,
+        ),
+        throwsA(
+          isA<ValidationError>().having(
+            (ValidationError error) => error.code,
+            'code',
+            'allocation_exceeds_payment',
+          ),
+        ),
+      );
+      expect(repository.allocations, isEmpty);
+    });
+
+    test('an allocation beyond the invoice balance is refused', () async {
+      await expectLater(
+        AllocatePaymentUseCase(repository: repository).call(
+          policy: policyWith(<String>{NodexPermissions.billingSettle}),
+          payment: paymentWith(),
+          invoice: invoiceWith(
+            status: InvoiceStatus.issued,
+            settledMinor: 40000,
+          ),
+          amountMinor: 10000,
+        ),
+        throwsA(
+          isA<ValidationError>().having(
+            (ValidationError error) => error.code,
+            'code',
+            'allocation_exceeds_invoice',
+          ),
+        ),
+      );
+      expect(repository.allocations, isEmpty);
+    });
+
+    test('a payment can be split across two invoices', () async {
+      await AllocatePaymentUseCase(repository: repository).call(
+        policy: policyWith(<String>{NodexPermissions.billingSettle}),
+        payment: paymentWith(),
+        invoice: invoiceWith(status: InvoiceStatus.issued, settledMinor: 35000),
+        amountMinor: 10000,
+      );
+
+      expect(repository.allocations, hasLength(1));
+      expect(repository.allocations.single['amount_minor'], 10000);
+      expect(repository.allocations.single['invoice_id'], 'invoice-1');
+    });
+
+    test('the statement reconciliation detects a partial journal', () async {
+      final PatientAccount account = accountWith(balanceMinor: 45000);
+      repository.storedAccounts['patient-1'] = account;
+      repository.storedEntries[account.id] = <LedgerEntry>[
+        LedgerEntry(
+          id: 'entry-1',
+          tenantId: 'tenant-1',
+          accountId: account.id,
+          transactionType: LedgerTransactionType.charge,
+          direction: LedgerDirection.debit,
+          accountCode: LedgerAccountCode.patientReceivable,
+          amountMinor: 45000,
+          currency: 'BDT',
+          recordedBy: 'accounts-1',
+          occurredAt: DateTime.utc(2026, 9, 12, 9),
+          invoiceId: 'invoice-1',
+        ),
+      ];
+
+      final PatientAccountStatement? statement =
+          await ReadPatientAccountUseCase(repository: repository).call(
+            policy: policyWith(<String>{NodexPermissions.billingRead}),
+            patientId: 'patient-1',
+          );
+
+      expect(statement, isNotNull);
+      expect(statement!.agreesWithServer, isTrue);
+
+      repository.storedEntries[account.id] = <LedgerEntry>[];
+      final PatientAccountStatement? partial =
+          await ReadPatientAccountUseCase(repository: repository).call(
+            policy: policyWith(<String>{NodexPermissions.billingRead}),
+            patientId: 'patient-1',
+          );
+      expect(partial!.agreesWithServer, isFalse);
+    });
+
+    test('a payment posting is a credit to the receivable', () {
+      final LedgerEntry entry = LedgerEntry(
+        id: 'entry-2',
+        tenantId: 'tenant-1',
+        accountId: 'account-1',
+        transactionType: LedgerTransactionType.payment,
+        direction: LedgerDirection.credit,
+        accountCode: LedgerAccountCode.patientReceivable,
+        amountMinor: 45000,
+        currency: 'BDT',
+        recordedBy: 'accounts-1',
+        occurredAt: DateTime.utc(2026, 9, 12, 10),
+      );
+
+      expect(entry.debitAccountCode, LedgerAccountCode.cash);
+      expect(entry.creditAccountCode, LedgerAccountCode.patientReceivable);
+      expect(entry.balanceDeltaMinor, -45000);
+      expect(entry.isBalanced, isTrue);
     });
   });
 }

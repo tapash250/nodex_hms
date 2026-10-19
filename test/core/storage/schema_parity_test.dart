@@ -304,6 +304,7 @@ void main() {
         'clinical_events',
         'payments',
         'refunds',
+        'ledger_entries',
         'icu_vitals',
         'icu_nursing_handover',
         'stock_movements',

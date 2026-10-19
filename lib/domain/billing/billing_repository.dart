@@ -6,6 +6,7 @@ import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
 import 'package:nodex_hms/core/storage/local_schema.dart';
 import 'package:nodex_hms/domain/billing/invoice.dart';
+import 'package:nodex_hms/domain/billing/patient_account.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
 import 'package:uuid/uuid.dart';
 
@@ -46,6 +47,27 @@ abstract interface class BillingRepository {
 
   /// Records a refund.
   Future<String> recordRefund(Map<String, Object?> row);
+
+  /// The patient's account, or null when none is open.
+  Future<PatientAccount?> getAccountForPatient(String patientId);
+
+  /// One account by id, or null.
+  Future<PatientAccount?> getAccountById(String id);
+
+  /// Journal entries for an account, newest first.
+  Future<List<LedgerEntry>> listLedgerEntries(String accountId, {int limit});
+
+  /// Opens a patient account.
+  Future<String> openAccount(Map<String, Object?> row);
+
+  /// Posts a journal entry.
+  Future<String> postLedgerEntry(Map<String, Object?> row);
+
+  /// Allocations recorded against a payment.
+  Future<List<PaymentAllocation>> listAllocations(String paymentId);
+
+  /// Splits part of a payment onto an invoice.
+  Future<String> allocatePayment(Map<String, Object?> row);
 }
 
 /// PowerSync-backed billing repository.
@@ -240,6 +262,121 @@ final class DefaultBillingRepository implements BillingRepository {
       return id;
     } on Object catch (error, stackTrace) {
       throw _mapped(error, stackTrace, 'billing.refund');
+    }
+  }
+
+  @override
+  Future<PatientAccount?> getAccountForPatient(String patientId) async {
+    try {
+      final List<Map<String, Object?>> rows = await _store.query(
+        'SELECT * FROM ${LocalTables.patientAccounts} WHERE patient_id = ?',
+        <Object?>[patientId],
+      );
+      if (rows.isEmpty) {
+        return null;
+      }
+      return PatientAccount.fromRow(rows.first);
+    } on Object catch (error, stackTrace) {
+      throw _mapped(error, stackTrace, 'billing.account');
+    }
+  }
+
+  @override
+  Future<PatientAccount?> getAccountById(String id) async {
+    final Map<String, Object?>? row = await _store.getById(
+      LocalTables.patientAccounts,
+      id,
+    );
+    return row == null ? null : PatientAccount.fromRow(row);
+  }
+
+  @override
+  Future<List<LedgerEntry>> listLedgerEntries(
+    String accountId, {
+    int limit = 200,
+  }) async {
+    try {
+      final List<Map<String, Object?>> rows = await _store.query(
+        'SELECT * FROM ${LocalTables.ledgerEntries} WHERE account_id = ? '
+        'ORDER BY occurred_at DESC',
+        <Object?>[accountId],
+      );
+      return rows.take(limit).map(LedgerEntry.fromRow).toList(growable: false);
+    } on Object catch (error, stackTrace) {
+      throw _mapped(error, stackTrace, 'billing.ledger');
+    }
+  }
+
+  @override
+  Future<String> openAccount(Map<String, Object?> row) async {
+    final String id = const Uuid().v4();
+    try {
+      await _store.insert(LocalTables.patientAccounts, <String, Object?>{
+        ...row,
+        'id': id,
+      });
+      _logger.info(
+        _module,
+        'Patient account opened locally.',
+        operation: 'billing.account.open',
+        outcome: 'queued',
+      );
+      return id;
+    } on Object catch (error, stackTrace) {
+      throw _mapped(error, stackTrace, 'billing.account.open');
+    }
+  }
+
+  @override
+  Future<String> postLedgerEntry(Map<String, Object?> row) async {
+    final String id = const Uuid().v4();
+    try {
+      await _store.insert(LocalTables.ledgerEntries, <String, Object?>{
+        ...row,
+        'id': id,
+      });
+      _logger.info(
+        _module,
+        'Ledger entry posted locally.',
+        operation: 'billing.ledger.post',
+        outcome: 'queued',
+      );
+      return id;
+    } on Object catch (error, stackTrace) {
+      throw _mapped(error, stackTrace, 'billing.ledger.post');
+    }
+  }
+
+  @override
+  Future<List<PaymentAllocation>> listAllocations(String paymentId) async {
+    try {
+      final List<Map<String, Object?>> rows = await _store.query(
+        'SELECT * FROM ${LocalTables.paymentAllocations} WHERE payment_id = ?',
+        <Object?>[paymentId],
+      );
+      return rows.map(PaymentAllocation.fromRow).toList(growable: false);
+    } on Object catch (error, stackTrace) {
+      throw _mapped(error, stackTrace, 'billing.allocations');
+    }
+  }
+
+  @override
+  Future<String> allocatePayment(Map<String, Object?> row) async {
+    final String id = const Uuid().v4();
+    try {
+      await _store.insert(LocalTables.paymentAllocations, <String, Object?>{
+        ...row,
+        'id': id,
+      });
+      _logger.info(
+        _module,
+        'Payment allocation committed locally.',
+        operation: 'billing.allocation',
+        outcome: 'queued',
+      );
+      return id;
+    } on Object catch (error, stackTrace) {
+      throw _mapped(error, stackTrace, 'billing.allocation');
     }
   }
 

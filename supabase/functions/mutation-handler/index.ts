@@ -619,6 +619,60 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'billing.payment.recorded',
     auditActionPatch: 'billing.payment.recorded',
   },
+  // The running balance is not a client-writable column: it is absent from the
+  // whitelist below, so a device can open an account and move its status but can
+  // never assert a balance of its own.
+  patient_accounts: {
+    columns: {
+      tenant_id: 'uuid',
+      patient_id: 'uuid',
+      account_code: 'text',
+      currency: 'text',
+      status: 'text',
+      last_activity_at: 'timestamp',
+      opened_at: 'timestamp',
+      closed_at: 'timestamp',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'billing.account.opened',
+    auditActionPatch: 'billing.account.updated',
+  },
+  ledger_entries: {
+    columns: {
+      tenant_id: 'uuid',
+      account_id: 'uuid',
+      invoice_id: 'uuid',
+      payment_id: 'uuid',
+      refund_id: 'uuid',
+      transaction_type: 'text',
+      direction: 'text',
+      account_code: 'text',
+      amount_minor: 'integer',
+      currency: 'text',
+      payment_method: 'text',
+      memo: 'text',
+      recorded_by: 'uuid',
+      occurred_at: 'timestamp',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'billing.ledger.posted',
+    auditActionPatch: 'billing.ledger.posted',
+  },
+  payment_allocations: {
+    columns: {
+      tenant_id: 'uuid',
+      payment_id: 'uuid',
+      invoice_id: 'uuid',
+      amount_minor: 'integer',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'billing.allocation.recorded',
+    auditActionPatch: 'billing.allocation.recorded',
+  },
   refunds: {
     columns: {
       tenant_id: 'uuid',

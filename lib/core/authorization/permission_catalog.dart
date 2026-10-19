@@ -427,6 +427,9 @@ abstract final class NodexPermissions {
   /// Finalize invoices, payments and refunds.
   static const String billingSettle = 'billing.settle';
 
+  /// Post charges, discounts, tax and adjustments to a patient account.
+  static const String billingLedger = 'billing.ledger';
+
   /// View appointment calendars and schedules.
   static const String appointmentRead = 'appointment.read';
 

@@ -111,6 +111,9 @@ void main() {
           LocalTables.invoiceLines,
           LocalTables.payments,
           LocalTables.refunds,
+          LocalTables.patientAccounts,
+          LocalTables.ledgerEntries,
+          LocalTables.paymentAllocations,
           LocalTables.stockItems,
           LocalTables.stockLocations,
           LocalTables.stockBatches,
@@ -1271,6 +1274,52 @@ void main() {
           'amount_minor',
           'reason',
           'refunded_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.patientAccounts).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'patient_id',
+          'account_code',
+          'currency',
+          'status',
+          'balance_minor',
+          'last_activity_at',
+          'opened_at',
+          'closed_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.ledgerEntries).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'account_id',
+          'invoice_id',
+          'payment_id',
+          'refund_id',
+          'transaction_type',
+          'direction',
+          'account_code',
+          'amount_minor',
+          'currency',
+          'recorded_by',
+          'occurred_at',
+        }),
+      );
+      expect(
+        byName(LocalTables.paymentAllocations).columns
+            .map((Column c) => c.name)
+            .toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'payment_id',
+          'invoice_id',
+          'amount_minor',
         }),
       );
     });

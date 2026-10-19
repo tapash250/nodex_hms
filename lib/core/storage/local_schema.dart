@@ -312,6 +312,15 @@ abstract final class LocalTables {
   /// Refund events against payments (Module 31). Synced, append-only.
   static const String refunds = 'refunds';
 
+  /// Running patient account across visits (Module 31). Synced.
+  static const String patientAccounts = 'patient_accounts';
+
+  /// Append-only financial journal (Module 31). Synced, append-only.
+  static const String ledgerEntries = 'ledger_entries';
+
+  /// Split payments across invoices (Module 31). Synced, append-only.
+  static const String paymentAllocations = 'payment_allocations';
+
   /// Stock catalogue items (Module 13). Synced.
   static const String stockItems = 'stock_items';
 
@@ -516,6 +525,9 @@ abstract final class NodexLocalSchema {
     _invoiceLines,
     _payments,
     _refunds,
+    _patientAccounts,
+    _ledgerEntries,
+    _paymentAllocations,
     _stockItems,
     _stockLocations,
     _stockBatches,
@@ -3078,6 +3090,86 @@ abstract final class NodexLocalSchema {
         IndexedColumn('refunded_at'),
       ]),
       Index('refund_payment', <IndexedColumn>[IndexedColumn('payment_id')]),
+    ],
+  );
+
+  /// Running patient account (Module 31).
+  static const Table _patientAccounts = Table(
+    LocalTables.patientAccounts,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('account_code'),
+      Column.text('currency'),
+      Column.text('status'),
+      Column.integer('balance_minor'),
+      Column.text('last_activity_at'),
+      Column.text('opened_at'),
+      Column.text('closed_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('patient_account_patient', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('patient_id'),
+      ]),
+      Index('patient_account_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('last_activity_at'),
+      ]),
+    ],
+  );
+
+  /// Append-only financial journal (Module 31).
+  static const Table _ledgerEntries = Table(
+    LocalTables.ledgerEntries,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('account_id'),
+      Column.text('invoice_id'),
+      Column.text('payment_id'),
+      Column.text('refund_id'),
+      Column.text('transaction_type'),
+      Column.text('direction'),
+      Column.text('account_code'),
+      Column.integer('amount_minor'),
+      Column.text('currency'),
+      Column.text('payment_method'),
+      Column.text('memo'),
+      Column.text('recorded_by'),
+      Column.text('occurred_at'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('ledger_entry_account', <IndexedColumn>[
+        IndexedColumn('account_id'),
+        IndexedColumn('occurred_at'),
+      ]),
+      Index('ledger_entry_invoice', <IndexedColumn>[
+        IndexedColumn('invoice_id'),
+      ]),
+    ],
+  );
+
+  /// Split payment allocations (Module 31).
+  static const Table _paymentAllocations = Table(
+    LocalTables.paymentAllocations,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('payment_id'),
+      Column.text('invoice_id'),
+      Column.integer('amount_minor'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('payment_allocation_payment', <IndexedColumn>[
+        IndexedColumn('payment_id'),
+      ]),
+      Index('payment_allocation_invoice', <IndexedColumn>[
+        IndexedColumn('invoice_id'),
+      ]),
     ],
   );
 

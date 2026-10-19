@@ -2590,6 +2590,45 @@ final Provider<CancelInvoiceUseCase> cancelInvoiceUseCaseProvider =
       ),
     );
 
+/// Patient account opening.
+final Provider<OpenPatientAccountUseCase> openPatientAccountUseCaseProvider =
+    Provider<OpenPatientAccountUseCase>(
+      (Ref ref) => OpenPatientAccountUseCase(
+        repository: ref.watch(billingRepositoryProvider),
+      ),
+    );
+
+/// Patient account statement reading.
+final Provider<ReadPatientAccountUseCase> readPatientAccountUseCaseProvider =
+    Provider<ReadPatientAccountUseCase>(
+      (Ref ref) => ReadPatientAccountUseCase(
+        repository: ref.watch(billingRepositoryProvider),
+      ),
+    );
+
+/// Charge posting onto a patient account.
+final Provider<PostChargeUseCase> postChargeUseCaseProvider =
+    Provider<PostChargeUseCase>(
+      (Ref ref) =>
+          PostChargeUseCase(repository: ref.watch(billingRepositoryProvider)),
+    );
+
+/// Correcting adjustment posting.
+final Provider<PostAdjustmentUseCase> postAdjustmentUseCaseProvider =
+    Provider<PostAdjustmentUseCase>(
+      (Ref ref) => PostAdjustmentUseCase(
+        repository: ref.watch(billingRepositoryProvider),
+      ),
+    );
+
+/// Split payment allocation.
+final Provider<AllocatePaymentUseCase> allocatePaymentUseCaseProvider =
+    Provider<AllocatePaymentUseCase>(
+      (Ref ref) => AllocatePaymentUseCase(
+        repository: ref.watch(billingRepositoryProvider),
+      ),
+    );
+
 /// Inventory repository over the encrypted local projection.
 final Provider<InventoryRepository> inventoryRepositoryProvider =
     Provider<InventoryRepository>(
