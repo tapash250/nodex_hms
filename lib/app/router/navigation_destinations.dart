@@ -472,6 +472,22 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Operational utilities (Module 53).
+  ///
+  /// No permission gates the utilities: they read the size of the local
+  /// database, time the network and clear the diagnostic buffer. What they
+  /// cannot do — discard queued clinical work — is refused by the utility
+  /// itself rather than hidden behind a permission.
+  static const NavigationDestinationSpec utilities = NavigationDestinationSpec(
+    routePath: '/utilities',
+    label: 'Utilities',
+    icon: Icons.handyman_outlined,
+    selectedIcon: Icons.handyman,
+    requiredPermissions: <String>{},
+    moduleCode: 'M53',
+    isPrimary: false,
+  );
+
   /// The medical icon repository (Module 51).
   static const NavigationDestinationSpec medicalIcons =
       NavigationDestinationSpec(
@@ -608,6 +624,7 @@ abstract final class NodexDestinations {
         clinicalDashboard,
         portal,
         medicalIcons,
+        utilities,
         forms,
       ];
 

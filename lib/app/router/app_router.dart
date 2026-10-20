@@ -74,6 +74,7 @@ import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/master_settings_screen.dart';
 import 'package:nodex_hms/features/settings/settings_screen.dart';
+import 'package:nodex_hms/features/settings/utility_pages.dart';
 import 'package:nodex_hms/features/statutory/statutory_registry_screen.dart';
 import 'package:nodex_hms/features/tasks/task_board_screen.dart';
 import 'package:nodex_hms/features/telemedicine/telemedicine_consultation_screen.dart';
@@ -519,6 +520,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.utilities.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const UtilitiesScreen(),
           ),
           GoRoute(
             path: NodexDestinations.medicalIcons.routePath,
