@@ -339,6 +339,10 @@ abstract final class LocalTables {
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
 
+  /// Departmental flow readings (Module 02). Synced, tenant-scoped.
+  static const String operationalDepartmentMetrics =
+      'operational_department_metrics';
+
   /// Clinical discussion threads (Module 43). Synced, tenant-scoped.
   static const String clinicalThreads = 'clinical_threads';
 
@@ -563,6 +567,7 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _operationalDepartmentMetrics,
     _clinicalThreads,
     _clinicalMessages,
     _clinicalAttachments,
@@ -3354,6 +3359,35 @@ abstract final class NodexLocalSchema {
 
   /// Triage assessments (Module 05): acuity, complaint, disposition and
   /// one-way escalation. Mirrors `public.triage_assessments`.
+  /// Departmental flow readings (Module 02).
+  static const Table _operationalDepartmentMetrics = Table(
+    LocalTables.operationalDepartmentMetrics,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('department_id'),
+      Column.text('metric_timestamp'),
+      Column.integer('registrations'),
+      Column.integer('waiting_count'),
+      Column.integer('completed_count'),
+      Column.text('average_wait_minutes'),
+      Column.text('bottleneck'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('operational_metrics_department', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('department_id'),
+        IndexedColumn('metric_timestamp'),
+      ]),
+      Index('operational_metrics_facility', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('facility_id'),
+        IndexedColumn('metric_timestamp'),
+      ]),
+    ],
+  );
+
   /// Clinical discussion threads (Module 43).
   static const Table _clinicalThreads = Table(
     LocalTables.clinicalThreads,

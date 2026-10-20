@@ -441,6 +441,9 @@ abstract final class ConflictPolicyRegistry {
   /// Cross-department errand with one owner (Module 41).
   static const String hospitalTask = 'hospital_task';
 
+  /// Departmental flow reading (Module 02).
+  static const String departmentMetric = 'department_metric';
+
   /// Clinical discussion thread (Module 43).
   static const String clinicalThread = 'clinical_thread';
 
@@ -1575,6 +1578,14 @@ abstract final class ConflictPolicyRegistry {
           'errand. The server arbitrates the claim, and a device that lost the '
           'race is told rather than silently overwriting the winner.',
     ),
+    departmentMetric: ConflictPolicyEntry(
+      resourceType: departmentMetric,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A flow reading is a measurement of a moment. It is written once '
+          'and never edited: a corrected figure is a later reading with its '
+          'own timestamp, not an edit of the old one.',
+    ),
     clinicalThread: ConflictPolicyEntry(
       resourceType: clinicalThread,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1762,6 +1773,7 @@ abstract final class ConflictPolicyRegistry {
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
     'hospital_tasks': hospitalTask,
+    'operational_department_metrics': departmentMetric,
     'clinical_threads': clinicalThread,
     'clinical_messages': clinicalMessage,
     'clinical_attachments': clinicalAttachment,

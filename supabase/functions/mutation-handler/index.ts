@@ -1560,6 +1560,23 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     operations: ['upsert'],
     auditActionUpsert: 'forms.response.submitted',
   },
+  // Module 02 (operations dashboard). A reading of a moment is written once.
+  operational_department_metrics: {
+    columns: {
+      tenant_id: 'uuid',
+      facility_id: 'uuid',
+      department_id: 'uuid',
+      metric_timestamp: 'timestamp',
+      registrations: 'integer',
+      waiting_count: 'integer',
+      completed_count: 'integer',
+      average_wait_minutes: 'number',
+      bottleneck: 'text',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'operations.metric.recorded',
+  },
   // Module 43 (secure clinical messaging). A message is written once and never
   // patched; a thread's participant list may grow, never shrink.
   clinical_threads: {

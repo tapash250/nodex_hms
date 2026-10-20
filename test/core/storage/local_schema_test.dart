@@ -166,6 +166,7 @@ void main() {
           LocalTables.wardHandovers,
           LocalTables.wardTasks,
           LocalTables.hospitalTasks,
+          LocalTables.operationalDepartmentMetrics,
           LocalTables.clinicalThreads,
           LocalTables.clinicalMessages,
           LocalTables.clinicalAttachments,

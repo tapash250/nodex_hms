@@ -412,6 +412,12 @@ abstract final class NodexPermissions {
   /// Record a filled clinical form (Module 47).
   static const String formsSubmit = 'forms.submit';
 
+  /// Read departmental flow (Module 02).
+  static const String operationsRead = 'operations.read';
+
+  /// Record departmental flow (Module 02).
+  static const String operationsManage = 'operations.manage';
+
   /// Read the clinical discussion threads (Module 43).
   static const String messagingRead = 'messaging.read';
 

@@ -69,11 +69,13 @@ import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
 import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
 import 'package:nodex_hms/domain/laboratory/lab_use_cases.dart';
+
 import 'package:nodex_hms/domain/messaging/messaging_repository.dart';
 import 'package:nodex_hms/domain/nursing_station/nursing_station_repository.dart';
 import 'package:nodex_hms/domain/nursing_station/nursing_station_use_cases.dart';
 import 'package:nodex_hms/domain/nutrition/nutrition_repository.dart';
 import 'package:nodex_hms/domain/nutrition/nutrition_use_cases.dart';
+import 'package:nodex_hms/domain/operations/operations_repository.dart';
 import 'package:nodex_hms/domain/ot/ot_repository.dart';
 import 'package:nodex_hms/domain/ot/ot_use_cases.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
@@ -1439,6 +1441,26 @@ final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
     Provider<ReadPatientTimelineUseCase>(
       (Ref ref) => ReadPatientTimelineUseCase(
         repository: ref.watch(timelineRepositoryProvider),
+      ),
+    );
+
+/// Departmental flow for the operations dashboard (Module 02).
+final Provider<OperationsRepository> operationsRepositoryProvider =
+    Provider<OperationsRepository>(
+      (Ref ref) => DefaultOperationsRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Reading the operations dashboard.
+final Provider<ReadOperationsDashboardUseCase>
+readOperationsDashboardUseCaseProvider =
+    Provider<ReadOperationsDashboardUseCase>(
+      (Ref ref) => ReadOperationsDashboardUseCase(
+        repository: ref.watch(operationsRepositoryProvider),
       ),
     );
 

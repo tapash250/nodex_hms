@@ -55,6 +55,7 @@ import 'package:nodex_hms/features/messaging/clinical_thread_screen.dart';
 import 'package:nodex_hms/features/messaging/messaging_screen.dart';
 import 'package:nodex_hms/features/nursing_station/ward_station_screen.dart';
 import 'package:nodex_hms/features/nutrition/nutrition_meal_plan_screen.dart';
+import 'package:nodex_hms/features/operations/operations_dashboard_screen.dart';
 import 'package:nodex_hms/features/ot/ot_booking_detail_screen.dart';
 import 'package:nodex_hms/features/ot/ot_list_screen.dart';
 import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
@@ -514,6 +515,13 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.operations.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                OperationsDashboardScreen(
+                  facilityId: state.uri.queryParameters['facility'] ?? '',
+                ),
           ),
           GoRoute(
             path: NodexDestinations.messaging.routePath,

@@ -472,6 +472,17 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Departmental flow (Module 02).
+  static const NavigationDestinationSpec operations = NavigationDestinationSpec(
+    routePath: '/operations',
+    label: 'Operations',
+    icon: Icons.insights_outlined,
+    selectedIcon: Icons.insights,
+    requiredPermissions: <String>{NodexPermissions.operationsRead},
+    moduleCode: 'M02',
+    isPrimary: false,
+  );
+
   /// Clinical discussions (Module 43).
   static const NavigationDestinationSpec messaging = NavigationDestinationSpec(
     routePath: '/messages',
@@ -545,6 +556,7 @@ abstract final class NodexDestinations {
         widgetsLibrary,
         productivity,
         messaging,
+        operations,
         forms,
       ];
 

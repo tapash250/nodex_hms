@@ -591,6 +591,7 @@ void main() {
       'ward_handovers',
       'ward_tasks',
       'hospital_tasks',
+      'operational_department_metrics',
       'clinical_threads',
       'clinical_messages',
       'clinical_attachments',
