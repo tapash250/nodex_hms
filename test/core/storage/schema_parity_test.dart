@@ -200,6 +200,37 @@ Set<String> _writableTables() {
       .toSet();
 }
 
+/// Tables guarded by something other than the timestamp updater.
+///
+/// A table whose only trigger is `nodex.tg_set_updated_at()` has no rule
+/// about what may be written to it: every column is editable forever. An
+/// entity the client treats as append-only must not be one of them.
+Set<String> _guardedBeyondTimestamp() {
+  final Map<String, List<String>> functions = <String, List<String>>{};
+  for (final FileSystemEntity entity in Directory(
+    'supabase/migrations',
+  ).listSync()) {
+    if (entity is! File || !entity.path.endsWith('.sql')) continue;
+    final String sql = entity.readAsStringSync();
+    for (final RegExpMatch trigger in RegExp(
+      r'create trigger\s+\w+[^;]*?on\s+public\.([a-z0-9_]+)\b[^;]*?execute function ([a-z0-9_.()]+)',
+      caseSensitive: false,
+      dotAll: true,
+    ).allMatches(sql)) {
+      functions
+          .putIfAbsent(trigger.group(1)!, () => <String>[])
+          .add(trigger.group(2)!);
+    }
+  }
+  return <String>{
+    for (final MapEntry<String, List<String>> entry in functions.entries)
+      if (entry.value.any(
+        (String function) => !function.endsWith('tg_set_updated_at'),
+      ))
+        entry.key,
+  };
+}
+
 void main() {
   group('local schema covers replication', () {
     test('every synced table has a local table definition', () {
@@ -293,6 +324,30 @@ void main() {
             'A table registered append-only in the client has no trigger at '
             'all in PostgreSQL. Add nodex.tg_block_mutation() or a state-machine '
             'guard: $unguarded',
+      );
+    });
+
+    test('an append-only table is guarded by more than its timestamp', () {
+      // A table whose only trigger is the timestamp updater has no rule
+      // about what may be written to it. Calling such a table append-only in
+      // the client is a claim the server does not keep.
+      final Map<String, String> mappings = _conflictMappings();
+      final Set<String> guarded = _guardedBeyondTimestamp();
+      final List<String> unguarded = <String>[];
+      for (final String resource in _appendOnlyResources()) {
+        final Iterable<String> tables = mappings.entries
+            .where((MapEntry<String, String> e) => e.value == resource)
+            .map((MapEntry<String, String> e) => e.key);
+        for (final String table in tables) {
+          if (!guarded.contains(table)) unguarded.add('$table ($resource)');
+        }
+      }
+      expect(
+        unguarded,
+        isEmpty,
+        reason:
+            'These tables are append-only in the client but nothing in '
+            'PostgreSQL stops them being edited: ${unguarded.join(', ')}',
       );
     });
 

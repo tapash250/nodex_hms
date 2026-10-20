@@ -839,12 +839,12 @@ abstract final class ConflictPolicyRegistry {
     ),
     teleVitalsOverlay: ConflictPolicyEntry(
       resourceType: teleVitalsOverlay,
-      policy: ConflictPolicy.appendOnly,
+      policy: ConflictPolicy.eventTransaction,
       rationale:
-          'An overlay reading is a timestamped observation. Two '
-          'clinicians reading vitals during the same call produce two '
-          'observations, not a conflict, and neither overwrites the '
-          'other.',
+          'An overlay reading is a timestamped observation made during a '
+          'call. Two clinicians reading vitals during the same call produce '
+          'two observations rather than a conflict, and the same reading '
+          'sent twice is the same event rather than two.',
     ),
     teleConsultationArchive: ConflictPolicyEntry(
       resourceType: teleConsultationArchive,
@@ -1375,10 +1375,14 @@ abstract final class ConflictPolicyRegistry {
     ),
     invoiceLine: ConflictPolicyEntry(
       resourceType: invoiceLine,
-      policy: ConflictPolicy.appendOnly,
+      policy: ConflictPolicy.transactional,
       rationale:
-          'A charge line records that something was billed once. Editing it '
-          'in place would erase the history of what a patient was charged.',
+          'A charge line is editable while the invoice it belongs to is a '
+          'draft and frozen once the invoice is issued, so the invariant is '
+          'the invoice total rather than the line. The change is replayed '
+          'against the invoice as it stands now, and a line edited against an '
+          'invoice that has since been issued is refused rather than applied '
+          'to a different total.',
     ),
     payment: ConflictPolicyEntry(
       resourceType: payment,
@@ -1421,19 +1425,23 @@ abstract final class ConflictPolicyRegistry {
     ),
     labOrder: ConflictPolicyEntry(
       resourceType: labOrder,
-      policy: ConflictPolicy.appendOnly,
+      policy: ConflictPolicy.transactional,
       rationale:
-          'An order is a clinical request that happened. Cancelling or '
-          'amending it appends a new state change; the original request '
-          'stays legible for the audit trail.',
+          'An order advances through a state machine — ordered, collected, '
+          'reported, cancelled — and the server holds the state. The change '
+          'is replayed against the order as it stands now, so a device that '
+          'collected a specimen offline against an order that has since been '
+          'cancelled is told, rather than both states being kept.',
     ),
     labSpecimen: ConflictPolicyEntry(
       resourceType: labSpecimen,
-      policy: ConflictPolicy.appendOnly,
+      policy: ConflictPolicy.transactional,
       rationale:
           'A specimen carries an accession barcode that identifies physical '
-          'material. Two devices cannot both claim the same barcode, and the '
-          'barcode-to-result chain must stay unbroken.',
+          'material, and it is collected, received or rejected once. The '
+          'change is replayed against the specimen as it stands now: a '
+          'barcode can only be claimed once, and the barcode-to-result chain '
+          'stays unbroken.',
     ),
     patientAllergy: ConflictPolicyEntry(
       resourceType: patientAllergy,
@@ -1462,11 +1470,12 @@ abstract final class ConflictPolicyRegistry {
     ),
     prescriptionItem: ConflictPolicyEntry(
       resourceType: prescriptionItem,
-      policy: ConflictPolicy.appendOnly,
+      policy: ConflictPolicy.immutableVersion,
       rationale:
-          'Each prescribed item is part of the signed prescription and '
-          'cannot drift from it, so the line is appended with the '
-          'prescription and never edited independently.',
+          'Each prescribed item belongs to a prescription version. The items '
+          'are editable while that prescription is a draft, and frozen once '
+          'it is authorized, so a change to a signed prescription is a new '
+          'version rather than an edit of the old one.',
     ),
     stockBatch: ConflictPolicyEntry(
       resourceType: stockBatch,

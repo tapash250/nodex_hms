@@ -373,12 +373,50 @@ void main() {
       );
     });
 
-    test('live vitals overlays are append-only', () {
+    test('live vitals overlays are an event transaction', () {
+      // An overlay reading is an observation made during a call: two
+      // clinicians reading vitals produce two readings rather than a
+      // conflict, and the same reading sent twice is the same event.
       expect(
         ConflictPolicyRegistry.policyFor(
           ConflictPolicyRegistry.teleVitalsOverlay,
         ).policy,
-        ConflictPolicy.appendOnly,
+        ConflictPolicy.eventTransaction,
+      );
+    });
+
+    test('a laboratory order is resolved as a transaction', () {
+      // The order advances through a state machine the server holds, so the
+      // change is replayed against the order as it stands now.
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.labOrder)
+            .policy,
+        ConflictPolicy.transactional,
+      );
+    });
+
+    test('a prescription item belongs to a prescription version', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(
+          ConflictPolicyRegistry.prescriptionItem,
+        ).policy,
+        ConflictPolicy.immutableVersion,
+      );
+    });
+
+    test('a charge line is resolved as a transaction', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.invoiceLine)
+            .policy,
+        ConflictPolicy.transactional,
+      );
+    });
+
+    test('a specimen is resolved as a transaction', () {
+      expect(
+        ConflictPolicyRegistry.policyFor(ConflictPolicyRegistry.labSpecimen)
+            .policy,
+        ConflictPolicy.transactional,
       );
     });
 
