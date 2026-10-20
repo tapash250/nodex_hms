@@ -941,6 +941,35 @@ sync_rules:
                      and rp.permission_key = 'clinical.dashboard.manage'
                  ))
 
+    # Module 05 (patient personal portal): only the rows belonging to the
+    # patient the portal account is linked to. The patient role holds no
+    # clinical read permission, so this bucket is the only path to the
+    # patient's own record.
+    patient_portal:
+      parameters:
+        - select
+            l.tenant_id as tenant_id
+          from public.patient_portal_links l
+          where l.portal_user_id = :user_id
+            and l.revoked_at is null
+      data:
+        - select a.* from public.appointments a
+          join public.patient_portal_links l on l.patient_id = a.patient_id
+          where l.portal_user_id = :user_id and l.revoked_at is null
+        - select o.* from public.lab_orders o
+          join public.patient_portal_links l on l.patient_id = o.patient_id
+          where l.portal_user_id = :user_id and l.revoked_at is null
+        - select r.* from public.lab_results r
+          join public.lab_orders o on o.id = r.lab_order_id
+          join public.patient_portal_links l on l.patient_id = o.patient_id
+          where l.portal_user_id = :user_id and l.revoked_at is null
+            and r.status in ('verified', 'corrected')
+        - select p.* from public.prescriptions p
+          join public.patient_portal_links l on l.patient_id = p.patient_id
+          where l.portal_user_id = :user_id and l.revoked_at is null
+        - select l.* from public.patient_portal_links l
+          where l.portal_user_id = :user_id
+
     # Module 43 (secure clinical messaging): the discussions the signed-in
     # clinician takes part in. The server filters by participation; the device
     # filters again, so a thread that reached the device by mistake is not

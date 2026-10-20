@@ -1615,6 +1615,22 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'clinical_dashboard.assignment.created',
     auditActionPatch: 'clinical_dashboard.assignment.updated',
   },
+  // Module 05 (patient personal portal). A link is granted and revoked; it
+  // is never deleted, because the fact that access was given is itself a
+  // fact.
+  patient_portal_links: {
+    columns: {
+      tenant_id: 'uuid',
+      patient_id: 'uuid',
+      portal_user_id: 'uuid',
+      created_by: 'uuid',
+      revoked_at: 'timestamp',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'portal.link.granted',
+    auditActionPatch: 'portal.link.updated',
+  },
   // Module 43 (secure clinical messaging). A message is written once and never
   // patched; a thread's participant list may grow, never shrink.
   clinical_threads: {

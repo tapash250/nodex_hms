@@ -84,6 +84,7 @@ import 'package:nodex_hms/domain/patients/patient_use_cases.dart';
 import 'package:nodex_hms/domain/performance/performance_repository.dart';
 import 'package:nodex_hms/domain/physio/physio_repository.dart';
 import 'package:nodex_hms/domain/physio/physio_use_cases.dart';
+import 'package:nodex_hms/domain/portal/portal_repository.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_use_cases.dart';
 import 'package:nodex_hms/domain/productivity/productivity_repository.dart';
@@ -1443,6 +1444,17 @@ final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
     Provider<ReadPatientTimelineUseCase>(
       (Ref ref) => ReadPatientTimelineUseCase(
         repository: ref.watch(timelineRepositoryProvider),
+      ),
+    );
+
+/// The patient portal link (Module 05).
+final Provider<PortalRepository> portalRepositoryProvider =
+    Provider<PortalRepository>(
+      (Ref ref) => DefaultPortalRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
       ),
     );
 

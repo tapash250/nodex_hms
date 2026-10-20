@@ -472,6 +472,17 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// The patient portal (Module 05).
+  static const NavigationDestinationSpec portal = NavigationDestinationSpec(
+    routePath: '/portal',
+    label: 'My health',
+    icon: Icons.favorite_outline,
+    selectedIcon: Icons.favorite,
+    requiredPermissions: <String>{NodexPermissions.portalAccess},
+    moduleCode: 'M05',
+    isPrimary: false,
+  );
+
   /// The attending's cockpit (Module 04).
   static const NavigationDestinationSpec clinicalDashboard =
       NavigationDestinationSpec(
@@ -583,6 +594,7 @@ abstract final class NodexDestinations {
         operations,
         performance,
         clinicalDashboard,
+        portal,
         forms,
       ];
 

@@ -441,6 +441,9 @@ abstract final class ConflictPolicyRegistry {
   /// Cross-department errand with one owner (Module 41).
   static const String hospitalTask = 'hospital_task';
 
+  /// Link between a portal account and a patient (Module 05).
+  static const String portalLink = 'portal_link';
+
   /// Responsibility a clinician has for a patient (Module 04).
   static const String doctorAssignment = 'doctor_assignment';
 
@@ -1584,6 +1587,14 @@ abstract final class ConflictPolicyRegistry {
           'errand. The server arbitrates the claim, and a device that lost the '
           'race is told rather than silently overwriting the winner.',
     ),
+    portalLink: ConflictPolicyEntry(
+      resourceType: portalLink,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A link decides who may read a patient record. The server holds it '
+          'so two devices cannot grant the same portal account to two '
+          'patients, and a revoked link cannot be un-revoked by a device.',
+    ),
     doctorAssignment: ConflictPolicyEntry(
       resourceType: doctorAssignment,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1795,6 +1806,7 @@ abstract final class ConflictPolicyRegistry {
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
     'hospital_tasks': hospitalTask,
+    'patient_portal_links': portalLink,
     'doctor_assignments': doctorAssignment,
     'clinical_performance_indices': performanceIndex,
     'operational_department_metrics': departmentMetric,

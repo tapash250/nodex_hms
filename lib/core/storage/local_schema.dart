@@ -339,6 +339,9 @@ abstract final class LocalTables {
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
 
+  /// Links between a portal account and a patient record (Module 05).
+  static const String patientPortalLinks = 'patient_portal_links';
+
   /// The patients a clinician is responsible for (Module 04). Synced.
   static const String doctorAssignments = 'doctor_assignments';
 
@@ -574,6 +577,7 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _patientPortalLinks,
     _doctorAssignments,
     _clinicalPerformanceIndices,
     _operationalDepartmentMetrics,
@@ -3368,6 +3372,25 @@ abstract final class NodexLocalSchema {
 
   /// Triage assessments (Module 05): acuity, complaint, disposition and
   /// one-way escalation. Mirrors `public.triage_assessments`.
+  /// Links between a portal account and a patient record (Module 05).
+  static const Table _patientPortalLinks = Table(
+    LocalTables.patientPortalLinks,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('patient_id'),
+      Column.text('portal_user_id'),
+      Column.text('created_by'),
+      Column.text('revoked_at'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('patient_portal_links_user', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('portal_user_id'),
+      ]),
+    ],
+  );
+
   /// The patients a clinician is responsible for (Module 04).
   static const Table _doctorAssignments = Table(
     LocalTables.doctorAssignments,

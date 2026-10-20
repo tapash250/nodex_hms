@@ -591,6 +591,7 @@ void main() {
       'ward_handovers',
       'ward_tasks',
       'hospital_tasks',
+      'patient_portal_links',
       'doctor_assignments',
       'clinical_performance_indices',
       'operational_department_metrics',
