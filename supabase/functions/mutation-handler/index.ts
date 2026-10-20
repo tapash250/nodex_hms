@@ -1596,6 +1596,25 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     operations: ['upsert'],
     auditActionUpsert: 'performance.index.recorded',
   },
+  // Module 04 (doctor clinical dashboard). An assignment is taken on and
+  // concluded; it is never deleted, because the record of who was
+  // responsible is part of the patient's story.
+  doctor_assignments: {
+    columns: {
+      tenant_id: 'uuid',
+      doctor_id: 'uuid',
+      patient_id: 'uuid',
+      assignment_type: 'text',
+      status: 'text',
+      assigned_at: 'timestamp',
+      concluded_at: 'timestamp',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'clinical_dashboard.assignment.created',
+    auditActionPatch: 'clinical_dashboard.assignment.updated',
+  },
   // Module 43 (secure clinical messaging). A message is written once and never
   // patched; a thread's participant list may grow, never shrink.
   clinical_threads: {

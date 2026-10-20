@@ -35,6 +35,7 @@ import 'package:nodex_hms/domain/blood_bank/blood_bank_repository.dart';
 import 'package:nodex_hms/domain/blood_bank/blood_bank_use_cases.dart';
 import 'package:nodex_hms/domain/calendar/calendar_repository.dart';
 import 'package:nodex_hms/domain/calendar/calendar_use_cases.dart';
+import 'package:nodex_hms/domain/clinical_dashboard/clinical_dashboard_repository.dart';
 import 'package:nodex_hms/domain/contacts/contact_repository.dart';
 import 'package:nodex_hms/domain/contacts/contact_use_cases.dart';
 import 'package:nodex_hms/domain/departments/department_repository.dart';
@@ -1444,6 +1445,23 @@ final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
         repository: ref.watch(timelineRepositoryProvider),
       ),
     );
+
+/// The attending's cockpit (Module 04).
+final Provider<ClinicalDashboardRepository>
+clinicalDashboardRepositoryProvider = Provider<ClinicalDashboardRepository>(
+  (Ref ref) => DefaultClinicalDashboardRepository(
+    store: PowerSyncPatientStore(database: ref.watch(localDatabaseProvider)),
+    logger: ref.watch(loggerProvider),
+  ),
+);
+
+/// Reading the patients a clinician is responsible for.
+final Provider<ListDoctorAssignmentsUseCase>
+listDoctorAssignmentsUseCaseProvider = Provider<ListDoctorAssignmentsUseCase>(
+  (Ref ref) => ListDoctorAssignmentsUseCase(
+    repository: ref.watch(clinicalDashboardRepositoryProvider),
+  ),
+);
 
 /// Clinical performance indicators (Module 03).
 final Provider<PerformanceRepository> performanceRepositoryProvider =

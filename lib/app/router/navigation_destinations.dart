@@ -472,6 +472,18 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// The attending's cockpit (Module 04).
+  static const NavigationDestinationSpec clinicalDashboard =
+      NavigationDestinationSpec(
+        routePath: '/my-patients',
+        label: 'My patients',
+        icon: Icons.medical_information_outlined,
+        selectedIcon: Icons.medical_information,
+        requiredPermissions: <String>{NodexPermissions.clinicalDashboardRead},
+        moduleCode: 'M04',
+        isPrimary: false,
+      );
+
   /// Clinical performance indicators (Module 03).
   static const NavigationDestinationSpec performance =
       NavigationDestinationSpec(
@@ -570,6 +582,7 @@ abstract final class NodexDestinations {
         messaging,
         operations,
         performance,
+        clinicalDashboard,
         forms,
       ];
 

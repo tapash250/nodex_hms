@@ -339,6 +339,9 @@ abstract final class LocalTables {
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
 
+  /// The patients a clinician is responsible for (Module 04). Synced.
+  static const String doctorAssignments = 'doctor_assignments';
+
   /// Clinical performance indicators (Module 03). Synced, tenant-scoped.
   static const String clinicalPerformanceIndices =
       'clinical_performance_indices';
@@ -571,6 +574,7 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _doctorAssignments,
     _clinicalPerformanceIndices,
     _operationalDepartmentMetrics,
     _clinicalThreads,
@@ -3364,6 +3368,34 @@ abstract final class NodexLocalSchema {
 
   /// Triage assessments (Module 05): acuity, complaint, disposition and
   /// one-way escalation. Mirrors `public.triage_assessments`.
+  /// The patients a clinician is responsible for (Module 04).
+  static const Table _doctorAssignments = Table(
+    LocalTables.doctorAssignments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('doctor_id'),
+      Column.text('patient_id'),
+      Column.text('assignment_type'),
+      Column.text('status'),
+      Column.text('assigned_at'),
+      Column.text('concluded_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('doctor_assignments_doctor', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('doctor_id'),
+        IndexedColumn('status'),
+        IndexedColumn('assigned_at'),
+      ]),
+      Index('doctor_assignments_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('status'),
+      ]),
+    ],
+  );
+
   /// Clinical performance indicators (Module 03).
   static const Table _clinicalPerformanceIndices = Table(
     LocalTables.clinicalPerformanceIndices,

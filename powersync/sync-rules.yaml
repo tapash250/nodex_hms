@@ -913,6 +913,34 @@ sync_rules:
         - select * from public.clinical_performance_indices
           where tenant_id = bucket.tenant_id
 
+    # Module 04 (doctor clinical dashboard): the assignments that decide whose
+    # patient is whose. A clinician syncs their own; the people accountable
+    # for the hospital sync all of them.
+    clinical_dashboard:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'clinical.dashboard.read'
+      data:
+        - select a.* from public.doctor_assignments a
+          where a.tenant_id = bucket.tenant_id
+            and (a.doctor_id = :user_id
+                 or exists (
+                   select 1 from public.memberships m
+                   join public.role_permissions rp on rp.role_key = m.role_key
+                   where m.user_id = :user_id
+                     and m.tenant_id = a.tenant_id
+                     and m.status = 'active'
+                     and rp.permission_key = 'clinical.dashboard.read'
+                     and rp.permission_key = 'clinical.dashboard.manage'
+                 ))
+
     # Module 43 (secure clinical messaging): the discussions the signed-in
     # clinician takes part in. The server filters by participation; the device
     # filters again, so a thread that reached the device by mistake is not

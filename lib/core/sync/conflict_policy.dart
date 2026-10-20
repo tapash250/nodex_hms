@@ -441,6 +441,9 @@ abstract final class ConflictPolicyRegistry {
   /// Cross-department errand with one owner (Module 41).
   static const String hospitalTask = 'hospital_task';
 
+  /// Responsibility a clinician has for a patient (Module 04).
+  static const String doctorAssignment = 'doctor_assignment';
+
   /// Clinical performance indicator (Module 03).
   static const String performanceIndex = 'performance_index';
 
@@ -1581,6 +1584,14 @@ abstract final class ConflictPolicyRegistry {
           'errand. The server arbitrates the claim, and a device that lost the '
           'race is told rather than silently overwriting the winner.',
     ),
+    doctorAssignment: ConflictPolicyEntry(
+      resourceType: doctorAssignment,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A patient has one attending. The server holds the assignment so two '
+          'devices cannot both be shown as the responsible clinician, and the '
+          'record of who was responsible is never rewritten.',
+    ),
     performanceIndex: ConflictPolicyEntry(
       resourceType: performanceIndex,
       policy: ConflictPolicy.appendOnly,
@@ -1784,6 +1795,7 @@ abstract final class ConflictPolicyRegistry {
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
     'hospital_tasks': hospitalTask,
+    'doctor_assignments': doctorAssignment,
     'clinical_performance_indices': performanceIndex,
     'operational_department_metrics': departmentMetric,
     'clinical_threads': clinicalThread,
