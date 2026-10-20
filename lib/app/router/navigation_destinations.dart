@@ -472,6 +472,18 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Boards, service requests and the private scratchpad (Module 44).
+  static const NavigationDestinationSpec productivity =
+      NavigationDestinationSpec(
+        routePath: '/work',
+        label: 'Work',
+        icon: Icons.view_kanban_outlined,
+        selectedIcon: Icons.view_kanban,
+        requiredPermissions: <String>{NodexPermissions.workItemsRead},
+        moduleCode: 'M44',
+        isPrimary: false,
+      );
+
   /// Clinical forms (Module 47).
   static const NavigationDestinationSpec forms = NavigationDestinationSpec(
     routePath: '/forms',
@@ -520,6 +532,7 @@ abstract final class NodexDestinations {
         settings,
         tasks,
         widgetsLibrary,
+        productivity,
         forms,
       ];
 

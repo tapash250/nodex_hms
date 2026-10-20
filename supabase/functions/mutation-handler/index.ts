@@ -1560,6 +1560,53 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     operations: ['upsert'],
     auditActionUpsert: 'forms.response.submitted',
   },
+  // Module 44 (productivity apps). A card moves between lanes and a ticket
+  // is worked on, so both are patchable; the guards in the migration own the
+  // state machines.
+  work_items: {
+    columns: {
+      tenant_id: 'uuid',
+      board_key: 'text',
+      title: 'text',
+      detail: 'text',
+      lane: 'text',
+      position: 'integer',
+      priority: 'text',
+      patient_id: 'uuid',
+      ward_id: 'uuid',
+      department_id: 'uuid',
+      created_by: 'uuid',
+      assigned_to: 'uuid',
+      due_at: 'timestamp',
+      completed_at: 'timestamp',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'productivity.card.created',
+    auditActionPatch: 'productivity.card.moved',
+  },
+  it_tickets: {
+    columns: {
+      tenant_id: 'uuid',
+      ticket_code: 'text',
+      title: 'text',
+      detail: 'text',
+      category: 'text',
+      priority: 'text',
+      status: 'text',
+      reported_by: 'uuid',
+      assigned_to: 'uuid',
+      resolution_note: 'text',
+      opened_at: 'timestamp',
+      closed_at: 'timestamp',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'productivity.ticket.raised',
+    auditActionPatch: 'productivity.ticket.updated',
+  },
   // Module 13 (human resources & payroll suite).
   hr_employees: {
     columns: {

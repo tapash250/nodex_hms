@@ -878,3 +878,21 @@ sync_rules:
         - select * from public.form_templates where tenant_id = bucket.tenant_id
         - select * from public.form_responses where tenant_id = bucket.tenant_id
         - select * from public.icd10_codes
+
+    # Module 44 (productivity apps): the working boards and the internal
+    # service requests. The scratchpad is deliberately absent — it is the
+    # clinician's own notes and never leaves the device.
+    productivity:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'workitems.read'
+      data:
+        - select * from public.work_items where tenant_id = bucket.tenant_id
+        - select * from public.it_tickets where tenant_id = bucket.tenant_id

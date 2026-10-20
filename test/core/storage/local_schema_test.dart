@@ -28,7 +28,7 @@ void main() {
 
     test(
       'declares every Phase 1 table plus Modules 05, 06, 07, 10, 11, 13, 16, '
-      '17, 18, 19, 20, 21, 22, 23, 25, 26 and 31',
+      '17, 18, 19, 20, 21, 22, 23, 25, 26, 31, 41, 44, 45, 47, 48, 49 and 50',
       () {
         final Set<String> tableNames = schema.tables
             .map((Table table) => table.name)
@@ -166,6 +166,9 @@ void main() {
           LocalTables.wardHandovers,
           LocalTables.wardTasks,
           LocalTables.hospitalTasks,
+          LocalTables.workItems,
+          LocalTables.itTickets,
+          LocalTables.scratchpads,
           LocalTables.formTemplates,
           LocalTables.formResponses,
           LocalTables.icd10Codes,
@@ -208,6 +211,8 @@ void main() {
       const Set<String> localOnly = <String>{
         LocalTables.localMutationLog,
         LocalTables.localDiagnostics,
+        // The clinician's own notes: private, on the device, never replicated.
+        LocalTables.scratchpads,
       };
 
       for (final Table table in schema.tables) {

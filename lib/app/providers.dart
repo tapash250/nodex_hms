@@ -81,6 +81,8 @@ import 'package:nodex_hms/domain/physio/physio_repository.dart';
 import 'package:nodex_hms/domain/physio/physio_use_cases.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_use_cases.dart';
+import 'package:nodex_hms/domain/productivity/productivity_repository.dart';
+import 'package:nodex_hms/domain/productivity/productivity_use_cases.dart';
 import 'package:nodex_hms/domain/quality/quality_repository.dart';
 import 'package:nodex_hms/domain/quality/quality_use_cases.dart';
 import 'package:nodex_hms/domain/radiology/radiology_repository.dart';
@@ -1436,6 +1438,81 @@ final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
     Provider<ReadPatientTimelineUseCase>(
       (Ref ref) => ReadPatientTimelineUseCase(
         repository: ref.watch(timelineRepositoryProvider),
+      ),
+    );
+
+/// Boards, service requests and the private scratchpad (Module 44).
+final Provider<ProductivityRepository> productivityRepositoryProvider =
+    Provider<ProductivityRepository>(
+      (Ref ref) => DefaultProductivityRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Reading a working board.
+final Provider<ReadBoardUseCase> readBoardUseCaseProvider =
+    Provider<ReadBoardUseCase>(
+      (Ref ref) => ReadBoardUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
+      ),
+    );
+
+/// Adding a card to a board.
+final Provider<RaiseWorkItemUseCase> raiseWorkItemUseCaseProvider =
+    Provider<RaiseWorkItemUseCase>(
+      (Ref ref) => RaiseWorkItemUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
+      ),
+    );
+
+/// Moving a card between lanes.
+final Provider<MoveWorkItemUseCase> moveWorkItemUseCaseProvider =
+    Provider<MoveWorkItemUseCase>(
+      (Ref ref) => MoveWorkItemUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
+      ),
+    );
+
+/// Reading the service requests.
+final Provider<ReadTicketsUseCase> readTicketsUseCaseProvider =
+    Provider<ReadTicketsUseCase>(
+      (Ref ref) => ReadTicketsUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
+      ),
+    );
+
+/// Opening a service request.
+final Provider<RaiseTicketUseCase> raiseTicketUseCaseProvider =
+    Provider<RaiseTicketUseCase>(
+      (Ref ref) => RaiseTicketUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
+      ),
+    );
+
+/// Resolving a service request.
+final Provider<ResolveTicketUseCase> resolveTicketUseCaseProvider =
+    Provider<ResolveTicketUseCase>(
+      (Ref ref) => ResolveTicketUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
+      ),
+    );
+
+/// Reading the clinician's own notes.
+final Provider<ReadScratchpadUseCase> readScratchpadUseCaseProvider =
+    Provider<ReadScratchpadUseCase>(
+      (Ref ref) => ReadScratchpadUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
+      ),
+    );
+
+/// Writing the clinician's own notes.
+final Provider<WriteScratchpadUseCase> writeScratchpadUseCaseProvider =
+    Provider<WriteScratchpadUseCase>(
+      (Ref ref) => WriteScratchpadUseCase(
+        repository: ref.watch(productivityRepositoryProvider),
       ),
     );
 

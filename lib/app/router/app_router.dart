@@ -59,6 +59,7 @@ import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
 import 'package:nodex_hms/features/patients/patient_search_screen.dart';
 import 'package:nodex_hms/features/physio/physio_session_screen.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_detail_screen.dart';
+import 'package:nodex_hms/features/productivity/productivity_screen.dart';
 import 'package:nodex_hms/features/quality/quality_hub_screen.dart';
 import 'package:nodex_hms/features/radiology/radiology_order_screen.dart';
 import 'package:nodex_hms/features/roster/practitioner_directory_screen.dart';
@@ -511,6 +512,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.productivity.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const ProductivityScreen(),
           ),
           GoRoute(
             path: NodexDestinations.forms.routePath,

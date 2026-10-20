@@ -441,6 +441,12 @@ abstract final class ConflictPolicyRegistry {
   /// Cross-department errand with one owner (Module 41).
   static const String hospitalTask = 'hospital_task';
 
+  /// Card on a working board (Module 44).
+  static const String workItem = 'work_item';
+
+  /// Internal service request (Module 44).
+  static const String itTicket = 'it_ticket';
+
   /// Clinical form template (Module 47).
   static const String formTemplate = 'form_template';
 
@@ -1560,6 +1566,22 @@ abstract final class ConflictPolicyRegistry {
           'errand. The server arbitrates the claim, and a device that lost the '
           'race is told rather than silently overwriting the winner.',
     ),
+    workItem: ConflictPolicyEntry(
+      resourceType: workItem,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A card has one lane and one position. Two devices moving the same '
+          'card is a race, and the server holds the lane so the board shows '
+          'one truth rather than two.',
+    ),
+    itTicket: ConflictPolicyEntry(
+      resourceType: itTicket,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A service request has one state and one resolution. The server '
+          'holds it so a ticket cannot be resolved twice by two devices with '
+          'two different notes.',
+    ),
     formTemplate: ConflictPolicyEntry(
       resourceType: formTemplate,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1708,6 +1730,8 @@ abstract final class ConflictPolicyRegistry {
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
     'hospital_tasks': hospitalTask,
+    'work_items': workItem,
+    'it_tickets': itTicket,
     'form_templates': formTemplate,
     'form_responses': formResponse,
   };

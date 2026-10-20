@@ -412,6 +412,21 @@ abstract final class NodexPermissions {
   /// Record a filled clinical form (Module 47).
   static const String formsSubmit = 'forms.submit';
 
+  /// Read the working boards (Module 44).
+  static const String workItemsRead = 'workitems.read';
+
+  /// Add cards to a board and move them between lanes (Module 44).
+  static const String workItemsManage = 'workitems.manage';
+
+  /// Read internal service requests (Module 44).
+  static const String ticketsRead = 'tickets.read';
+
+  /// Raise an internal service request (Module 44).
+  static const String ticketsSubmit = 'tickets.submit';
+
+  /// Work on internal service requests (Module 44).
+  static const String ticketsManage = 'tickets.manage';
+
   /// Approve and finalize a patient discharge.
   static const String dischargeFinalize = 'discharge.finalize';
 

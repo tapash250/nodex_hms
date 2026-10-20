@@ -22,6 +22,8 @@ import 'package:nodex_hms/core/storage/local_schema.dart';
 const Set<String> _localOnlyTables = <String>{
   'local_mutation_log',
   'local_diagnostics',
+  // The clinician's own notes: private, on the device, never replicated.
+  'scratchpads',
 };
 
 String _read(String relativePath) {

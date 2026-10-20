@@ -339,6 +339,15 @@ abstract final class LocalTables {
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
 
+  /// Working board cards (Module 44). Synced, tenant-scoped.
+  static const String workItems = 'work_items';
+
+  /// Internal service requests (Module 44). Synced, tenant-scoped.
+  static const String itTickets = 'it_tickets';
+
+  /// The clinician's own notes (Module 44). Device-only, never replicated.
+  static const String scratchpads = 'scratchpads';
+
   /// Form templates (Module 47). Synced, tenant-scoped.
   static const String formTemplates = 'form_templates';
 
@@ -545,6 +554,9 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _workItems,
+    _itTickets,
+    _scratchpads,
     _formTemplates,
     _formResponses,
     _icd10Codes,
@@ -3330,6 +3342,85 @@ abstract final class NodexLocalSchema {
 
   /// Triage assessments (Module 05): acuity, complaint, disposition and
   /// one-way escalation. Mirrors `public.triage_assessments`.
+  /// Working board cards (Module 44).
+  static const Table _workItems = Table(
+    LocalTables.workItems,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('board_key'),
+      Column.text('title'),
+      Column.text('detail'),
+      Column.text('lane'),
+      Column.integer('position'),
+      Column.text('priority'),
+      Column.text('patient_id'),
+      Column.text('ward_id'),
+      Column.text('department_id'),
+      Column.text('created_by'),
+      Column.text('assigned_to'),
+      Column.text('due_at'),
+      Column.text('completed_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('work_items_board', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('board_key'),
+        IndexedColumn('lane'),
+        IndexedColumn('position'),
+      ]),
+      Index('work_items_assignee', <IndexedColumn>[
+        IndexedColumn('assigned_to'),
+        IndexedColumn('lane'),
+        IndexedColumn('due_at'),
+      ]),
+    ],
+  );
+
+  /// Internal service requests (Module 44).
+  static const Table _itTickets = Table(
+    LocalTables.itTickets,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('ticket_code'),
+      Column.text('title'),
+      Column.text('detail'),
+      Column.text('category'),
+      Column.text('priority'),
+      Column.text('status'),
+      Column.text('reported_by'),
+      Column.text('assigned_to'),
+      Column.text('resolution_note'),
+      Column.text('opened_at'),
+      Column.text('closed_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('it_tickets_status', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('priority'),
+        IndexedColumn('opened_at'),
+      ]),
+      Index('it_tickets_reporter', <IndexedColumn>[
+        IndexedColumn('reported_by'),
+        IndexedColumn('opened_at'),
+      ]),
+    ],
+  );
+
+  /// The clinician's own notes.
+  ///
+  /// Device-only on purpose: a scratchpad is a clinician's private working
+  /// notes, not hospital data, so it is never replicated and the server never
+  /// holds it.
+  static const Table _scratchpads = Table.localOnly(
+    LocalTables.scratchpads,
+    <Column>[Column.text('note'), Column.text('updated_at')],
+  );
+
   /// Form templates (Module 47).
   static const Table _formTemplates = Table(
     LocalTables.formTemplates,

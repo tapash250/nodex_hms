@@ -591,6 +591,8 @@ void main() {
       'ward_handovers',
       'ward_tasks',
       'hospital_tasks',
+      'work_items',
+      'it_tickets',
       'form_templates',
       'form_responses',
       'ward_vitals',
