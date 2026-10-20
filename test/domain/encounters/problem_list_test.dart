@@ -5,6 +5,8 @@
 /// never reach the record without a human accepting specific sections.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/domain/encounters/problem_list.dart';
@@ -213,7 +215,10 @@ void main() {
       expect(row['subjective_note'], 'No chest pain.');
       expect(row['assessment'], 'Stable angina.');
       expect(row['objective_findings'], isNull);
-      expect(row['accepted_fields'], isEmpty);
+      // The local column is text and the server column is text, so the
+      // accepted sections travel as a JSON string rather than a list the
+      // SQLite binding cannot hold.
+      expect(jsonDecode(row['accepted_fields']! as String), isEmpty);
       expect(row['reviewed_by'], isNull);
     });
 
@@ -305,7 +310,7 @@ void main() {
         DateTime.parse(changes['reviewed_at']! as String),
         isA<DateTime>(),
       );
-      expect(changes['accepted_fields'], <String>[
+      expect(jsonDecode(changes['accepted_fields']! as String), <String>[
         'assessment',
         'subjective_note',
       ], reason: 'accepted sections are sorted so the list is stable');
@@ -369,7 +374,7 @@ void main() {
       );
       expect(changes['status'], 'rejected');
       expect(changes['rejection_reason'], 'Transcription wrong.');
-      expect(changes['accepted_fields'], isEmpty);
+      expect(jsonDecode(changes['accepted_fields']! as String), isEmpty);
     });
 
     test('a review needs a reviewer and a real decision', () {

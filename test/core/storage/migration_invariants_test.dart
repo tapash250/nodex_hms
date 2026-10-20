@@ -91,6 +91,70 @@ Map<String, Set<String>> localColumns() {
   return columns;
 }
 
+/// The SQL type of a column declaration.
+String _typeOf(String rest) {
+  final String trimmed = rest.trim().toLowerCase();
+  for (final String phrase in <String>[
+    'double precision',
+    'character varying',
+    'timestamp with time zone',
+    'timestamp without time zone',
+  ]) {
+    if (trimmed.startsWith(phrase)) return phrase;
+  }
+  final RegExpMatch? match = RegExp('^([a-z]+)').firstMatch(trimmed);
+  return match?.group(1) ?? trimmed;
+}
+
+/// Whether the handler's declared type can carry the server's column.
+///
+/// The handler's type describes the *server* column, because that is what
+/// the payload has to satisfy. The validator converts what the device
+/// holds — 0/1 for a boolean, a JSON string for a jsonb column — into
+/// what the server expects.
+bool _handlerTypeFits(String declared, String serverType) {
+  final String server = serverType.toLowerCase();
+  switch (declared) {
+    case 'boolean':
+      return server == 'boolean';
+    case 'uuid':
+      return server == 'uuid';
+    case 'text':
+      // A date-only column carries a YYYY-MM-DD string, which is what keeps
+      // a device west of UTC from shifting the first day.
+      return server == 'text' ||
+          server == 'character varying' ||
+          server == 'date';
+    case 'integer':
+      return <String>{
+        'integer',
+        'int',
+        'int4',
+        'bigint',
+        'int8',
+        'smallint',
+        'serial',
+        'bigserial',
+      }.contains(server);
+    case 'number':
+      return <String>{
+        'numeric',
+        'decimal',
+        'real',
+        'double',
+        'float4',
+        'float8',
+        'integer',
+        'bigint',
+      }.contains(server);
+    case 'timestamp':
+      return server.startsWith('timestamp') || server == 'date';
+    case 'json':
+      return server == 'json' || server == 'jsonb';
+  }
+  return false;
+}
+
 void main() {
   group('row level security', () {
     test('every table in the migrations is behind row level security', () {
@@ -513,6 +577,151 @@ void main() {
             'The mutation handler offers columns the local table does not '
             'declare, so the device cannot hold the value it would upload: '
             '${unknown.join(', ')}',
+      );
+    });
+  });
+
+  group('column types', () {
+    /// The type of every server column, as the handler must describe it.
+    Map<String, Map<String, String>> serverTypes() {
+      final Map<String, Map<String, String>> types =
+          <String, Map<String, String>>{};
+      for (final File file in _migrationFiles()) {
+        final String sql = file
+            .readAsStringSync()
+            .replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '')
+            .replaceAll(RegExp(r'--[^\n]*'), '');
+
+        for (final RegExpMatch table in RegExp(
+          r'create table (?:if not exists )?public\.([a-z0-9_]+)\s*\(',
+          caseSensitive: false,
+        ).allMatches(sql)) {
+          final int open = table.end - 1;
+          int depth = 0;
+          int close = open;
+          for (int i = open; i < sql.length; i++) {
+            if (sql[i] == '(') depth++;
+            if (sql[i] == ')') {
+              depth--;
+              if (depth == 0) {
+                close = i;
+                break;
+              }
+            }
+          }
+          final Map<String, String> found = <String, String>{};
+          for (final String part in _splitTopLevel(
+            sql.substring(open + 1, close),
+          )) {
+            final String trimmed = part.trim();
+            if (trimmed.isEmpty) continue;
+            final String first = trimmed.split(' ').first.toLowerCase();
+            if (<String>{
+              'constraint',
+              'primary',
+              'unique',
+              'check',
+              'foreign',
+              'exclude',
+              'like',
+            }.contains(first)) {
+              continue;
+            }
+            if (!RegExp(r'^[a-z_][a-z0-9_]*$').hasMatch(first)) continue;
+            String rest = trimmed.substring(first.length).trim();
+            rest = rest.replaceFirst(
+              RegExp('^(not null|null|default [^,]*)'),
+              '',
+            );
+            found[first] = _typeOf(rest);
+          }
+          types
+              .putIfAbsent(
+                table.group(1)!.toLowerCase(),
+                () => <String, String>{},
+              )
+              .addAll(found);
+        }
+
+        for (final RegExpMatch alter in RegExp(
+          r'alter table (?:if exists )?public\.([a-z0-9_]+)\b([^;]*);',
+          caseSensitive: false,
+          dotAll: true,
+        ).allMatches(sql)) {
+          for (final RegExpMatch add in RegExp(
+            r'add column (?:if not exists )?([a-z_][a-z0-9_]*)\s+([^,]+)',
+            caseSensitive: false,
+          ).allMatches(alter.group(2)!)) {
+            types.putIfAbsent(
+              alter.group(1)!.toLowerCase(),
+              () => <String, String>{},
+            )[add.group(1)!.toLowerCase()] = _typeOf(
+              add.group(2)!,
+            );
+          }
+        }
+      }
+      return types;
+    }
+
+    /// The handler's declared type for every column it will upload.
+    Map<String, Map<String, String>> handlerTypes() {
+      final String source = _read(
+        'supabase/functions/mutation-handler/index.ts',
+      );
+      final Map<String, Map<String, String>> types =
+          <String, Map<String, String>>{};
+      for (final RegExpMatch table in RegExp(
+        r'^  ([a-z0-9_]+):\s*\{(.*?)^  \},',
+        dotAll: true,
+        multiLine: true,
+      ).allMatches(source)) {
+        final RegExpMatch? columns = RegExp(
+          r'columns:\s*\{(.*?)\n    \},',
+          dotAll: true,
+        ).firstMatch(table.group(2)!);
+        if (columns == null) continue;
+        final Map<String, String> found = <String, String>{};
+        for (final RegExpMatch column in RegExp(
+          r"^\s+([a-z_][a-z0-9_]*):\s*'([a-z]+)',",
+          multiLine: true,
+        ).allMatches(columns.group(1)!)) {
+          found[column.group(1)!] = column.group(2)!;
+        }
+        types[table.group(1)!] = found;
+      }
+      return types;
+    }
+
+    test('every column the handler uploads has a type the server accepts', () {
+      // A handler type that does not match the server column is a refused
+      // write: a boolean column described as an integer arrives as 1, and
+      // PostgreSQL will not take a number for a boolean.
+      final Map<String, Map<String, String>> server = serverTypes();
+      final List<String> wrong = <String>[];
+      for (final MapEntry<String, Map<String, String>> table
+          in handlerTypes().entries) {
+        final Map<String, String>? columns = server[table.key];
+        if (columns == null) continue;
+        for (final MapEntry<String, String> column in table.value.entries) {
+          final String? serverType = columns[column.key];
+          if (serverType == null) continue;
+          if (!_handlerTypeFits(column.value, serverType)) {
+            wrong.add(
+              '${table.key}.${column.key} (handler ${column.value}, '
+              'server $serverType)',
+            );
+          }
+        }
+      }
+      wrong.sort();
+      expect(
+        wrong,
+        isEmpty,
+        reason:
+            'The mutation handler describes these columns with a type the '
+            'server will not accept, so every write that carries them is '
+            'refused: ${wrong.join(', ')}',
       );
     });
   });

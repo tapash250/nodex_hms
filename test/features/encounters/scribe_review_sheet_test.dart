@@ -11,6 +11,8 @@
 /// nothing is accepted while the box is empty.
 library;
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,7 +45,9 @@ final class RecordingProblemRepository implements ProblemListRepository {
   @override
   Future<void> reviewDraft(String id, Map<String, Object?> changes) async {
     reviews++;
-    final List<Object?> fields = changes['accepted_fields']! as List<Object?>;
+    // The column is text, so the sections arrive as a JSON string.
+    final List<Object?> fields =
+        jsonDecode(changes['accepted_fields']! as String) as List<Object?>;
     accepted = <ScribeSection, String>{};
     for (final Object? column in fields) {
       final ScribeSection section = ScribeSection.values.firstWhere(

@@ -407,7 +407,10 @@ final class ScribeDraft {
       'safety_decision': safetyDecision.trim(),
       'status': ScribeDraftStatus.pendingReview.wireValue,
       'requested_by': requestedBy,
-      'accepted_fields': const <String>[],
+      // The local column is text, and the server column is text: the list of
+      // accepted sections travels as a JSON string, not as a list the SQLite
+      // binding cannot hold.
+      'accepted_fields': const JsonEncoder().convert(<String>[]),
       'created_at': now.toIso8601String(),
       'updated_at': now.toIso8601String(),
     };
@@ -534,11 +537,13 @@ final class ScribeDraft {
       'reviewed_by': reviewedBy,
       'reviewed_at': now.toIso8601String(),
       'accepted_fields': status == ScribeDraftStatus.accepted
-          ? (acceptedText.keys
-                .map((ScribeSection s) => s.column)
-                .toList(growable: false)
-              ..sort())
-          : const <String>[],
+          ? jsonEncode(
+              acceptedText.keys
+                  .map((ScribeSection s) => s.column)
+                  .toList(growable: false)
+                ..sort(),
+            )
+          : jsonEncode(const <String>[]),
       'rejection_reason': status == ScribeDraftStatus.rejected
           ? rejectionReason!.trim()
           : null,
