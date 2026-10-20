@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 71 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 81 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -39,14 +39,14 @@ interrupted, delete `/opt/sdk/flutter/bin/cache/lockfile` before retrying.
 ### Verify the checkout is sound
 
 ```bash
-cd /root/workspace/nodex_hms
+cd /root/opencode-workspace/Nodex/nodex_hms
 flutter pub get
 dart format --output=none --set-exit-if-changed .
 flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 1819 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 2147 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -627,15 +627,23 @@ branding, departments, tariffs and AI routing — whose every write asks for the
 first and hands the use case the assertion, not the code.
 
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
-30, 32, 33, 34, 35, 36, 37, 38 and 39 continue the sequence into Domain C. Next:
-continue
-with the remaining clinical modules one vertical slice at a time, following the
-same pattern (Postgres schema + RLS, PowerSync local schema, repository + test
-seam, `*.write`-gated use cases, screens, sync bucket, mutation-handler
-registration, conflict policy, tests, then format/analyze/test). The next unbuilt
-slice is **module 31** (patient accounts & billing engine), the last outstanding
-slice of Domain C; module 41 then opens Domain D. Hardware barcode scanning, thumbprint capture, PowerSync device
-verification and clinical deployment validation also remain across all slices.
+30, 32, 33, 34, 35, 36, 37, 38 and 39 continue the sequence into Domain C.
+
+**All 54 clinical modules now have a vertical slice.** The run after the audit
+was: 31 (patient accounts, ledger and payment splits) → 41 (task engine) → 45
+(widget library) → 48 (master data tables) → 49 (chart engine) → 46 (adaptive
+component system) → 50 (patient journey) → 47 (forms builder) → 44 (productivity
+apps) → 43 (clinical messaging) → 02 (operations dashboard) → 03 (performance
+dashboard) → 04 (doctor cockpit) → 05 (patient portal) → 51 (icon repository) →
+52 (security suite) → 53 (operational utilities) → 54 (global search). Each was
+committed on its own with the same pattern: Postgres schema + RLS, PowerSync
+local schema, repository with a test seam, permission-gated use cases, screens,
+sync bucket, mutation-handler registration, conflict policy, tests, then
+format/analyze/test.
+
+What is left is no longer a module. It is the work that needs a decision, a
+device or a person who is not this session — listed in **Known gaps** below and
+summarised in `docs/OPEN_WORKSTREAMS.md`.
 
 ---
 
@@ -662,7 +670,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (1819 tests).
+  mutation-verified (2147 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and
