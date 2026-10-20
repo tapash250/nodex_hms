@@ -472,6 +472,17 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Clinical forms (Module 47).
+  static const NavigationDestinationSpec forms = NavigationDestinationSpec(
+    routePath: '/forms',
+    label: 'Forms',
+    icon: Icons.assignment_outlined,
+    selectedIcon: Icons.assignment,
+    requiredPermissions: <String>{NodexPermissions.formsRead},
+    moduleCode: 'M47',
+    isPrimary: false,
+  );
+
   /// Every declared destination in navigation order.
   static const List<NavigationDestinationSpec> all =
       <NavigationDestinationSpec>[
@@ -509,6 +520,7 @@ abstract final class NodexDestinations {
         settings,
         tasks,
         widgetsLibrary,
+        forms,
       ];
 
   /// Destinations visible to [policy], in navigation order.

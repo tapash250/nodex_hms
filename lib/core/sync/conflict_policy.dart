@@ -441,6 +441,12 @@ abstract final class ConflictPolicyRegistry {
   /// Cross-department errand with one owner (Module 41).
   static const String hospitalTask = 'hospital_task';
 
+  /// Clinical form template (Module 47).
+  static const String formTemplate = 'form_template';
+
+  /// Filled clinical form (Module 47).
+  static const String formResponse = 'form_response';
+
   /// Bed registry entry (code, type and lifecycle status).
   static const String bed = 'bed';
 
@@ -1554,6 +1560,23 @@ abstract final class ConflictPolicyRegistry {
           'errand. The server arbitrates the claim, and a device that lost the '
           'race is told rather than silently overwriting the winner.',
     ),
+    formTemplate: ConflictPolicyEntry(
+      resourceType: formTemplate,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A published form template is frozen, and a response can only be read '
+          'against the schema that was in force when it was filled. The server '
+          'holds publication and version state so two devices cannot publish '
+          'different schemas under one version.',
+    ),
+    formResponse: ConflictPolicyEntry(
+      resourceType: formResponse,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A filled form is evidence of what was asked and answered. It is '
+          'written once and never edited: a mistake is answered by a new '
+          'response, not by rewriting the old one.',
+    ),
   };
 
   /// Maps a replicated table name onto its registered resource type.
@@ -1685,6 +1708,8 @@ abstract final class ConflictPolicyRegistry {
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
     'hospital_tasks': hospitalTask,
+    'form_templates': formTemplate,
+    'form_responses': formResponse,
   };
 
   /// Resolves [resourceType], which may be a table name, to its entry.

@@ -858,3 +858,23 @@ sync_rules:
             and rp.permission_key = 'tasks.read'
       data:
         - select * from public.hospital_tasks where tenant_id = bucket.tenant_id
+
+    # Module 47 (clinical forms builder): the form templates that are in force,
+    # the responses already recorded, and the ICD-10 catalogue the device
+    # searches offline. The catalogue is reference data rather than patient
+    # data, so it travels with every bucket that holds forms.
+    form_builder:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'forms.read'
+      data:
+        - select * from public.form_templates where tenant_id = bucket.tenant_id
+        - select * from public.form_responses where tenant_id = bucket.tenant_id
+        - select * from public.icd10_codes

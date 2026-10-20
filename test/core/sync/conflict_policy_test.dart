@@ -591,6 +591,8 @@ void main() {
       'ward_handovers',
       'ward_tasks',
       'hospital_tasks',
+      'form_templates',
+      'form_responses',
       'ward_vitals',
       'icu_beds',
       'icu_nursing_handover',

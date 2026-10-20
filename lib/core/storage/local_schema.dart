@@ -339,6 +339,15 @@ abstract final class LocalTables {
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
 
+  /// Form templates (Module 47). Synced, tenant-scoped.
+  static const String formTemplates = 'form_templates';
+
+  /// Filled clinical forms (Module 47). Synced, tenant-scoped.
+  static const String formResponses = 'form_responses';
+
+  /// ICD-10 diagnosis catalogue (Module 47). Synced, reference data.
+  static const String icd10Codes = 'icd10_codes';
+
   /// Triage assessments (Module 05). Synced, tenant-scoped.
   static const String triageAssessments = 'triage_assessments';
 
@@ -536,6 +545,9 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _formTemplates,
+    _formResponses,
+    _icd10Codes,
     _triageAssessments,
     _erVisits,
     _icuBeds,
@@ -3318,6 +3330,81 @@ abstract final class NodexLocalSchema {
 
   /// Triage assessments (Module 05): acuity, complaint, disposition and
   /// one-way escalation. Mirrors `public.triage_assessments`.
+  /// Form templates (Module 47).
+  static const Table _formTemplates = Table(
+    LocalTables.formTemplates,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('template_code'),
+      Column.text('title'),
+      Column.text('description'),
+      Column.integer('version'),
+      Column.text('schema_json'),
+      Column.text('status'),
+      Column.text('created_by'),
+      Column.text('published_at'),
+      Column.text('retired_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('form_templates_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('title'),
+      ]),
+      Index('form_templates_code', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('template_code'),
+        IndexedColumn('version'),
+      ]),
+    ],
+  );
+
+  /// Filled clinical forms (Module 47).
+  static const Table _formResponses = Table(
+    LocalTables.formResponses,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('template_id'),
+      Column.integer('template_version'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('submitted_by'),
+      Column.text('values_json'),
+      Column.text('submitted_at'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('form_responses_template', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('template_id'),
+        IndexedColumn('submitted_at'),
+      ]),
+      Index('form_responses_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('submitted_at'),
+      ]),
+    ],
+  );
+
+  /// ICD-10 diagnosis catalogue (Module 47).
+  static const Table _icd10Codes = Table(
+    LocalTables.icd10Codes,
+    <Column>[
+      Column.text('code'),
+      Column.text('description'),
+      Column.text('category'),
+      Column.integer('is_billable'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('icd10_codes_description', <IndexedColumn>[
+        IndexedColumn('description'),
+      ]),
+    ],
+  );
+
   static const Table _triageAssessments = Table(
     LocalTables.triageAssessments,
     <Column>[

@@ -42,6 +42,8 @@ import 'package:nodex_hms/features/er/triage_intake_screen.dart';
 import 'package:nodex_hms/features/feedback/feedback_grievance_screen.dart';
 import 'package:nodex_hms/features/fleet/fleet_dispatch_screen.dart';
 import 'package:nodex_hms/features/floormap/floor_map_screen.dart';
+import 'package:nodex_hms/features/forms/form_runner_screen.dart';
+import 'package:nodex_hms/features/forms/form_templates_screen.dart';
 import 'package:nodex_hms/features/home/home_screen.dart';
 import 'package:nodex_hms/features/hr/hr_screen.dart';
 import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
@@ -509,6 +511,19 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.forms.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const FormTemplatesScreen(),
+          ),
+          GoRoute(
+            path: '/forms/:templateId',
+            builder: (BuildContext context, GoRouterState state) =>
+                FormRunnerScreen(
+                  templateId: state.pathParameters['templateId'] ?? '',
+                  patientId: state.uri.queryParameters['patient'],
+                ),
           ),
         ],
       ),

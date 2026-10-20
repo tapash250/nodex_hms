@@ -57,6 +57,8 @@ import 'package:nodex_hms/domain/fleet/fleet_repository.dart';
 import 'package:nodex_hms/domain/fleet/fleet_use_cases.dart';
 import 'package:nodex_hms/domain/floormap/floormap_repository.dart';
 import 'package:nodex_hms/domain/floormap/floormap_use_cases.dart';
+import 'package:nodex_hms/domain/forms/form_repository.dart';
+import 'package:nodex_hms/domain/forms/form_use_cases.dart';
 import 'package:nodex_hms/domain/hr/hr_repository.dart';
 import 'package:nodex_hms/domain/hr/hr_use_cases.dart';
 import 'package:nodex_hms/domain/icu/icu_repository.dart';
@@ -1434,6 +1436,48 @@ final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
     Provider<ReadPatientTimelineUseCase>(
       (Ref ref) => ReadPatientTimelineUseCase(
         repository: ref.watch(timelineRepositoryProvider),
+      ),
+    );
+
+/// Clinical form templates and responses (Module 47).
+final Provider<FormRepository> formRepositoryProvider =
+    Provider<FormRepository>(
+      (Ref ref) => DefaultFormRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Listing the forms a clinician may fill in.
+final Provider<ListFormTemplatesUseCase> listFormTemplatesUseCaseProvider =
+    Provider<ListFormTemplatesUseCase>(
+      (Ref ref) => ListFormTemplatesUseCase(
+        repository: ref.watch(formRepositoryProvider),
+      ),
+    );
+
+/// Searching the ICD-10 catalogue.
+final Provider<SearchIcd10UseCase> searchIcd10UseCaseProvider =
+    Provider<SearchIcd10UseCase>(
+      (Ref ref) =>
+          SearchIcd10UseCase(repository: ref.watch(formRepositoryProvider)),
+    );
+
+/// Recording a filled form.
+final Provider<SubmitFormResponseUseCase> submitFormResponseUseCaseProvider =
+    Provider<SubmitFormResponseUseCase>(
+      (Ref ref) => SubmitFormResponseUseCase(
+        repository: ref.watch(formRepositoryProvider),
+      ),
+    );
+
+/// Listing the forms recorded for a patient.
+final Provider<ListFormResponsesUseCase> listFormResponsesUseCaseProvider =
+    Provider<ListFormResponsesUseCase>(
+      (Ref ref) => ListFormResponsesUseCase(
+        repository: ref.watch(formRepositoryProvider),
       ),
     );
 

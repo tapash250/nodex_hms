@@ -1523,6 +1523,43 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     auditActionUpsert: 'tasks.task.raised',
     auditActionPatch: 'tasks.task.transitioned',
   },
+  // Module 47 (clinical forms builder). A template is authored and then frozen
+  // by the server; a response is written once and never patched, so the
+  // handler refuses updates to it.
+  form_templates: {
+    columns: {
+      tenant_id: 'uuid',
+      template_code: 'text',
+      title: 'text',
+      description: 'text',
+      version: 'integer',
+      schema_json: 'json',
+      status: 'text',
+      created_by: 'uuid',
+      published_at: 'timestamp',
+      retired_at: 'timestamp',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'forms.template.created',
+    auditActionPatch: 'forms.template.updated',
+  },
+  form_responses: {
+    columns: {
+      tenant_id: 'uuid',
+      template_id: 'uuid',
+      template_version: 'integer',
+      patient_id: 'uuid',
+      encounter_id: 'uuid',
+      submitted_by: 'uuid',
+      values_json: 'json',
+      submitted_at: 'timestamp',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'forms.response.submitted',
+  },
   // Module 13 (human resources & payroll suite).
   hr_employees: {
     columns: {

@@ -403,6 +403,15 @@ abstract final class NodexPermissions {
   /// Raise, claim, reprioritise and close hospital tasks (Module 41).
   static const String tasksManage = 'tasks.manage';
 
+  /// Read clinical form templates and recorded responses (Module 47).
+  static const String formsRead = 'forms.read';
+
+  /// Author, version and publish clinical form templates (Module 47).
+  static const String formsManage = 'forms.manage';
+
+  /// Record a filled clinical form (Module 47).
+  static const String formsSubmit = 'forms.submit';
+
   /// Approve and finalize a patient discharge.
   static const String dischargeFinalize = 'discharge.finalize';
 

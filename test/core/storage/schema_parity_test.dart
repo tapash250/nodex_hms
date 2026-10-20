@@ -37,7 +37,7 @@ String _read(String relativePath) {
 /// Table names created by the migration set.
 Set<String> _migrationTables() {
   final RegExp pattern = RegExp(
-    r'create table (?:if not exists )?public\.([a-z_]+)',
+    r'create table (?:if not exists )?public\.([a-z0-9_]+)',
     caseSensitive: false,
   );
   final Set<String> tables = <String>{};
@@ -57,7 +57,7 @@ Set<String> _migrationTables() {
 
 /// Table names referenced by the replication rules.
 Set<String> _syncedTables() {
-  final RegExp pattern = RegExp(r'from public\.([a-z_]+)');
+  final RegExp pattern = RegExp(r'from public\.([a-z0-9_]+)');
   return pattern
       .allMatches(_read('powersync/sync-rules.yaml'))
       .map((RegExpMatch match) => match.group(1)!)
@@ -69,7 +69,7 @@ Set<String> _localSchemaTables() {
   final String source = _read('lib/core/storage/local_schema.dart');
   final Map<String, String> constants = <String, String>{
     for (final RegExpMatch match in RegExp(
-      r"static const String (\w+)\s*=\s*\n?\s*'([a-z_]+)';",
+      r"static const String (\w+)\s*=\s*\n?\s*'([a-z0-9_]+)';",
     ).allMatches(source))
       match.group(1)!: match.group(2)!,
   };
@@ -131,7 +131,7 @@ Set<String> _appendOnlyResources() {
 /// treats as append-only must not be freely mutable in PostgreSQL.
 Set<String> _guardedTables() {
   final RegExp pattern = RegExp(
-    r'create trigger\s+\w+[^;]*?on\s+public\.([a-z_]+)\b',
+    r'create trigger\s+\w+[^;]*?on\s+public\.([a-z0-9_]+)\b',
     caseSensitive: false,
     dotAll: true,
   );
@@ -153,7 +153,7 @@ Set<String> _guardedTables() {
 /// Tables guarded by the blanket immutability trigger specifically.
 Set<String> _immutableTables() {
   final RegExp pattern = RegExp(
-    r'create trigger\s+\w+[^;]*?on\s+public\.([a-z_]+)\b[^;]*?tg_block_mutation\(\)',
+    r'create trigger\s+\w+[^;]*?on\s+public\.([a-z0-9_]+)\b[^;]*?tg_block_mutation\(\)',
     caseSensitive: false,
     dotAll: true,
   );
@@ -192,7 +192,7 @@ Set<String> _writableTables() {
     }
   }
   expect(end, isNonNegative, reason: 'WRITABLE_TABLES is not balanced.');
-  return RegExp(r'^  ([a-z_]+):\s*\{', multiLine: true)
+  return RegExp(r'^  ([a-z0-9_]+):\s*\{', multiLine: true)
       .allMatches(source.substring(open, end))
       .map((RegExpMatch match) => match.group(1)!)
       .toSet();
@@ -309,6 +309,7 @@ void main() {
         'icu_nursing_handover',
         'stock_movements',
         'ventilator_events',
+        'form_responses',
       };
       expect(
         immutable.difference(_immutableTables()),
