@@ -60,6 +60,7 @@ import 'package:nodex_hms/features/ot/ot_booking_detail_screen.dart';
 import 'package:nodex_hms/features/ot/ot_list_screen.dart';
 import 'package:nodex_hms/features/patients/patient_detail_screen.dart';
 import 'package:nodex_hms/features/patients/patient_search_screen.dart';
+import 'package:nodex_hms/features/performance/performance_dashboard_screen.dart';
 import 'package:nodex_hms/features/physio/physio_session_screen.dart';
 import 'package:nodex_hms/features/prescriptions/prescription_detail_screen.dart';
 import 'package:nodex_hms/features/productivity/productivity_screen.dart';
@@ -515,6 +516,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.performance.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const PerformanceDashboardScreen(),
           ),
           GoRoute(
             path: NodexDestinations.operations.routePath,

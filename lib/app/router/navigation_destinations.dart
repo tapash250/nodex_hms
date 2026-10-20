@@ -472,6 +472,18 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Clinical performance indicators (Module 03).
+  static const NavigationDestinationSpec performance =
+      NavigationDestinationSpec(
+        routePath: '/performance',
+        label: 'Performance',
+        icon: Icons.leaderboard_outlined,
+        selectedIcon: Icons.leaderboard,
+        requiredPermissions: <String>{NodexPermissions.performanceRead},
+        moduleCode: 'M03',
+        isPrimary: false,
+      );
+
   /// Departmental flow (Module 02).
   static const NavigationDestinationSpec operations = NavigationDestinationSpec(
     routePath: '/operations',
@@ -557,6 +569,7 @@ abstract final class NodexDestinations {
         productivity,
         messaging,
         operations,
+        performance,
         forms,
       ];
 

@@ -1577,6 +1577,25 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     operations: ['upsert'],
     auditActionUpsert: 'operations.metric.recorded',
   },
+  // Module 03 (performance analytics). A reading of a period is written once.
+  clinical_performance_indices: {
+    columns: {
+      tenant_id: 'uuid',
+      indicator_code: 'text',
+      indicator_name: 'text',
+      category: 'text',
+      period_start: 'timestamp',
+      period_end: 'timestamp',
+      value: 'number',
+      baseline_mean: 'number',
+      baseline_stddev: 'number',
+      sample_size: 'integer',
+      lower_is_better: 'boolean',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'performance.index.recorded',
+  },
   // Module 43 (secure clinical messaging). A message is written once and never
   // patched; a thread's participant list may grow, never shrink.
   clinical_threads: {

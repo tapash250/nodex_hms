@@ -80,6 +80,7 @@ import 'package:nodex_hms/domain/ot/ot_repository.dart';
 import 'package:nodex_hms/domain/ot/ot_use_cases.dart';
 import 'package:nodex_hms/domain/patients/patient_repository.dart';
 import 'package:nodex_hms/domain/patients/patient_use_cases.dart';
+import 'package:nodex_hms/domain/performance/performance_repository.dart';
 import 'package:nodex_hms/domain/physio/physio_repository.dart';
 import 'package:nodex_hms/domain/physio/physio_use_cases.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
@@ -1441,6 +1442,26 @@ final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
     Provider<ReadPatientTimelineUseCase>(
       (Ref ref) => ReadPatientTimelineUseCase(
         repository: ref.watch(timelineRepositoryProvider),
+      ),
+    );
+
+/// Clinical performance indicators (Module 03).
+final Provider<PerformanceRepository> performanceRepositoryProvider =
+    Provider<PerformanceRepository>(
+      (Ref ref) => DefaultPerformanceRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Reading the performance dashboard.
+final Provider<ReadPerformanceDashboardUseCase>
+readPerformanceDashboardUseCaseProvider =
+    Provider<ReadPerformanceDashboardUseCase>(
+      (Ref ref) => ReadPerformanceDashboardUseCase(
+        repository: ref.watch(performanceRepositoryProvider),
       ),
     );
 

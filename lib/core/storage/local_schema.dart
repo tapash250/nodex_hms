@@ -339,6 +339,10 @@ abstract final class LocalTables {
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
 
+  /// Clinical performance indicators (Module 03). Synced, tenant-scoped.
+  static const String clinicalPerformanceIndices =
+      'clinical_performance_indices';
+
   /// Departmental flow readings (Module 02). Synced, tenant-scoped.
   static const String operationalDepartmentMetrics =
       'operational_department_metrics';
@@ -567,6 +571,7 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _clinicalPerformanceIndices,
     _operationalDepartmentMetrics,
     _clinicalThreads,
     _clinicalMessages,
@@ -3359,6 +3364,37 @@ abstract final class NodexLocalSchema {
 
   /// Triage assessments (Module 05): acuity, complaint, disposition and
   /// one-way escalation. Mirrors `public.triage_assessments`.
+  /// Clinical performance indicators (Module 03).
+  static const Table _clinicalPerformanceIndices = Table(
+    LocalTables.clinicalPerformanceIndices,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('indicator_code'),
+      Column.text('indicator_name'),
+      Column.text('category'),
+      Column.text('period_start'),
+      Column.text('period_end'),
+      Column.text('value'),
+      Column.text('baseline_mean'),
+      Column.text('baseline_stddev'),
+      Column.integer('sample_size'),
+      Column.integer('lower_is_better'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('performance_indices_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('category'),
+        IndexedColumn('period_start'),
+      ]),
+      Index('performance_indices_code', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('indicator_code'),
+        IndexedColumn('period_end'),
+      ]),
+    ],
+  );
+
   /// Departmental flow readings (Module 02).
   static const Table _operationalDepartmentMetrics = Table(
     LocalTables.operationalDepartmentMetrics,

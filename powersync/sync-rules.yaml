@@ -897,6 +897,22 @@ sync_rules:
         - select * from public.operational_department_metrics
           where tenant_id = bucket.tenant_id
 
+    # Module 03 (performance analytics): the indicators and their baselines.
+    performance:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'performance.read'
+      data:
+        - select * from public.clinical_performance_indices
+          where tenant_id = bucket.tenant_id
+
     # Module 43 (secure clinical messaging): the discussions the signed-in
     # clinician takes part in. The server filters by participation; the device
     # filters again, so a thread that reached the device by mistake is not

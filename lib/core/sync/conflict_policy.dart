@@ -441,6 +441,9 @@ abstract final class ConflictPolicyRegistry {
   /// Cross-department errand with one owner (Module 41).
   static const String hospitalTask = 'hospital_task';
 
+  /// Clinical performance indicator (Module 03).
+  static const String performanceIndex = 'performance_index';
+
   /// Departmental flow reading (Module 02).
   static const String departmentMetric = 'department_metric';
 
@@ -1578,6 +1581,14 @@ abstract final class ConflictPolicyRegistry {
           'errand. The server arbitrates the claim, and a device that lost the '
           'race is told rather than silently overwriting the winner.',
     ),
+    performanceIndex: ConflictPolicyEntry(
+      resourceType: performanceIndex,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A performance reading describes a period that has happened. It is '
+          'written once and never edited: a corrected figure is a later '
+          'period, not an edit of the old one.',
+    ),
     departmentMetric: ConflictPolicyEntry(
       resourceType: departmentMetric,
       policy: ConflictPolicy.appendOnly,
@@ -1773,6 +1784,7 @@ abstract final class ConflictPolicyRegistry {
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
     'hospital_tasks': hospitalTask,
+    'clinical_performance_indices': performanceIndex,
     'operational_department_metrics': departmentMetric,
     'clinical_threads': clinicalThread,
     'clinical_messages': clinicalMessage,
