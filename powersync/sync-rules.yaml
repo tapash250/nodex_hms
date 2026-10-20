@@ -950,8 +950,15 @@ sync_rules:
         - select
             l.tenant_id as tenant_id
           from public.patient_portal_links l
+          join public.memberships m on m.tenant_id = l.tenant_id
+          join public.role_permissions rp on rp.role_key = m.role_key
           where l.portal_user_id = :user_id
             and l.revoked_at is null
+            and m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'portal.access'
       data:
         - select a.* from public.appointments a
           join public.patient_portal_links l on l.patient_id = a.patient_id

@@ -191,6 +191,129 @@ void main() {
     });
   });
 
+  group('grants', () {
+    /// The permissions each role holds.
+    ///
+    /// The grant seed contains a bulk statement —
+    /// `select 'hospital_super_admin', key from public.permissions` — which
+    /// grants every permission seeded before that file. The walk is therefore
+    /// ordered: a permission seeded afterwards is not covered by it, and has
+    /// to be granted explicitly.
+    Map<String, Set<String>> grantedPermissions() {
+      final Map<String, Set<String>> grants = <String, Set<String>>{};
+      final Set<String> seededSoFar = <String>{};
+
+      for (final File file in _migrationFiles()) {
+        final String sql = file.readAsStringSync();
+        final String withoutComments = sql.replaceAll(RegExp(r'--[^\n]*'), '');
+
+        for (final RegExpMatch insert in RegExp(
+          r'insert into (?:public\.)?role_permissions\s*\(([^)]*)\)\s*values(.*?);',
+          caseSensitive: false,
+          dotAll: true,
+        ).allMatches(withoutComments)) {
+          final List<String> columns = insert
+              .group(1)!
+              .split(',')
+              .map((String column) => column.trim())
+              .toList();
+          if (columns.length < 2) continue;
+          for (final RegExpMatch tuple in RegExp(
+            r'\(([^()]*)\)',
+          ).allMatches(insert.group(2)!)) {
+            final List<String> parts = tuple
+                .group(1)!
+                .split(',')
+                .map((String part) => part.trim().replaceAll("'", ''))
+                .toList();
+            if (parts.length < 2) continue;
+            grants.putIfAbsent(parts[1], () => <String>{}).add(parts[0]);
+          }
+        }
+
+        final RegExpMatch? bulk = RegExp(
+          r"insert into (?:public\.)?role_permissions\s*\([^)]*\)\s*select\s*'([a-z_]+)'\s*,\s*key\s+from\s+public\.permissions",
+          caseSensitive: false,
+        ).firstMatch(withoutComments);
+        if (bulk != null) {
+          // The bulk statement grants a role every permission seeded so far,
+          // so each of those permissions gains that role.
+          for (final String key in seededSoFar) {
+            grants.putIfAbsent(key, () => <String>{}).add(bulk.group(1)!);
+          }
+        }
+
+        for (final RegExpMatch insert in RegExp(
+          r'insert into (?:public\.)?permissions\s*\(([^)]*)\)\s*values(.*?);',
+          caseSensitive: false,
+          dotAll: true,
+        ).allMatches(withoutComments)) {
+          final List<String> columns = insert
+              .group(1)!
+              .split(',')
+              .map((String column) => column.trim())
+              .toList();
+          if (!columns.contains('key')) continue;
+          final int keyIndex = columns.indexOf('key');
+          for (final RegExpMatch tuple in RegExp(
+            r'\(([^()]*)\)',
+          ).allMatches(insert.group(2)!)) {
+            final List<String> parts = tuple
+                .group(1)!
+                .split(',')
+                .map((String part) => part.trim().replaceAll("'", ''))
+                .toList();
+            if (parts.length <= keyIndex) continue;
+            final String key = parts[keyIndex];
+            if (!RegExp(r'^[a-z0-9_]+\.[a-z0-9_.]+$').hasMatch(key)) continue;
+            seededSoFar.add(key);
+          }
+        }
+      }
+      return grants;
+    }
+
+    test(
+      'every permission a policy or a bucket names is granted to somebody',
+      () {
+        // A policy keyed on a permission no role holds is a policy that can
+        // never match: the table it guards is unreachable for everyone, and the
+        // failure is silent.
+        final String sql = _allMigrations();
+        final Set<String> used = <String>{
+          for (final RegExpMatch match in RegExp(
+            r"has_permission\(\s*\w+(?:\.\w+)*\s*,\s*'([a-z0-9_.]+)'",
+          ).allMatches(sql))
+            match.group(1)!,
+        };
+        final String rules = _read('powersync/sync-rules.yaml');
+        used.addAll(
+          RegExp(r"rp\.permission_key\s*=\s*'([a-z0-9_.]+)'")
+              .allMatches(rules)
+              .map((RegExpMatch match) => match.group(1)!)
+              .toSet(),
+        );
+
+        final Map<String, Set<String>> grants = grantedPermissions();
+        final List<String> orphaned =
+            used
+                .where(
+                  (String key) => (grants[key] ?? const <String>{}).isEmpty,
+                )
+                .toList()
+              ..sort();
+        expect(
+          orphaned,
+          isEmpty,
+          reason:
+              'These permissions gate a policy or a bucket, but no role holds '
+              'them, so the thing they guard is unreachable for everybody: '
+              '${orphaned.join(', ')}',
+        );
+      },
+    );
+  });
+
   group('replication scoping', () {
     test('every bucket is scoped by the signed-in user', () {
       final String rules = _read('powersync/sync-rules.yaml');

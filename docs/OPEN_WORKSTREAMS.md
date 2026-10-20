@@ -84,6 +84,10 @@ finds them by surprise:
   messages are not implemented.
 - **The mutation ledger sends a null `device_id`** and a placeholder
   `payload_digest`; the schema is ready for both.
+- **Model approval is not built.** `ai_governance.administer` is seeded and
+  held by the hospital super admin, but the AI registry is read-only on the
+  server: there is no approve-and-activate surface, because the client has
+  none. The vocabulary is in place for the surface to arrive.
 
 ## 7. How to close an item
 
