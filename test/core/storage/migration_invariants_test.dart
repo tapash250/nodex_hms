@@ -41,6 +41,56 @@ List<File> _migrationFiles() =>
 String _allMigrations() =>
     _migrationFiles().map((File file) => file.readAsStringSync()).join('\n');
 
+/// Splits on the commas that are not inside parentheses or quotes.
+List<String> _splitTopLevel(String body) {
+  final List<String> parts = <String>[];
+  int depth = 0;
+  bool quoted = false;
+  String current = '';
+  for (final String character in body.split('')) {
+    if (character == "'") quoted = !quoted;
+    if (!quoted) {
+      if (character == '(') depth++;
+      if (character == ')') depth--;
+      if (character == ',' && depth == 0) {
+        parts.add(current);
+        current = '';
+        continue;
+      }
+    }
+    current += character;
+  }
+  if (current.trim().isNotEmpty) parts.add(current);
+  return parts;
+}
+
+/// The columns the client declares for each local table.
+Map<String, Set<String>> localColumns() {
+  final String source = _read('lib/core/storage/local_schema.dart');
+  final Map<String, String> names = <String, String>{
+    for (final RegExpMatch match in RegExp(
+      r"static const String (\w+)\s*=\s*\n?\s*'([a-z0-9_]+)';",
+    ).allMatches(source))
+      match.group(1)!: match.group(2)!,
+  };
+  final Map<String, Set<String>> columns = <String, Set<String>>{};
+  for (final RegExpMatch table in RegExp(
+    r"static const Table _\w+ = Table\(\s*LocalTables\.(\w+),\s*<Column>\[(.*?)\]\s*\)",
+    dotAll: true,
+  ).allMatches(source)) {
+    final String? name = names[table.group(1)!];
+    if (name == null) continue;
+    columns
+        .putIfAbsent(name, () => <String>{})
+        .addAll(
+          RegExp(r"Column\.\w+\('([a-z0-9_]+)'\)")
+              .allMatches(table.group(2)!)
+              .map((RegExpMatch match) => match.group(1)!),
+        );
+  }
+  return columns;
+}
+
 void main() {
   group('row level security', () {
     test('every table in the migrations is behind row level security', () {
@@ -312,6 +362,159 @@ void main() {
         );
       },
     );
+  });
+
+  group('columns', () {
+    /// The columns each server table has.
+    ///
+    /// The reader is deliberately simple: comments are stripped, the table
+    /// body is taken by matching parentheses, and the body is split at the
+    /// commas that are not inside parentheses. It is not a SQL parser, and it
+    /// does not need to be — the tables in this repository are declared in a
+    /// single style, and the alternative is a test that skips the tables it
+    /// cannot read.
+    Map<String, Set<String>> serverColumns() {
+      final Map<String, Set<String>> columns = <String, Set<String>>{};
+      for (final File file in _migrationFiles()) {
+        final String sql = file
+            .readAsStringSync()
+            .replaceAll(RegExp(r'/\*.*?\*/', dotAll: true), '')
+            .replaceAll(RegExp(r'--[^\n]*'), '');
+
+        for (final RegExpMatch table in RegExp(
+          r'create table (?:if not exists )?public\.([a-z0-9_]+)\s*\(',
+          caseSensitive: false,
+        ).allMatches(sql)) {
+          final int open = table.end - 1;
+          int depth = 0;
+          int close = open;
+          for (int i = open; i < sql.length; i++) {
+            if (sql[i] == '(') depth++;
+            if (sql[i] == ')') {
+              depth--;
+              if (depth == 0) {
+                close = i;
+                break;
+              }
+            }
+          }
+          final Set<String> found = <String>{};
+          for (final String part in _splitTopLevel(
+            sql.substring(open + 1, close),
+          )) {
+            final String trimmed = part.trim();
+            if (trimmed.isEmpty) continue;
+            final String first = trimmed.split(' ').first.toLowerCase();
+            if (<String>{
+              'constraint',
+              'primary',
+              'unique',
+              'check',
+              'foreign',
+              'exclude',
+              'like',
+            }.contains(first)) {
+              continue;
+            }
+            if (RegExp(r'^[a-z_][a-z0-9_]*$').hasMatch(first)) found.add(first);
+          }
+          columns
+              .putIfAbsent(table.group(1)!.toLowerCase(), () => <String>{})
+              .addAll(found);
+        }
+
+        for (final RegExpMatch alter in RegExp(
+          r'alter table (?:if exists )?public\.([a-z0-9_]+)\b([^;]*);',
+          caseSensitive: false,
+          dotAll: true,
+        ).allMatches(sql)) {
+          final Set<String> found = <String>{
+            for (final RegExpMatch add in RegExp(
+              'add column (?:if not exists )?([a-z_][a-z0-9_]*)',
+            ).allMatches(alter.group(2)!))
+              add.group(1)!.toLowerCase(),
+          };
+          columns
+              .putIfAbsent(alter.group(1)!.toLowerCase(), () => <String>{})
+              .addAll(found);
+        }
+      }
+      return columns;
+    }
+
+    test('every column the client declares exists on the server', () {
+      // A local column the server does not have is a value the device can
+      // store and the server will reject. The failure arrives as a refused
+      // mutation, one row at a time, long after the column was added.
+      final Map<String, Set<String>> server = serverColumns();
+      final Map<String, Set<String>> local = localColumns();
+      final List<String> unknown = <String>[];
+      for (final MapEntry<String, Set<String>> table in local.entries) {
+        final Set<String>? serverColumns = server[table.key];
+        if (serverColumns == null) continue;
+        for (final String column in table.value) {
+          if (column == 'id') continue;
+          if (!serverColumns.contains(column)) {
+            unknown.add('${table.key}.$column');
+          }
+        }
+      }
+      unknown.sort();
+      expect(
+        unknown,
+        isEmpty,
+        reason:
+            'The client stores columns the server table does not have, so the '
+            'values are written locally and refused on upload: '
+            '${unknown.join(', ')}',
+      );
+    });
+
+    test('every column the mutation handler offers is declared locally', () {
+      // The handler filters what it uploads by the column list. A column the
+      // handler offers but the local table lacks is a value the device never
+      // had, so the upload sends nothing.
+      final String source = _read(
+        'supabase/functions/mutation-handler/index.ts',
+      );
+      final Map<String, Set<String>> local = localColumns();
+      final List<String> unknown = <String>[];
+      for (final RegExpMatch table in RegExp(
+        r'^  ([a-z0-9_]+):\s*\{(.*?)^  \},',
+        dotAll: true,
+        multiLine: true,
+      ).allMatches(source)) {
+        final RegExpMatch? columns = RegExp(
+          r'columns:\s*\{(.*?)\n    \},',
+          dotAll: true,
+        ).firstMatch(table.group(2)!);
+        if (columns == null) continue;
+        final Set<String>? declared = local[table.group(1)!];
+        if (declared == null) {
+          unknown.add('${table.group(1)!} (no local table)');
+          continue;
+        }
+        for (final RegExpMatch column in RegExp(
+          r'^\s+([a-z_][a-z0-9_]*):\s*',
+          multiLine: true,
+        ).allMatches(columns.group(1)!)) {
+          final String name = column.group(1)!;
+          if (name == 'id') continue;
+          if (!declared.contains(name)) {
+            unknown.add('${table.group(1)!}.$name');
+          }
+        }
+      }
+      unknown.sort();
+      expect(
+        unknown,
+        isEmpty,
+        reason:
+            'The mutation handler offers columns the local table does not '
+            'declare, so the device cannot hold the value it would upload: '
+            '${unknown.join(', ')}',
+      );
+    });
   });
 
   group('replication scoping', () {

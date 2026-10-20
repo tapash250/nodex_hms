@@ -678,6 +678,7 @@ abstract final class NodexLocalSchema {
       Column.text('specialty'),
       Column.text('head_user_id'),
       Column.text('status'),
+      Column.text('created_at'),
       Column.text('updated_at'),
     ],
     indexes: <Index>[
@@ -2322,6 +2323,7 @@ abstract final class NodexLocalSchema {
       Column.text('status'),
       Column.text('valid_from'),
       Column.text('valid_until'),
+      Column.text('granted_by'),
       Column.text('updated_at'),
     ],
     indexes: <Index>[
@@ -2340,6 +2342,7 @@ abstract final class NodexLocalSchema {
     Column.text('form_factor'),
     Column.text('os_version'),
     Column.text('app_version'),
+    Column.text('enrolled_by'),
     Column.text('assigned_user_id'),
     Column.text('assigned_facility_id'),
     Column.text('status'),
@@ -2395,6 +2398,8 @@ abstract final class NodexLocalSchema {
       Column.text('lifecycle_status'),
       Column.integer('enabled'),
       Column.integer('priority'),
+      Column.text('approved_by'),
+      Column.text('approved_at'),
       Column.text('intended_use'),
       Column.text('updated_at'),
     ],
@@ -3091,6 +3096,8 @@ abstract final class NodexLocalSchema {
       Column.real('quantity'),
       Column.integer('unit_price_minor'),
       Column.integer('line_total_minor'),
+      Column.text('tariff_id'),
+      Column.text('service_code'),
       Column.text('created_at'),
       Column.text('updated_at'),
     ],
@@ -3320,7 +3327,6 @@ abstract final class NodexLocalSchema {
       Column.text('recorded_by'),
       Column.text('recorded_at'),
       Column.text('created_at'),
-      Column.text('updated_at'),
     ],
     indexes: <Index>[
       Index('stock_movement_item', <IndexedColumn>[
