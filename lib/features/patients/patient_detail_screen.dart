@@ -31,6 +31,7 @@ import 'package:nodex_hms/features/prescriptions/prescription_patient_section.da
 import 'package:nodex_hms/features/radiology/radiology_patient_section.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/telemedicine/telemedicine_patient_section.dart';
+import 'package:nodex_hms/features/timeline/patient_timeline_section.dart';
 
 /// Detail screen for one patient.
 class PatientDetailScreen extends ConsumerWidget {
@@ -222,6 +223,8 @@ class _DetailBody extends ConsumerWidget {
         BillingPatientSection(patientId: bundle.patient.id),
         const SizedBox(height: 16),
         PatientAccountSection(patientId: bundle.patient.id),
+        const SizedBox(height: 16),
+        PatientTimelineSection(patientId: bundle.patient.id),
       ],
     );
   }

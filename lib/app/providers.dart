@@ -94,6 +94,8 @@ import 'package:nodex_hms/domain/tasks/task_repository.dart';
 import 'package:nodex_hms/domain/tasks/task_use_cases.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_repository.dart';
 import 'package:nodex_hms/domain/telemedicine/telemedicine_use_cases.dart';
+import 'package:nodex_hms/domain/timeline/timeline_repository.dart';
+import 'package:nodex_hms/domain/timeline/timeline_use_cases.dart';
 import 'package:nodex_hms/domain/visitor/visitor_repository.dart';
 import 'package:nodex_hms/domain/visitor/visitor_use_cases.dart';
 import 'package:nodex_hms/domain/waste/waste_repository.dart';
@@ -1411,6 +1413,28 @@ final Provider<ReadTaskBoardUseCase> readTaskBoardUseCaseProvider =
     Provider<ReadTaskBoardUseCase>(
       (Ref ref) =>
           ReadTaskBoardUseCase(repository: ref.watch(taskRepositoryProvider)),
+    );
+
+/// The patient's journey, read from the clinical modules (Module 50).
+final Provider<TimelineRepository> timelineRepositoryProvider =
+    Provider<TimelineRepository>(
+      (Ref ref) => DefaultTimelineRepository(
+        encounters: ref.watch(encounterRepositoryProvider),
+        lab: ref.watch(labRepositoryProvider),
+        prescriptions: ref.watch(prescriptionRepositoryProvider),
+        appointments: ref.watch(appointmentRepositoryProvider),
+        discharge: ref.watch(dischargeRepositoryProvider),
+        theatre: ref.watch(otRepositoryProvider),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Reading the patient's journey.
+final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
+    Provider<ReadPatientTimelineUseCase>(
+      (Ref ref) => ReadPatientTimelineUseCase(
+        repository: ref.watch(timelineRepositoryProvider),
+      ),
     );
 
 /// Patient feedback and grievance repository over the encrypted local projection.
