@@ -472,6 +472,17 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// Clinical discussions (Module 43).
+  static const NavigationDestinationSpec messaging = NavigationDestinationSpec(
+    routePath: '/messages',
+    label: 'Messages',
+    icon: Icons.forum_outlined,
+    selectedIcon: Icons.forum,
+    requiredPermissions: <String>{NodexPermissions.messagingRead},
+    moduleCode: 'M43',
+    isPrimary: false,
+  );
+
   /// Boards, service requests and the private scratchpad (Module 44).
   static const NavigationDestinationSpec productivity =
       NavigationDestinationSpec(
@@ -533,6 +544,7 @@ abstract final class NodexDestinations {
         tasks,
         widgetsLibrary,
         productivity,
+        messaging,
         forms,
       ];
 

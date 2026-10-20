@@ -51,6 +51,8 @@ import 'package:nodex_hms/features/icu/icu_list_screen.dart';
 import 'package:nodex_hms/features/insurance/insurance_board_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
 import 'package:nodex_hms/features/laboratory/lab_order_screen.dart';
+import 'package:nodex_hms/features/messaging/clinical_thread_screen.dart';
+import 'package:nodex_hms/features/messaging/messaging_screen.dart';
 import 'package:nodex_hms/features/nursing_station/ward_station_screen.dart';
 import 'package:nodex_hms/features/nutrition/nutrition_meal_plan_screen.dart';
 import 'package:nodex_hms/features/ot/ot_booking_detail_screen.dart';
@@ -512,6 +514,18 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.messaging.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const MessagingScreen(),
+          ),
+          GoRoute(
+            path: '/messages/:threadId',
+            builder: (BuildContext context, GoRouterState state) =>
+                ClinicalThreadScreen(
+                  threadId: state.pathParameters['threadId'] ?? '',
+                ),
           ),
           GoRoute(
             path: NodexDestinations.productivity.routePath,

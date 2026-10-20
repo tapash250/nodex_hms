@@ -1560,6 +1560,50 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     operations: ['upsert'],
     auditActionUpsert: 'forms.response.submitted',
   },
+  // Module 43 (secure clinical messaging). A message is written once and never
+  // patched; a thread's participant list may grow, never shrink.
+  clinical_threads: {
+    columns: {
+      tenant_id: 'uuid',
+      subject: 'text',
+      patient_id: 'uuid',
+      encounter_id: 'uuid',
+      created_by: 'uuid',
+      participants: 'json',
+      status: 'text',
+      last_message_at: 'timestamp',
+      created_at: 'timestamp',
+      updated_at: 'timestamp',
+    },
+    operations: ['upsert', 'patch'],
+    auditActionUpsert: 'messaging.thread.started',
+    auditActionPatch: 'messaging.thread.updated',
+  },
+  clinical_messages: {
+    columns: {
+      tenant_id: 'uuid',
+      thread_id: 'uuid',
+      sender_id: 'uuid',
+      body: 'text',
+      is_urgent: 'boolean',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'messaging.message.sent',
+  },
+  clinical_attachments: {
+    columns: {
+      tenant_id: 'uuid',
+      message_id: 'uuid',
+      file_name: 'text',
+      content_type: 'text',
+      size_bytes: 'number',
+      storage_path: 'text',
+      created_at: 'timestamp',
+    },
+    operations: ['upsert'],
+    auditActionUpsert: 'messaging.attachment.added',
+  },
   // Module 44 (productivity apps). A card moves between lanes and a ticket
   // is worked on, so both are patchable; the guards in the migration own the
   // state machines.

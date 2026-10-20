@@ -69,6 +69,7 @@ import 'package:nodex_hms/domain/inventory/inventory_repository.dart';
 import 'package:nodex_hms/domain/inventory/inventory_use_cases.dart';
 import 'package:nodex_hms/domain/laboratory/lab_repository.dart';
 import 'package:nodex_hms/domain/laboratory/lab_use_cases.dart';
+import 'package:nodex_hms/domain/messaging/messaging_repository.dart';
 import 'package:nodex_hms/domain/nursing_station/nursing_station_repository.dart';
 import 'package:nodex_hms/domain/nursing_station/nursing_station_use_cases.dart';
 import 'package:nodex_hms/domain/nutrition/nutrition_repository.dart';
@@ -1438,6 +1439,49 @@ final Provider<ReadPatientTimelineUseCase> readPatientTimelineUseCaseProvider =
     Provider<ReadPatientTimelineUseCase>(
       (Ref ref) => ReadPatientTimelineUseCase(
         repository: ref.watch(timelineRepositoryProvider),
+      ),
+    );
+
+/// Clinical messaging (Module 43).
+final Provider<MessagingRepository> messagingRepositoryProvider =
+    Provider<MessagingRepository>(
+      (Ref ref) => DefaultMessagingRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Reading the clinical discussions.
+final Provider<ListThreadsUseCase> listThreadsUseCaseProvider =
+    Provider<ListThreadsUseCase>(
+      (Ref ref) => ListThreadsUseCase(
+        repository: ref.watch(messagingRepositoryProvider),
+      ),
+    );
+
+/// Reading the messages of a discussion.
+final Provider<ListMessagesUseCase> listMessagesUseCaseProvider =
+    Provider<ListMessagesUseCase>(
+      (Ref ref) => ListMessagesUseCase(
+        repository: ref.watch(messagingRepositoryProvider),
+      ),
+    );
+
+/// Starting a clinical discussion.
+final Provider<StartThreadUseCase> startThreadUseCaseProvider =
+    Provider<StartThreadUseCase>(
+      (Ref ref) => StartThreadUseCase(
+        repository: ref.watch(messagingRepositoryProvider),
+      ),
+    );
+
+/// Posting a message to a discussion.
+final Provider<SendMessageUseCase> sendMessageUseCaseProvider =
+    Provider<SendMessageUseCase>(
+      (Ref ref) => SendMessageUseCase(
+        repository: ref.watch(messagingRepositoryProvider),
       ),
     );
 

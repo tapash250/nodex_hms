@@ -339,6 +339,15 @@ abstract final class LocalTables {
   /// Discharge records, one per encounter (Module 23). Synced.
   static const String discharges = 'discharges';
 
+  /// Clinical discussion threads (Module 43). Synced, tenant-scoped.
+  static const String clinicalThreads = 'clinical_threads';
+
+  /// Messages in a clinical thread (Module 43). Synced, tenant-scoped.
+  static const String clinicalMessages = 'clinical_messages';
+
+  /// Files attached to a clinical message (Module 43). Synced, tenant-scoped.
+  static const String clinicalAttachments = 'clinical_attachments';
+
   /// Working board cards (Module 44). Synced, tenant-scoped.
   static const String workItems = 'work_items';
 
@@ -554,6 +563,9 @@ abstract final class NodexLocalSchema {
     _stockBatches,
     _stockMovements,
     _discharges,
+    _clinicalThreads,
+    _clinicalMessages,
+    _clinicalAttachments,
     _workItems,
     _itTickets,
     _scratchpads,
@@ -3342,6 +3354,72 @@ abstract final class NodexLocalSchema {
 
   /// Triage assessments (Module 05): acuity, complaint, disposition and
   /// one-way escalation. Mirrors `public.triage_assessments`.
+  /// Clinical discussion threads (Module 43).
+  static const Table _clinicalThreads = Table(
+    LocalTables.clinicalThreads,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('subject'),
+      Column.text('patient_id'),
+      Column.text('encounter_id'),
+      Column.text('created_by'),
+      Column.text('participants'),
+      Column.text('status'),
+      Column.text('last_message_at'),
+      Column.text('created_at'),
+      Column.text('updated_at'),
+    ],
+    indexes: <Index>[
+      Index('clinical_threads_tenant', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('status'),
+        IndexedColumn('last_message_at'),
+      ]),
+      Index('clinical_threads_patient', <IndexedColumn>[
+        IndexedColumn('patient_id'),
+        IndexedColumn('last_message_at'),
+      ]),
+    ],
+  );
+
+  /// Messages in a clinical thread (Module 43).
+  static const Table _clinicalMessages = Table(
+    LocalTables.clinicalMessages,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('thread_id'),
+      Column.text('sender_id'),
+      Column.text('body'),
+      Column.integer('is_urgent'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('clinical_messages_thread', <IndexedColumn>[
+        IndexedColumn('thread_id'),
+        IndexedColumn('created_at'),
+      ]),
+    ],
+  );
+
+  /// Files attached to a clinical message (Module 43).
+  static const Table _clinicalAttachments = Table(
+    LocalTables.clinicalAttachments,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('message_id'),
+      Column.text('file_name'),
+      Column.text('content_type'),
+      Column.integer('size_bytes'),
+      Column.text('storage_path'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('clinical_attachments_message', <IndexedColumn>[
+        IndexedColumn('message_id'),
+      ]),
+    ],
+  );
+
   /// Working board cards (Module 44).
   static const Table _workItems = Table(
     LocalTables.workItems,

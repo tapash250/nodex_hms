@@ -879,6 +879,35 @@ sync_rules:
         - select * from public.form_responses where tenant_id = bucket.tenant_id
         - select * from public.icd10_codes
 
+    # Module 43 (secure clinical messaging): the discussions the signed-in
+    # clinician takes part in. The server filters by participation; the device
+    # filters again, so a thread that reached the device by mistake is not
+    # shown.
+    clinical_messaging:
+      parameters:
+        - select
+            m.tenant_id as tenant_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          where m.user_id = :user_id
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'messaging.read'
+      data:
+        - select t.* from public.clinical_threads t
+          where t.tenant_id = bucket.tenant_id
+            and t.participants @> jsonb_build_array(:user_id::text)
+        - select m.* from public.clinical_messages m
+          join public.clinical_threads t on t.id = m.thread_id
+          where t.tenant_id = bucket.tenant_id
+            and t.participants @> jsonb_build_array(:user_id::text)
+        - select a.* from public.clinical_attachments a
+          join public.clinical_messages m on m.id = a.message_id
+          join public.clinical_threads t on t.id = m.thread_id
+          where t.tenant_id = bucket.tenant_id
+            and t.participants @> jsonb_build_array(:user_id::text)
+
     # Module 44 (productivity apps): the working boards and the internal
     # service requests. The scratchpad is deliberately absent — it is the
     # clinician's own notes and never leaves the device.

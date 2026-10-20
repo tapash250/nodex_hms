@@ -312,6 +312,7 @@ void main() {
         'stock_movements',
         'ventilator_events',
         'form_responses',
+        'clinical_messages',
       };
       expect(
         immutable.difference(_immutableTables()),

@@ -441,6 +441,15 @@ abstract final class ConflictPolicyRegistry {
   /// Cross-department errand with one owner (Module 41).
   static const String hospitalTask = 'hospital_task';
 
+  /// Clinical discussion thread (Module 43).
+  static const String clinicalThread = 'clinical_thread';
+
+  /// Message in a clinical thread (Module 43).
+  static const String clinicalMessage = 'clinical_message';
+
+  /// File attached to a clinical message (Module 43).
+  static const String clinicalAttachment = 'clinical_attachment';
+
   /// Card on a working board (Module 44).
   static const String workItem = 'work_item';
 
@@ -1566,6 +1575,29 @@ abstract final class ConflictPolicyRegistry {
           'errand. The server arbitrates the claim, and a device that lost the '
           'race is told rather than silently overwriting the winner.',
     ),
+    clinicalThread: ConflictPolicyEntry(
+      resourceType: clinicalThread,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'A thread carries its participant list, which is the access list. '
+          'The server holds it so a participant cannot be added to a '
+          'discussion on one device and removed on another.',
+    ),
+    clinicalMessage: ConflictPolicyEntry(
+      resourceType: clinicalMessage,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A message is a record of what was said. It is written once and '
+          'never edited, because a message that can be changed after the fact '
+          'is not what was said.',
+    ),
+    clinicalAttachment: ConflictPolicyEntry(
+      resourceType: clinicalAttachment,
+      policy: ConflictPolicy.appendOnly,
+      rationale:
+          'A file attached to a message is part of the record of that '
+          'message. It is written once and never replaced.',
+    ),
     workItem: ConflictPolicyEntry(
       resourceType: workItem,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1730,6 +1762,9 @@ abstract final class ConflictPolicyRegistry {
     'ward_handovers': wardHandover,
     'ward_tasks': wardTask,
     'hospital_tasks': hospitalTask,
+    'clinical_threads': clinicalThread,
+    'clinical_messages': clinicalMessage,
+    'clinical_attachments': clinicalAttachment,
     'work_items': workItem,
     'it_tickets': itTicket,
     'form_templates': formTemplate,
