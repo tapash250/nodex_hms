@@ -70,6 +70,7 @@ import 'package:nodex_hms/features/productivity/productivity_screen.dart';
 import 'package:nodex_hms/features/quality/quality_hub_screen.dart';
 import 'package:nodex_hms/features/radiology/radiology_order_screen.dart';
 import 'package:nodex_hms/features/roster/practitioner_directory_screen.dart';
+import 'package:nodex_hms/features/search/global_search_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 import 'package:nodex_hms/features/session/session_lock_screen.dart';
 import 'package:nodex_hms/features/settings/master_settings_screen.dart';
@@ -520,6 +521,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: '/search',
+            builder: (BuildContext context, GoRouterState state) =>
+                const GlobalSearchScreen(),
           ),
           GoRoute(
             path: NodexDestinations.utilities.routePath,

@@ -19,6 +19,7 @@ import 'package:nodex_hms/app/router/navigation_destinations.dart';
 import 'package:nodex_hms/app/shell/session_status_bar.dart';
 import 'package:nodex_hms/core/security/inactivity_lock.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
+import 'package:nodex_hms/features/search/global_search_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
 /// Adaptive navigation scaffold wrapping every authorized destination.
@@ -55,9 +56,11 @@ class AdaptiveShell extends ConsumerWidget {
 
     // The device locks itself when it is left alone: a trolley with a patient
     // list on it is a privacy incident waiting for a passer-by.
-    final Widget guarded = InactivityGuard(
-      onTimeout: () => ref.read(sessionProvider.notifier).lock(),
-      child: child,
+    final Widget guarded = _SearchShortcuts(
+      child: InactivityGuard(
+        onTimeout: () => ref.read(sessionProvider.notifier).lock(),
+        child: child,
+      ),
     );
 
     final String location = GoRouterState.of(context).matchedLocation;
@@ -176,6 +179,29 @@ class _TabletLayout extends StatelessWidget {
           ),
         ),
       ],
+    ),
+  );
+}
+
+/// The global search, on a hotkey.
+///
+/// Control-K, Command-K and "/" all open the same search. The shortcut sits
+/// above the screens, so it works from anywhere in the application, and a
+/// text field that holds the focus keeps its own keys: a clinician typing a
+/// slash into a note does not leave the note.
+class _SearchShortcuts extends StatelessWidget {
+  const _SearchShortcuts({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Focus(
+    autofocus: true,
+    child: CallbackShortcuts(
+      bindings: GlobalSearchShortcuts.bindings(
+        onOpen: () => context.go('/search'),
+      ),
+      child: child,
     ),
   );
 }
