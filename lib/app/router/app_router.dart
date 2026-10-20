@@ -47,6 +47,7 @@ import 'package:nodex_hms/features/forms/form_runner_screen.dart';
 import 'package:nodex_hms/features/forms/form_templates_screen.dart';
 import 'package:nodex_hms/features/home/home_screen.dart';
 import 'package:nodex_hms/features/hr/hr_screen.dart';
+import 'package:nodex_hms/features/icons/medical_icons_screen.dart';
 import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
 import 'package:nodex_hms/features/icu/icu_list_screen.dart';
 import 'package:nodex_hms/features/insurance/insurance_board_screen.dart';
@@ -518,6 +519,11 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.widgetsLibrary.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const WidgetsLibraryScreen(),
+          ),
+          GoRoute(
+            path: NodexDestinations.medicalIcons.routePath,
+            builder: (BuildContext context, GoRouterState state) =>
+                const MedicalIconsScreen(),
           ),
           GoRoute(
             path: NodexDestinations.portal.routePath,

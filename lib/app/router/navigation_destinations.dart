@@ -472,6 +472,18 @@ abstract final class NodexDestinations {
         isPrimary: false,
       );
 
+  /// The medical icon repository (Module 51).
+  static const NavigationDestinationSpec medicalIcons =
+      NavigationDestinationSpec(
+        routePath: '/medical-icons',
+        label: 'Medical icons',
+        icon: Icons.category_outlined,
+        selectedIcon: Icons.category,
+        requiredPermissions: <String>{},
+        moduleCode: 'M51',
+        isPrimary: false,
+      );
+
   /// The patient portal (Module 05).
   static const NavigationDestinationSpec portal = NavigationDestinationSpec(
     routePath: '/portal',
@@ -595,6 +607,7 @@ abstract final class NodexDestinations {
         performance,
         clinicalDashboard,
         portal,
+        medicalIcons,
         forms,
       ];
 
