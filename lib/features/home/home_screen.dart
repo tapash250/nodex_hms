@@ -13,12 +13,30 @@ import 'package:go_router/go_router.dart';
 import 'package:nodex_hms/app/router/navigation_destinations.dart';
 import 'package:nodex_hms/core/authorization/authorization_snapshot.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
+import 'package:nodex_hms/features/session/pin_quick_switch.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
 /// Home screen.
 class HomeScreen extends ConsumerWidget {
   /// Creates the home screen.
   const HomeScreen({super.key});
+
+  /// Hands the device to the next clinician.
+  ///
+  /// The outgoing clinician proves who they are with their PIN and the
+  /// session locks; the incoming one signs in as themselves. The PIN never
+  /// opens anything on its own.
+  Future<void> _handOver(BuildContext context, WidgetRef ref) async {
+    final bool? matched = await askForPin(context, ref);
+    if (matched != true || !context.mounted) return;
+    ref.read(sessionProvider.notifier).lock();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Session locked. The next clinician signs in.'),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,6 +51,11 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('NODEX'),
         actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.switch_account_outlined),
+            tooltip: 'Hand the device over',
+            onPressed: () => _handOver(context, ref),
+          ),
           IconButton(
             icon: const Icon(Icons.lock_outline),
             tooltip: 'Lock session',

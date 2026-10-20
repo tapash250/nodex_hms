@@ -17,6 +17,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nodex_hms/app/adaptive/adaptive_breaks.dart';
 import 'package:nodex_hms/app/router/navigation_destinations.dart';
 import 'package:nodex_hms/app/shell/session_status_bar.dart';
+import 'package:nodex_hms/core/security/inactivity_lock.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
@@ -52,6 +53,13 @@ class AdaptiveShell extends ConsumerWidget {
       );
     }
 
+    // The device locks itself when it is left alone: a trolley with a patient
+    // list on it is a privacy incident waiting for a passer-by.
+    final Widget guarded = InactivityGuard(
+      onTimeout: () => ref.read(sessionProvider.notifier).lock(),
+      child: child,
+    );
+
     final String location = GoRouterState.of(context).matchedLocation;
     final int selectedIndex = _selectedIndex(destinations, location);
     final double width = MediaQuery.sizeOf(context).width;
@@ -60,7 +68,7 @@ class AdaptiveShell extends ConsumerWidget {
       return _PhoneLayout(
         destinations: destinations,
         selectedIndex: selectedIndex,
-        child: child,
+        child: guarded,
       );
     }
 
@@ -68,7 +76,7 @@ class AdaptiveShell extends ConsumerWidget {
       destinations: destinations,
       selectedIndex: selectedIndex,
       extended: width >= NodexBreakpoints.expanded,
-      child: child,
+      child: guarded,
     );
   }
 
