@@ -629,7 +629,10 @@ first and hands the use case the assertion, not the code.
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
 30, 32, 33, 34, 35, 36, 37, 38 and 39 continue the sequence into Domain C.
 
-**All 54 clinical modules now have a vertical slice.** The run after the audit
+**53 of the 54 clinical modules now have a vertical slice** — every one
+except **module 01**, the global executive dashboard, which is the home
+landing page: its KPI snapshots, bed turnover, revenue/burn, ER census and AI
+anomaly alerts are not built. The rest of the run: The run after the audit
 was: 31 (patient accounts, ledger and payment splits) → 41 (task engine) → 45
 (widget library) → 48 (master data tables) → 49 (chart engine) → 46 (adaptive
 component system) → 50 (patient journey) → 47 (forms builder) → 44 (productivity

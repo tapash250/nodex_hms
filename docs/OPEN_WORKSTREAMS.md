@@ -2,7 +2,8 @@
 
 Everything the code cannot close on its own.
 
-The 54 clinical modules all have a vertical slice. What is left is work that
+53 of the 54 clinical modules have a vertical slice; module 01, the global
+executive dashboard, is the home landing page only. What is left is work that
 needs a decision, a device, a key or a person who is not the engineer: the
 list below says what each item is, what it needs, and how to tell it is done.
 
@@ -84,6 +85,12 @@ finds them by surprise:
   messages are not implemented.
 - **The mutation ledger sends a null `device_id`** and a placeholder
   `payload_digest`; the schema is ready for both.
+- **Module 01 is not built.** The global executive dashboard — enterprise
+  KPIs, bed turnover, revenue/burn, emergency census, ALOS and the AI anomaly
+  alerts — is the home landing page: the screen lists the modules the session
+  can reach and nothing more. There is no `executive_kpi_snapshots` table and
+  no aggregation behind it. Modules 02 and 03 are built and hold the
+  operational and performance readings the executive view would read.
 - **Model approval is not built.** `ai_governance.administer` is seeded and
   held by the hospital super admin, but the AI registry is read-only on the
   server: there is no approve-and-activate surface, because the client has
