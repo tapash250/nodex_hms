@@ -73,29 +73,49 @@ final class PortalMedication {
   const PortalMedication({
     required this.name,
     required this.status,
+    this.strength,
     this.dose,
     this.instructions,
   });
 
-  /// Builds a visible medicine from a prescription.
+  /// Builds a visible medicine from one line of a finalized prescription.
   ///
-  /// A draft prescription is not shown: it is a clinician's working copy, and
-  /// a patient reading an unfinished prescription would read it as a
-  /// prescription.
-  static PortalMedication? fromPrescription(Prescription prescription) {
-    if (prescription.status != PrescriptionStatus.finalized) return null;
+  /// A medicine is a line, not an order: the order is a container with a code
+  /// and a version, and the patient needs the drug, its strength and how to
+  /// take it. A draft line is a clinician's working copy and a cancelled line
+  /// was never issued, so neither is shown.
+  static PortalMedication? fromItem(PrescriptionItem item) {
+    if (item.status == PrescriptionItemStatus.draft ||
+        item.status == PrescriptionItemStatus.cancelled) {
+      return null;
+    }
     return PortalMedication(
-      name: prescription.prescriptionCode,
-      status: prescription.status.wireValue,
-      dose: prescription.indication,
+      name: item.drugName,
+      status: item.status.wireValue,
+      strength: item.strength,
+      dose: item.dosageText,
+      instructions: _instructions(item),
     );
+  }
+
+  static String? _instructions(PrescriptionItem item) {
+    final List<String> parts = <String>[
+      if (item.route != null && item.route!.trim().isNotEmpty) item.route!,
+      if (item.frequency != null && item.frequency!.trim().isNotEmpty)
+        item.frequency!,
+      if (item.durationDays != null) 'for ${item.durationDays} days',
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
   }
 
   /// The name of the medicine.
   final String name;
 
-  /// Where the prescription stands.
+  /// Where the line stands.
   final String status;
+
+  /// Strength, e.g. 500mg.
+  final String? strength;
 
   /// The dose, when the record carries one.
   final String? dose;
@@ -105,7 +125,8 @@ final class PortalMedication {
 
   /// The line the patient reads.
   String get display {
+    final String strengthPart = strength == null ? '' : ' $strength';
     final String dosePart = dose == null ? '' : ' · $dose';
-    return '$name$dosePart';
+    return '$name$strengthPart$dosePart';
   }
 }

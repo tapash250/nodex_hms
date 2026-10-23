@@ -42,19 +42,23 @@ LabResult _result({
   referenceRange: '12-15 g/dL',
 );
 
-Prescription _prescription({
-  PrescriptionStatus status = PrescriptionStatus.finalized,
-}) => Prescription(
-  id: 'prescription-1',
+PrescriptionItem _item({
+  PrescriptionItemStatus status = PrescriptionItemStatus.ordered,
+  String? strength = '500mg',
+}) => PrescriptionItem(
+  id: 'item-1',
   tenantId: 'tenant-1',
-  patientId: 'patient-1',
-  prescribedBy: 'doctor-1',
-  prescriptionCode: 'RX-1',
-  version: 1,
-  priority: PrescriptionPriority.routine,
+  prescriptionId: 'prescription-1',
+  lineNumber: 1,
+  drugCode: 'AMOX500',
+  drugName: 'Amoxicillin',
+  dosageText: '1 capsule three times daily',
+  quantityPrescribed: 21,
   status: status,
-  createdAt: DateTime.utc(2026, 9, 12, 9),
-  indication: 'Twice daily',
+  strength: strength,
+  route: 'oral',
+  frequency: 'three times daily',
+  durationDays: 7,
 );
 
 void main() {
@@ -107,29 +111,38 @@ void main() {
   });
 
   group('medicines the patient may see', () {
-    test('a finalized prescription is shown', () {
-      final PortalMedication? medication = PortalMedication.fromPrescription(
-        _prescription(),
-      );
+    test('an ordered line is shown with its drug and dose', () {
+      final PortalMedication? medication = PortalMedication.fromItem(_item());
       expect(medication, isNotNull);
-      expect(medication!.display, 'RX-1 · Twice daily');
+      expect(
+        medication!.display,
+        'Amoxicillin 500mg · 1 capsule three times daily',
+      );
+      expect(medication.instructions, 'oral · three times daily · for 7 days');
     });
 
-    test('a draft prescription is not shown', () {
+    test('a draft line is not shown', () {
       expect(
-        PortalMedication.fromPrescription(
-          _prescription(status: PrescriptionStatus.draft),
+        PortalMedication.fromItem(_item(status: PrescriptionItemStatus.draft)),
+        isNull,
+      );
+    });
+
+    test('a cancelled line is not shown', () {
+      expect(
+        PortalMedication.fromItem(
+          _item(status: PrescriptionItemStatus.cancelled),
         ),
         isNull,
       );
     });
 
-    test('a discontinued prescription is not shown', () {
+    test('a dispensed line stays visible', () {
       expect(
-        PortalMedication.fromPrescription(
-          _prescription(status: PrescriptionStatus.discontinued),
+        PortalMedication.fromItem(
+          _item(status: PrescriptionItemStatus.dispensed),
         ),
-        isNull,
+        isNotNull,
       );
     });
   });

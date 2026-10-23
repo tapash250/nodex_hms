@@ -15,7 +15,7 @@ one has a place in the code or the configuration where it would land.
 | Workstream | State | What it needs | Done when |
 |---|---|---|---|
 | PowerSync instance | Rules written (`powersync/sync-rules.yaml`, 49 buckets), instance missing | A PowerSync account and a deployed instance against the Supabase project | A device replicates the rows of the buckets its membership allows, and a device in one ward does not hold another ward's rows |
-| Migrations applied | 81 files in `supabase/migrations/`, remote state unknown | `supabase db push` against project `neoernavfntxsotwvmwq`, with a restore rehearsal first | `supabase migration list` shows no pending migration, and a test restore to a scratch project is measured against the RTO in `supabase/BACKUP_RESTORE.md` |
+| Migrations applied | 84 files in `supabase/migrations/`, remote state unknown | `supabase db push` against project `neoernavfntxsotwvmwq`, with a restore rehearsal first | `supabase migration list` shows no pending migration, and a test restore to a scratch project is measured against the RTO in `supabase/BACKUP_RESTORE.md` |
 | Storage buckets | Migration written (`20260917260000_phase3_storage_buckets.sql`), not applied | `supabase db push` | The three buckets exist, are private, and a signed URL expires in 60 seconds |
 | Release signing | Config wired (`android/key.properties`, gitignored), key absent | An upload keystore and its passwords | A release APK is signed with the upload key and installs over the store build |
 | Push notifications | No FCM integration | A Firebase project, the `google-services.json`, and a device-token table | A critical result reaches a locked device as a notification |
@@ -83,8 +83,6 @@ finds them by surprise:
   must read a discussion on a ward with no signal, so the device holds the
   conversation. Device-bound encryption and encryption at rest for the
   messages are not implemented.
-- **The mutation ledger sends a null `device_id`** and a placeholder
-  `payload_digest`; the schema is ready for both.
 - **Module 01 is not built.** The global executive dashboard — enterprise
   KPIs, bed turnover, revenue/burn, emergency census, ALOS and the AI anomaly
   alerts — is the home landing page: the screen lists the modules the session
@@ -96,7 +94,34 @@ finds them by surprise:
   server: there is no approve-and-activate surface, because the client has
   none. The vocabulary is in place for the surface to arrive.
 
-## 7. How to close an item
+## 7. Security residuals
+
+Two scope mismatches remain between the database and the replication layer.
+Neither is a missing permission; both are a missing predicate.
+
+- **Facility scope is enforced online, not offline.** RLS on wards, beds and
+  several clinical tables calls `nodex.has_facility_access`, so a nurse scoped
+  to one ward cannot read another ward's rows through PostgREST. The sync
+  buckets select by `tenant_id` only, so the same nurse replicates the whole
+  tenant. Closing this needs the bucket parameter to carry the membership's
+  `facility_id`/`department_id`/`ward_id` and every affected data query to
+  filter on it — a change to roughly twenty buckets, to be made with a
+  replication test that proves a ward-scoped device does not hold another
+  ward's rows.
+- **A refund does not reduce `invoices.settled_minor`.** `payment_allocations`
+  decrements the invoice when a server-side reversal deletes an allocation, but
+  `refunds` is a separate append-only row and leaves the invoice claiming the
+  gross amount. Whether an invoice should show gross or net settlement is an
+  accounting decision; the trigger should be written with that decision, not
+  guessed.
+- **A storage object can be replaced in place.** The write policies allow
+  UPDATE as well as INSERT, so an object at a known path can be overwritten
+  while its SHA-256 metadata is replaced with the new digest. Clinical media is
+  meant to be superseded by a new path, not overwritten. The client uploads
+  with INSERT today; the policy should drop UPDATE once a supersede path is
+  part of the client contract.
+
+## 8. How to close an item
 
 1. Write the decision down here, with the acceptance criteria above.
 2. Make the change on its own branch, with the module's pattern: schema, local

@@ -14,6 +14,7 @@ import 'package:nodex_hms/domain/appointments/appointment.dart';
 import 'package:nodex_hms/domain/laboratory/lab.dart';
 import 'package:nodex_hms/domain/portal/patient_portal.dart';
 import 'package:nodex_hms/domain/prescriptions/prescription.dart';
+import 'package:nodex_hms/domain/prescriptions/prescription_repository.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
@@ -51,15 +52,23 @@ final portalResultsProvider = FutureProvider.autoDispose
 /// The patient's active medicines.
 final portalMedicationsProvider = FutureProvider.autoDispose
     .family<List<PortalMedication>, String>((Ref ref, String patientId) async {
-      final List<Prescription> prescriptions = await ref
-          .watch(prescriptionRepositoryProvider)
+      final PrescriptionRepository repository = ref.watch(
+        prescriptionRepositoryProvider,
+      );
+      final List<Prescription> prescriptions = await repository
           .listPrescriptionsForPatient(patientId);
-      return <PortalMedication>[
-        for (final Prescription prescription in prescriptions)
-          if (PortalMedication.fromPrescription(prescription)
-              case final PortalMedication medication)
-            medication,
-      ];
+      final List<PortalMedication> medications = <PortalMedication>[];
+      for (final Prescription prescription in prescriptions) {
+        if (prescription.status != PrescriptionStatus.finalized) continue;
+        final List<PrescriptionItem> items = await repository.listItems(
+          prescription.id,
+        );
+        for (final PrescriptionItem item in items) {
+          final PortalMedication? medication = PortalMedication.fromItem(item);
+          if (medication != null) medications.add(medication);
+        }
+      }
+      return medications;
     });
 
 /// The patient portal.

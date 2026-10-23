@@ -38,9 +38,12 @@
 //      refuses them again server-side.
 //   4. Ledger before apply: the ledger row lands first with status 'received'.
 //      A ledger failure blocks the apply — otherwise a successful write with no
-//      ledger row would re-apply on retry. Audit-before-apply still holds: the
-//      audit row lands before the clinical write, so a failed apply leaves a
-//      complete trail, never a silent loss.
+//      ledger row would re-apply on retry. The audit row lands after the apply
+//      with the outcome that actually occurred. An audit row written before the
+//      write cannot know whether the write succeeded, and the append-only
+//      trigger forbids correcting it afterwards: a failed write would stand
+//      recorded as a success. The ledger is the before-apply record; the audit
+//      log is the outcome record.
 
 import { withSupabase } from 'npm:@supabase/server'
 
@@ -3182,12 +3185,54 @@ export default {
         continue
       }
 
+      // The row's tenant is the tenant the payload names, not silently the
+      // caller's primary tenant. Without this, a member of two hospitals would
+      // write into the second while the ledger and the audit trail recorded the
+      // first — a provenance lie that survives every later review.
+      let rowTenantId = tenantId
+      const claimedTenant = m.data.tenant_id
+      if (typeof claimedTenant === 'string' && claimedTenant !== tenantId) {
+        const { data: membership } = await ctx.supabase
+          .from('memberships')
+          .select('tenant_id')
+          .eq('tenant_id', claimedTenant)
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .maybeSingle()
+        if (!membership) {
+          results.push({
+            id: m.id,
+            outcome: 'rejected',
+            rejection_class: 'forbidden',
+            detail: 'no active membership in the tenant the row names',
+          })
+          continue
+        }
+        rowTenantId = claimedTenant
+      }
+
+      // Provenance is only as good as the device it names. A body-supplied
+      // device id is resolved against the caller's own enrolment under RLS;
+      // an unowned or unenrolled id is dropped rather than written into the
+      // ledger as fact.
+      let deviceId = resolveDeviceId(req, m)
+      if (deviceId) {
+        const { data: device } = await ctx.supabase
+          .from('devices')
+          .select('id')
+          .eq('id', deviceId)
+          .eq('assigned_user_id', userId)
+          .eq('tenant_id', rowTenantId)
+          .maybeSingle()
+        if (!device) deviceId = null
+      }
+
       // Idempotency ledger. A duplicate (tenant_id, idempotency_key) means this
       // exact mutation already landed — a retry after a lost response.
       const { data: existing } = await ctx.supabaseAdmin
         .from('mutations')
         .select('id, status')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', rowTenantId)
         .eq('idempotency_key', m.idempotency_key)
         .maybeSingle()
 
@@ -3209,9 +3254,9 @@ export default {
       // asked rather than merely which key it arrived under.
       const { error: ledgerError } = await ctx.supabaseAdmin.from('mutations').insert({
         id: m.id,
-        tenant_id: tenantId,
+        tenant_id: rowTenantId,
         user_id: userId,
-        device_id: resolveDeviceId(req, m),
+        device_id: deviceId,
         operation: m.operation,
         resource_type: m.table,
         resource_id: m.row_id,
@@ -3255,43 +3300,50 @@ export default {
           .eq('id', m.id)
       }
 
-      // Audit before apply. If the write itself then fails, the ledger and the
-      // audit trail both record the attempt; nothing is silently lost.
+      // The audit row records what happened, so it is written after the write.
+      // An audit row written before the write can only guess, and the
+      // append-only trigger means a wrong guess can never be corrected.
       const auditAction = m.operation === 'upsert' ? rule.auditActionUpsert : rule.auditActionPatch
-      const { error: auditError } = await ctx.supabaseAdmin.from('audit_events').insert({
-        tenant_id: tenantId,
-        actor_id: userId,
-        action: auditAction,
-        resource_type: m.table,
-        resource_id: m.row_id,
-        mutation_id: m.id,
-        origin: m.origin,
-        outcome: 'succeeded',
-        risk_tier: 'standard',
-      })
-      if (auditError) {
-        await markLedger('rejected')
-        results.push({
-          id: m.id,
-          outcome: 'rejected',
-          rejection_class: 'internal',
-          detail: 'audit write failed; mutation not applied',
+      const writeAudit = async (outcome: 'succeeded' | 'failed' | 'rejected', detail?: string) => {
+        const { error } = await ctx.supabaseAdmin.from('audit_events').insert({
+          tenant_id: rowTenantId,
+          actor_id: userId,
+          device_id: deviceId,
+          action: auditAction,
+          resource_type: m.table,
+          resource_id: m.row_id,
+          // Link the audit row to the patient and encounter the payload names,
+          // when it names them. Per-patient audit queries are otherwise blind
+          // to every write made through a child table.
+          patient_id: typeof m.data.patient_id === 'string' ? m.data.patient_id : null,
+          encounter_id: typeof m.data.encounter_id === 'string' ? m.data.encounter_id : null,
+          mutation_id: m.id,
+          origin: m.origin,
+          outcome,
+          risk_tier: 'standard',
+          reason: detail ?? null,
         })
-        continue
+        return error
       }
 
       const table = ctx.supabase.from(m.table)
       let applyError: { message: string } | null = null
+      let appliedRows = 1
       if (m.operation === 'upsert') {
         const r = await table.upsert({ id: m.row_id, ...cols.data })
         applyError = r.error ? { message: r.error.message } : null
       } else {
-        const r = await table.update(cols.data).eq('id', m.row_id)
+        // `select('id')` makes a no-op patch observable. Without it PostgREST
+        // reports success when zero rows matched, and the ledger would claim a
+        // change that never happened.
+        const r = await table.update(cols.data).eq('id', m.row_id).select('id')
         applyError = r.error ? { message: r.error.message } : null
+        appliedRows = r.data?.length ?? 0
       }
 
       if (applyError) {
         await markLedger('rejected')
+        await writeAudit('failed', applyError.message)
         results.push({
           id: m.id,
           outcome: 'rejected',
@@ -3301,8 +3353,29 @@ export default {
         continue
       }
 
+      if (appliedRows === 0) {
+        await markLedger('rejected')
+        await writeAudit('rejected', 'no row with that id is visible to this account')
+        results.push({
+          id: m.id,
+          outcome: 'rejected',
+          rejection_class: 'not_found',
+          detail: 'no row with that id is visible to this account',
+        })
+        continue
+      }
+
       await markLedger('applied')
-      results.push({ id: m.id, outcome: 'applied' })
+      const auditError = await writeAudit('succeeded')
+      results.push(
+        auditError
+          ? {
+              id: m.id,
+              outcome: 'applied',
+              detail: 'applied, but the audit record could not be written; reconcile this mutation',
+            }
+          : { id: m.id, outcome: 'applied' },
+      )
     }
 
     return Response.json({ results })

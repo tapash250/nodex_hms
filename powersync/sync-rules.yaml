@@ -29,19 +29,30 @@ sync_rules:
         - select * from public.roles
         - select * from public.permissions
         - select * from public.role_permissions
-        # Staff directory within the tenant. Mirrors the app_users_select_directory
-        # RLS policy: any co-member may see directory profiles, never other
-        # tenants' staff.
+        # Staff directory within the tenant. Mirrors the app_users_select_self
+        # and app_users_select_directory RLS policies: a caller always sees
+        # their own profile; other profiles require staff_directory.read.
+        # Without that second clause the bucket would hand every member —
+        # including a portal account — the staff names, designations and
+        # employee codes that RLS withholds.
         - select
             u.id, u.primary_tenant_id, u.full_name, u.display_name, u.designation,
             u.employee_code, u.status, u.locale, u.avatar_path, u.last_login_at
           from public.app_users u
           where u.primary_tenant_id = bucket.tenant_id
-            and exists (
-              select 1 from public.memberships m
-              where m.tenant_id = bucket.tenant_id
-                and m.user_id = :user_id
-                and m.status = 'active'
+            and (
+              u.id = :user_id
+              or exists (
+                select 1
+                from public.memberships m
+                join public.role_permissions rp on rp.role_key = m.role_key
+                where m.tenant_id = bucket.tenant_id
+                  and m.user_id = :user_id
+                  and m.status = 'active'
+                  and m.valid_from <= now()
+                  and (m.valid_until is null or m.valid_until > now())
+                  and rp.permission_key = 'staff_directory.read'
+              )
             )
 
     # The caller's own identity and role assignments. Needed offline so the
@@ -105,6 +116,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -129,6 +141,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -169,6 +182,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -193,6 +207,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -217,6 +232,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -234,6 +250,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -255,6 +272,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -283,6 +301,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -305,6 +324,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -331,6 +351,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -352,6 +373,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -367,6 +389,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -384,6 +407,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -402,6 +426,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -419,6 +444,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -440,6 +466,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -459,6 +486,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -491,6 +519,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -509,6 +538,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -526,6 +556,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -542,6 +573,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -559,6 +591,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -579,6 +612,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -598,6 +632,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -617,6 +652,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -637,6 +673,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -657,6 +694,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -678,6 +716,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -698,6 +737,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -717,6 +757,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -738,6 +779,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -760,6 +802,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -780,6 +823,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -798,6 +842,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -815,6 +860,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -833,6 +879,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -852,6 +899,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -870,6 +918,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -889,6 +938,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -905,6 +955,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -923,6 +974,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -971,9 +1023,22 @@ sync_rules:
           join public.patient_portal_links l on l.patient_id = o.patient_id
           where l.portal_user_id = :user_id and l.revoked_at is null
             and r.status in ('verified', 'corrected')
+        # Finalized orders only. A draft is a clinician's working copy; the
+        # screen already declines to render it, but a device that receives it
+        # still holds it — and a lost phone would disclose a prescription the
+        # prescriber never issued.
         - select p.* from public.prescriptions p
           join public.patient_portal_links l on l.patient_id = p.patient_id
           where l.portal_user_id = :user_id and l.revoked_at is null
+            and p.status = 'finalized'
+        # The lines carry the drug name, strength and dosage. Without them the
+        # portal can only show an order code, which is not a medicine.
+        - select i.* from public.prescription_items i
+          join public.prescriptions p on p.id = i.prescription_id
+          join public.patient_portal_links l on l.patient_id = p.patient_id
+          where l.portal_user_id = :user_id and l.revoked_at is null
+            and p.status = 'finalized'
+            and i.status <> 'cancelled'
         - select l.* from public.patient_portal_links l
           where l.portal_user_id = :user_id
 
@@ -988,6 +1053,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
@@ -1016,6 +1082,7 @@ sync_rules:
           from public.memberships m
           join public.role_permissions rp on rp.role_key = m.role_key
           where m.user_id = :user_id
+            and m.role_key <> 'patient'
             and m.status = 'active'
             and m.valid_from <= now()
             and (m.valid_until is null or m.valid_until > now())
