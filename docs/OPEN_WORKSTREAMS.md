@@ -96,30 +96,37 @@ finds them by surprise:
 
 ## 7. Security residuals
 
-Two scope mismatches remain between the database and the replication layer.
-Neither is a missing permission; both are a missing predicate.
+The Phase 1 audit's three findings are closed locally:
 
-- **Facility scope is enforced online, not offline.** RLS on wards, beds and
-  several clinical tables calls `nodex.has_facility_access`, so a nurse scoped
-  to one ward cannot read another ward's rows through PostgREST. The sync
-  buckets select by `tenant_id` only, so the same nurse replicates the whole
-  tenant. Closing this needs the bucket parameter to carry the membership's
-  `facility_id`/`department_id`/`ward_id` and every affected data query to
-  filter on it — a change to roughly twenty buckets, to be made with a
-  replication test that proves a ward-scoped device does not hold another
-  ward's rows.
-- **A refund does not reduce `invoices.settled_minor`.** `payment_allocations`
-  decrements the invoice when a server-side reversal deletes an allocation, but
-  `refunds` is a separate append-only row and leaves the invoice claiming the
-  gross amount. Whether an invoice should show gross or net settlement is an
-  accounting decision; the trigger should be written with that decision, not
-  guessed.
-- **A storage object can be replaced in place.** The write policies allow
-  UPDATE as well as INSERT, so an object at a known path can be overwritten
-  while its SHA-256 metadata is replaced with the new digest. Clinical media is
-  meant to be superseded by a new path, not overwritten. The client uploads
-  with INSERT today; the policy should drop UPDATE once a supersede path is
-  part of the client contract.
+- **Facility scope on the ward buckets.** `ward_census`, `nursing_station`,
+  `icu_census`, `staff_directory`, `visitor` and `contacts` derive
+  `facility_id` from the caller's membership and filter every replicated query
+  on it. A nurse scoped to one facility no longer replicates another
+  facility's beds, observations, handovers, tasks, practitioners, visitors or
+  contacts.
+- **Refund accounting.** `invoices.settled_minor` is net collections.
+  `20260918130000_phase4_refund_settlement_accounting.sql` reduces it from the
+  append-only refund row through `nodex.tg_refund_reduce_settled`, and the
+  settled-invoice guard accepts that projection while refusing every other
+  rewrite. The executive revenue reading can now subtract refunds.
+- **Storage immutability.** `20260918120000_phase4_storage_immutability.sql`
+  drops the UPDATE policies on the three clinical buckets. A correction is a
+  new object at a new path; an existing path cannot be rewritten.
+
+What remains is the breadth of the facility scope and the deployed proof:
+
+- **Facility scope does not yet cover every bucket with a facility
+  dimension.** `er_triage`, `blood_bank`, `operation_theatre`, `radiology`,
+  `physiotherapy`, `nutrition`, `telemedicine`, `discharge_management`,
+  `floor_map`, `workforce`, `analytics`, `operations`, `performance`,
+  `clinical_dashboard`, `task_engine`, `form_builder`, `patient_portal`,
+  `clinical_messaging` and `productivity` still select by `tenant_id`.
+  Closing them needs the same membership parameter and a replication test per
+  bucket. Acceptance: a device in one facility holds no row from another
+  facility in any bucket that has a facility dimension.
+- **The deployed instance must prove the rules.** The replication tests are
+  textual until PowerSync is provisioned; acceptance is a facility-scoped
+  device syncing only its facility's rows.
 
 ## 8. How to close an item
 

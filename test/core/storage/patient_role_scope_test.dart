@@ -278,6 +278,42 @@ void main() {
       }
     });
 
+    test('clinical object writes are write-once', () {
+      final String sql = _withoutComments(
+        _read(
+          'supabase/migrations/20260918120000_phase4_storage_immutability.sql',
+        ),
+      );
+
+      expect(
+        sql,
+        contains(
+          'drop policy if exists clinical_images_update on storage.objects',
+        ),
+        reason:
+            'Clinical media must be superseded by a new object, not rewritten.',
+      );
+      expect(
+        sql,
+        contains(
+          'drop policy if exists clinical_documents_update on storage.objects',
+        ),
+        reason: 'Clinical documents share the write-once contract.',
+      );
+      expect(
+        sql,
+        contains(
+          'drop policy if exists clinical_signatures_update on storage.objects',
+        ),
+        reason: 'Clinical signatures share the write-once contract.',
+      );
+      expect(
+        sql,
+        isNot(contains('for update on storage.objects')),
+        reason: 'The write-once migration must not recreate an update policy.',
+      );
+    });
+
     test('the staff directory is scoped by staff_directory.read', () {
       final String rules = _read('powersync/sync-rules.yaml');
       final int start = rules.indexOf('tenant_master_data:');

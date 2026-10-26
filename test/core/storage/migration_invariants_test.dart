@@ -806,5 +806,77 @@ void main() {
         }
       }
     });
+
+    test('facility-scoped buckets filter replication on the facility', () {
+      final String rules = _read('powersync/sync-rules.yaml');
+      final List<RegExpMatch> buckets = RegExp(
+        r'\n    ([a-z_]+):\n(.*?)(?=\n    [a-z_]+:\n|\Z)',
+        dotAll: true,
+      ).allMatches(rules).toList();
+      final Map<String, String> blocks = <String, String>{};
+      for (final RegExpMatch bucket in buckets) {
+        blocks[bucket.group(1)!] = bucket.group(2)!;
+      }
+      const List<String> facilityScoped = <String>[
+        'ward_census',
+        'nursing_station',
+        'icu_census',
+        'staff_directory',
+        'visitor',
+        'contacts',
+      ];
+      for (final String name in facilityScoped) {
+        final String block = blocks[name] ?? '';
+        expect(
+          block,
+          contains('m.facility_id as facility_id'),
+          reason:
+              'The bucket $name must derive its offline scope from the '
+              'membership facility, not from the tenant alone.',
+        );
+        expect(
+          block,
+          contains('facility_id = bucket.facility_id'),
+          reason:
+              'The bucket $name must filter replicated rows to the caller '
+              'facility, so a ward-scoped device cannot hold another '
+              'facility rows.',
+        );
+      }
+    });
+  });
+
+  group('billing settlement accounting', () {
+    test('a refund reduces the invoice settled total through the trigger', () {
+      final String sql = _read(
+        'supabase/migrations/20260918130000_phase4_refund_settlement_accounting.sql',
+      ).replaceAll(RegExp(r'--[^\n]*'), '');
+      expect(
+        sql,
+        contains('create or replace function nodex.tg_refund_reduce_settled()'),
+      );
+      expect(sql, contains('create trigger refunds_reduce_settled'));
+      expect(
+        sql,
+        contains(
+          'settled_minor = greatest(settled_minor - new.amount_minor, 0)',
+        ),
+      );
+    });
+
+    test('settled invoices are immutable outside the refund projection', () {
+      final String sql = _read(
+        'supabase/migrations/20260918130000_phase4_refund_settlement_accounting.sql',
+      ).replaceAll(RegExp(r'--[^\n]*'), '');
+      expect(sql, contains('NODEX: settled invoices are immutable'));
+      expect(sql, contains('nodex.refund_projection'));
+    });
+
+    test('the settled check accepts net collections after a refund', () {
+      final String sql = _read(
+        'supabase/migrations/20260918130000_phase4_refund_settlement_accounting.sql',
+      ).replaceAll(RegExp(r'--[^\n]*'), '');
+      expect(sql, contains('settled_minor >= 0'));
+    });
   });
 }
