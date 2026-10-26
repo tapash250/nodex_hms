@@ -9,12 +9,15 @@ streams define replication scope from the same authorization model.
 
 ## Applied migrations
 
-`migrations/` holds the SQL applied to the linked project. Statement content was
-verified against `supabase_migrations.schema_migrations` (normalized-hash
-comparison plus object-level checks: every table, function, trigger, policy and
-index confirmed live). One caveat for future verification: the migration tool
-strips `--` comment lines when recording statements, so remote text differs from
-these files by comments only — compare semantics, not bytes.
+`migrations/` holds the SQL applied to the linked project. All 88 migrations are
+applied to `neoernavfntxsotwvmwq`; the remote ledger was normalized so every
+`version` matches the local filename, and the latest is
+`20260918150000_phase4_ai_model_governance_approval`. Object-level checks
+confirmed the executive snapshot table, the AI governance policy and trigger,
+the three private storage buckets, 114 permissions and 335 role grants live. One
+caveat for future verification: the migration tool strips `--` comment lines
+when recording statements, so remote text differs from these files by comments
+only — compare semantics, not bytes.
 
 | Version | Name |
 |---|---|
@@ -37,14 +40,75 @@ these files by comments only — compare semantics, not bytes.
 | 20260905162031 | `phase1_seed_role_permission_grants` |
 | 20260905162157 | `phase1_snapshot_issuance_rpc` |
 | 20260905162531 | `phase1_revoke_anon_rpc_execute` |
-| 20260910120545 | `phase1_user_provisioning` |
-| 20260910120953 | `phase1_bootstrap_tenant_seed` |
-| 20260911145344 | `phase2_mpi_patient_identity` |
-| 20260911151649 | `phase2_mpi_contact_fields` |
-| 20260911171737 | `phase2_mutations_device_nullable` |
-| 20260912013739 | `phase2_emr_encounters` |
-| 20260914154316 | `phase2_lab_workflows` |
-| 20260914154755 | `phase2_lab_correction_reason` |
+| 20260908130000 | `phase1_user_provisioning` |
+| 20260908131000 | `phase1_bootstrap_tenant_seed` |
+| 20260911120000 | `phase2_mpi_patient_identity` |
+| 20260911121000 | `phase2_mpi_contact_fields` |
+| 20260911122000 | `phase2_mutations_device_nullable` |
+| 20260911123000 | `phase2_lab_workflows` |
+| 20260911124000 | `phase2_lab_correction_reason` |
+| 20260912100000 | `phase2_emr_encounters` |
+| 20260917090000 | `phase2_rx_pharmacy` |
+| 20260917090500 | `phase2_rx_pharmacy_supersede_link` |
+| 20260917091000 | `phase2_rx_pharmacy_frozen_history` |
+| 20260917091500 | `phase2_rx_pharmacy_single_update_policy` |
+| 20260917100000 | `phase2_appointments` |
+| 20260917110000 | `phase2_beds` |
+| 20260917110500 | `phase2_beds_drop_stray_policy` |
+| 20260917120000 | `phase2_discharge` |
+| 20260917130000 | `phase2_billing` |
+| 20260917130500 | `phase2_billing_settled_snapshot` |
+| 20260917131000 | `phase2_billing_settlement_events` |
+| 20260917131500 | `phase2_billing_running_total_guard` |
+| 20260917140000 | `phase2_inventory` |
+| 20260917150000 | `phase3_er_triage` |
+| 20260917160000 | `phase3_icu_critical_care` |
+| 20260917170000 | `phase3_blood_bank` |
+| 20260917180000 | `phase3_operation_theatre` |
+| 20260917190000 | `phase3_radiology` |
+| 20260917200000 | `phase3_physiotherapy` |
+| 20260917210000 | `phase3_nutrition` |
+| 20260917220000 | `phase3_telemedicine` |
+| 20260917230000 | `phase3_discharge_management` |
+| 20260917240000 | `phase3_floor_map` |
+| 20260917250000 | `phase3_emr_problems_and_scribe` |
+| 20260917260000 | `phase3_storage_buckets` |
+| 20260917270000 | `phase3_imaging_study_image_refs` |
+| 20260917280000 | `phase3_fix_er_icu_module_codes` |
+| 20260917290000 | `phase4_practitioner_directory` |
+| 20260917300000 | `phase4_allied_staff_workforce` |
+| 20260917310000 | `phase4_hr_payroll_suite` |
+| 20260917320000 | `phase4_nurse_ward_station` |
+| 20260917330000 | `phase4_contacts_directory` |
+| 20260917340000 | `phase4_institutional_calendar` |
+| 20260917350000 | `phase4_fleet_ambulance_dispatch` |
+| 20260917360000 | `phase4_biomedical_assets` |
+| 20260917370000 | `phase4_biomedical_waste` |
+| 20260917380000 | `phase4_health_insurance_tpa` |
+| 20260917390000 | `phase4_documents_consent_vault` |
+| 20260917400000 | `phase4_statutory_registry` |
+| 20260917410000 | `phase4_quality_compliance` |
+| 20260917420000 | `phase4_patient_feedback_grievance` |
+| 20260917430000 | `phase4_visitor_pass_security` |
+| 20260917440000 | `phase4_analytics_warehouse` |
+| 20260917450000 | `phase4_master_settings_hub` |
+| 20260917460000 | `phase4_append_only_guards` |
+| 20260917470000 | `phase4_patient_accounts_ledger` |
+| 20260917480000 | `phase4_task_engine` |
+| 20260917490000 | `phase4_form_builder` |
+| 20260917500000 | `phase4_productivity_apps` |
+| 20260917510000 | `phase4_secure_messaging` |
+| 20260917520000 | `phase4_operations_dashboard` |
+| 20260917530000 | `phase4_performance_dashboard` |
+| 20260917540000 | `phase4_doctor_dashboard` |
+| 20260917550000 | `phase4_patient_portal` |
+| 20260917560000 | `phase4_permission_alignment` |
+| 20260917570000 | `phase4_patient_role_scope` |
+| 20260917580000 | `phase4_storage_read_scope` |
+| 20260918120000 | `phase4_storage_immutability` |
+| 20260918130000 | `phase4_refund_settlement_accounting` |
+| 20260918140000 | `phase4_executive_dashboard` |
+| 20260918150000 | `phase4_ai_model_governance_approval` |
 
 Two of these supersede earlier work rather than adding new objects, and are kept
 rather than squashed so the history explains itself:
@@ -253,9 +317,9 @@ failure class, circuit state and the human review decision.
   a SHA-256 checksum required on upload, and no delete policy. Module 33 adds
   permissive insert/update policies on `clinical-signatures` and
   `clinical-documents` gated on `documents.consent`, so a bedside consent
-  capture can be written without the `encounter.write` tier. Apply with
-  `supabase db push`. Still to do: the app-side client that uploads under
-  `<tenant_id>/…/…` and reads via a 60s `createSignedUrl` (the clinical tables
+  capture can be written without the `encounter.write` tier. All three buckets
+  are applied live. The app-side client uploads under `<tenant_id>/…/…` and reads
+  via a 60s `createSignedUrl` through `StorageService` (the clinical tables
   already hold only references).
 - **Backup and restore.** RPO/RTO targets, the restore procedure and the
   rehearsal checklist are defined in `BACKUP_RESTORE.md`. This closes the

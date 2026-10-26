@@ -54,7 +54,7 @@ all three.
 
 ```bash
 supabase link --project-ref neoernavfntxsotwvmwq
-supabase migration list     # compare local and remote; unapplied slices are expected until `db push` runs
+supabase migration list     # local and remote should match: 88 applied, versions normalized
 ```
 
 ---
@@ -244,10 +244,9 @@ mutation-handler entry.
 While building this slice a latent migration bug was found and fixed: the last
 four migrations (`practitioner_directory`, `allied_staff_workforce`,
 `hr_payroll_suite`, `nurse_ward_station`) inserted new permissions into a
-`name` column, but `public.permissions` names it `display_name`. None of those
-migrations had been applied, so the bug was invisible; all four now insert into
-`display_name`. Verify any unapplied slice against the real column names before
-`supabase db push`.
+`name` column, but `public.permissions` names it `display_name`. All 88
+migrations are now applied and the four corrected slices were verified live
+against the real column names.
 
 **Institutional Calendar & Shift Overlay (module 40)** followed, over
 `calendar_events`. It owns only the institutional event; the "shift overlay" is
@@ -677,11 +676,11 @@ Deferred deliberately, not overlooked.
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
   mutation-verified (2212 tests).
-- ~~**No storage buckets**~~ — **defined; apply pending.** Migration
-  `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
+- ~~**No storage buckets**~~ — **applied.** Migration
+  `20260917260000_phase3_storage_buckets.sql` created three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and
-  no delete policy. Apply with `supabase db push`; the app-side signed-URL client
-  is still to build (see `supabase/README.md`).
+  no delete policy. They exist live in `neoernavfntxsotwvmwq`; the app-side
+  signed-URL client is wired through `StorageService` (see `supabase/README.md`).
 - ~~**No backup or restore procedure**~~ — **defined; rehearsal pending.**
   RPO/RTO targets, the restore procedure and the rehearsal checklist are in
   `supabase/BACKUP_RESTORE.md`. Only the operational rehearsal (a test restore to
