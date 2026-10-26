@@ -204,10 +204,10 @@ insert into public.permissions
 values
   ('messaging.read', 'Read clinical messages',
    'Read the clinical discussion threads the signed-in clinician takes part in.',
-   'M43', 'high', false),
+   'M43', 'high_risk', false),
   ('messaging.send', 'Send clinical messages',
    'Start a clinical discussion thread and post to the threads you take part in.',
-   'M43', 'high', false)
+   'M43', 'high_risk', false)
 on conflict (key) do nothing;
 
 insert into public.role_permissions (role_key, permission_key)

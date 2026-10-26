@@ -215,7 +215,7 @@ insert into public.icd10_codes (code, description, category, is_billable) values
   ('E78.5', 'Hyperlipidaemia, unspecified', 'Endocrine', true),
   ('F32.9', 'Depressive episode, unspecified', 'Mental', true),
   ('F41.9', 'Anxiety disorder, unspecified', 'Mental', true),
-  ('G20', "Parkinson's disease", 'Neurological', true),
+  ('G20', 'Parkinson''s disease', 'Neurological', true),
   ('G40.9', 'Epilepsy, unspecified', 'Neurological', true),
   ('G43.9', 'Migraine, unspecified', 'Neurological', true),
   ('I10', 'Essential (primary) hypertension', 'Circulatory', true),

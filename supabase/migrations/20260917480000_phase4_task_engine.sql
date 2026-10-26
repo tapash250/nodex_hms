@@ -134,18 +134,12 @@ begin
   -- Priority may be raised (a waiting errand became urgent) but never lowered:
   -- the requester's clinical judgement outranks the assignee's workload.
   if new.priority <> old.priority then
-    if case old.priority
-         when 'low' then 1
-         when 'medium' then 2
-         when 'urgent' then 3
-         else 4
-       end
-       > case new.priority
-           when 'low' then 1
-           when 'medium' then 2
-           when 'urgent' then 3
-           else 4
-         end then
+    if array_position(
+         array['low','medium','urgent','stat'], old.priority
+       )
+       > array_position(
+           array['low','medium','urgent','stat'], new.priority
+         ) then
       raise exception using
         message = 'NODEX: a hospital task priority is raised, never lowered',
         errcode = '42501';

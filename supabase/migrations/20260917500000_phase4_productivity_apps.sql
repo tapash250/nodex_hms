@@ -162,7 +162,6 @@ begin
     raise exception using
       message = 'NODEX: a closed ticket is immutable',
       errcode = '42501';
-    end if;
   end if;
 
   if new.status in ('resolved', 'closed') then

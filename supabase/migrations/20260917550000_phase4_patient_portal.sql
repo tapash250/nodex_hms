@@ -63,7 +63,7 @@ values
    'M05', 'standard', false),
   ('portal.manage', 'Manage patient portal access',
    'Link a portal account to a patient record, and revoke that link.',
-   'M05', 'high', false)
+   'M05', 'high_risk', false)
 on conflict (key) do nothing;
 
 insert into public.role_permissions (role_key, permission_key)

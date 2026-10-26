@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 2208 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 2212 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -676,7 +676,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (2208 tests).
+  mutation-verified (2212 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

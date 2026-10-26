@@ -38,7 +38,7 @@ derived from the figures.
 | Clinical modules (54 of 54) | Global executive dashboard, Appointments, Beds, ER/triage, ICU, Nurse ward station, Patients/MPI, Encounters, Laboratory, Radiology, Operation theatre, Physiotherapy, Nutrition, Telemedicine, Discharge, Floor map, Doctor & specialist directory, Clinical departments, Hospital contacts directory, Institutional calendar, Allied staff & workforce, Human resources & payroll, Prescriptions/pharmacy, Blood bank, Inventory, Billing, Fleet & ambulance dispatch, Biomedical assets & calibration, Bio-medical waste, Health insurance & TPA, Documents & biometric e-consent vault, Statutory records & birth/death registry, Quality & NABH compliance hub, Patient feedback & grievance redressal, Visitor & pass security, Reports & operational analytics, Master settings & AI configuration, Global search & hotkeys, Operations & performance dashboards, Doctor cockpit, Patient portal, Task engine, Clinical forms, Clinical messaging, Productivity apps, Master data tables, Chart engine, Clinical widget library, Adaptive component system, Patient journey timeline, Medical icon repository, Security suite, Operational utilities |
 | Mutation path | Edge `mutation-handler` with per-table validators, idempotency ledger, SHA-256 `payload_digest`, device provenance, audit-before-apply |
 | Object storage | Three private tenant-scoped buckets with membership-derived RLS, checksum-on-upload, 60-second signed URLs, and a client `StorageService` wired to radiology, telemedicine and the consent vault |
-| Verification | 2208 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
+| Verification | 2212 unit + widget + integration tests; `dart format` clean; `flutter analyze --fatal-infos --fatal-warnings` clean |
 
 Not yet built: the approved AI narrative for module 01 (the four risk points are
 deterministic, and no model has been approved), the PowerSync instance
@@ -47,8 +47,10 @@ and speech pipelines, WebRTC telehealth, thermal printing, barcode scanning
 and the real AI summaries that three dashboards are named for. Those are
 listed module by module in [`CONTINUE.md`](CONTINUE.md).
 
-Operational, not code: provision the upload keystore, run `supabase db push` for
-the unapplied migrations, and rehearse a restore. See [`CONTINUE.md`](CONTINUE.md)
+Operational, not code: provision the upload keystore, deploy the PowerSync
+instance (the 50 sync buckets are written), create the first administrator and
+membership, and rehearse a restore. The 88 migrations and three storage buckets
+are applied to project `neoernavfntxsotwvmwq`. See [`CONTINUE.md`](CONTINUE.md)
 and [`supabase/README.md`](supabase/README.md).
 
 **Resuming work:** see [`CONTINUE.md`](CONTINUE.md) for toolchain setup,
