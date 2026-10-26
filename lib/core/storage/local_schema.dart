@@ -353,6 +353,9 @@ abstract final class LocalTables {
   static const String operationalDepartmentMetrics =
       'operational_department_metrics';
 
+  /// Facility executive KPI snapshots (Module 01). Synced, facility-scoped.
+  static const String executiveKpiSnapshots = 'executive_kpi_snapshots';
+
   /// Clinical discussion threads (Module 43). Synced, tenant-scoped.
   static const String clinicalThreads = 'clinical_threads';
 
@@ -581,6 +584,7 @@ abstract final class NodexLocalSchema {
     _doctorAssignments,
     _clinicalPerformanceIndices,
     _operationalDepartmentMetrics,
+    _executiveKpiSnapshots,
     _clinicalThreads,
     _clinicalMessages,
     _clinicalAttachments,
@@ -3481,6 +3485,32 @@ abstract final class NodexLocalSchema {
         IndexedColumn('tenant_id'),
         IndexedColumn('facility_id'),
         IndexedColumn('metric_timestamp'),
+      ]),
+    ],
+  );
+
+  /// Facility executive KPI snapshots (Module 01).
+  static const Table _executiveKpiSnapshots = Table(
+    LocalTables.executiveKpiSnapshots,
+    <Column>[
+      Column.text('tenant_id'),
+      Column.text('facility_id'),
+      Column.text('snapshot_timestamp'),
+      Column.text('occupancy_rate'),
+      Column.integer('active_inpatients'),
+      Column.integer('er_waiting_count'),
+      Column.text('daily_gross_revenue'),
+      Column.text('daily_net_revenue'),
+      Column.text('bed_turnover_rate'),
+      Column.text('average_length_of_stay_days'),
+      Column.text('ai_executive_summary'),
+      Column.text('created_at'),
+    ],
+    indexes: <Index>[
+      Index('executive_kpi_facility', <IndexedColumn>[
+        IndexedColumn('tenant_id'),
+        IndexedColumn('facility_id'),
+        IndexedColumn('snapshot_timestamp'),
       ]),
     ],
   );

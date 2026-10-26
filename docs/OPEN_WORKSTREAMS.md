@@ -2,9 +2,10 @@
 
 Everything the code cannot close on its own.
 
-53 of the 54 clinical modules have a vertical slice; module 01, the global
-executive dashboard, is the home landing page only. What is left is work that
-needs a decision, a device, a key or a person who is not the engineer: the
+54 of the 54 clinical modules have a vertical slice. Module 01, the global
+executive dashboard, is the home landing surface: snapshots are captured
+server-side and reduced to four deterministic risk points. What is left is work
+that needs a decision, a device, a key or a person who is not the engineer: the
 list below says what each item is, what it needs, and how to tell it is done.
 
 Nothing here is forgotten work. Each item was deliberately deferred, and each
@@ -14,8 +15,8 @@ one has a place in the code or the configuration where it would land.
 
 | Workstream | State | What it needs | Done when |
 |---|---|---|---|
-| PowerSync instance | Rules written (`powersync/sync-rules.yaml`, 49 buckets), instance missing | A PowerSync account and a deployed instance against the Supabase project | A device replicates the rows of the buckets its membership allows, and a device in one ward does not hold another ward's rows |
-| Migrations applied | 84 files in `supabase/migrations/`, remote state unknown | `supabase db push` against project `neoernavfntxsotwvmwq`, with a restore rehearsal first | `supabase migration list` shows no pending migration, and a test restore to a scratch project is measured against the RTO in `supabase/BACKUP_RESTORE.md` |
+| PowerSync instance | Rules written (`powersync/sync-rules.yaml`, 50 buckets), instance missing | A PowerSync account and a deployed instance against the Supabase project | A device replicates the rows of the buckets its membership allows, and a device in one ward does not hold another ward's rows |
+| Migrations applied | 88 files in `supabase/migrations/`, remote state partial (latest applied `20260918155213`; Phase 4 module migrations are pending) | `supabase db push` against project `neoernavfntxsotwvmwq`, with a restore rehearsal first | `supabase migration list` shows no pending migration, and a test restore to a scratch project is measured against the RTO in `supabase/BACKUP_RESTORE.md` |
 | Storage buckets | Migration written (`20260917260000_phase3_storage_buckets.sql`), not applied | `supabase db push` | The three buckets exist, are private, and a signed URL expires in 60 seconds |
 | Release signing | Config wired (`android/key.properties`, gitignored), key absent | An upload keystore and its passwords | A release APK is signed with the upload key and installs over the store build |
 | Push notifications | No FCM integration | A Firebase project, the `google-services.json`, and a device-token table | A critical result reaches a locked device as a notification |
@@ -44,7 +45,7 @@ exists:
 
 | Where | What is missing | What it needs |
 |---|---|---|
-| Module 01 executive dashboard | The four-point risk summary over variance metrics | A model key and a pre-vetted prompt; the summary must cite the figures it was derived from |
+| Module 01 executive dashboard | The approved AI narrative over the four deterministic risk points | A model key, a pre-vetted prompt and a governance approval; the narrative must cite the figures it was derived from and is shown only when attached to a snapshot |
 | Module 04 doctor cockpit | The AI-assisted summary of the day | The same, plus the safety policy the orchestrator already enforces |
 | Module 05 patient portal | The plain-language explainer for a diagnosis | A clinical governance sign-off per explanation, because an unreviewed explainer is a clinical statement |
 | On-device speech | The local Whisper pipeline and PCM capture | The edge runtime and a device with the microphone permission |
@@ -83,16 +84,16 @@ finds them by surprise:
   must read a discussion on a ward with no signal, so the device holds the
   conversation. Device-bound encryption and encryption at rest for the
   messages are not implemented.
-- **Module 01 is not built.** The global executive dashboard — enterprise
-  KPIs, bed turnover, revenue/burn, emergency census, ALOS and the AI anomaly
-  alerts — is the home landing page: the screen lists the modules the session
-  can reach and nothing more. There is no `executive_kpi_snapshots` table and
-  no aggregation behind it. Modules 02 and 03 are built and hold the
-  operational and performance readings the executive view would read.
-- **Model approval is not built.** `ai_governance.administer` is seeded and
-  held by the hospital super admin, but the AI registry is read-only on the
-  server: there is no approve-and-activate surface, because the client has
-  none. The vocabulary is in place for the surface to arrive.
+- **Module 01's AI narrative is not built.** The four risk points are derived
+  deterministically from the stored figures and each cites its baseline. The
+  optional `ai_executive_summary` column is shown only when an approved summary
+  is attached; no model has been approved, so no narrative is generated.
+- **Model approval is wired, but the evaluation pipeline is not.** The
+  governance screen approves an evaluated model and activates an approved one
+  through the mutation handler; RLS and `tg_ai_model_governance_guard` re-check
+  the permission, the evidence and the approver. Producing
+  `evaluation_status = 'passed'` against a locked acceptance set is an
+  evaluation harness that lives outside this repository.
 
 ## 7. Security residuals
 
@@ -104,6 +105,9 @@ The Phase 1 audit's three findings are closed locally:
   on it. A nurse scoped to one facility no longer replicates another
   facility's beds, observations, handovers, tasks, practitioners, visitors or
   contacts.
+- **Facility scope on the executive bucket.** `executive` derives one facility
+  per active facility from the membership and filters every snapshot to it, so
+  a facility-bound device does not hold another facility's executive reading.
 - **Refund accounting.** `invoices.settled_minor` is net collections.
   `20260918130000_phase4_refund_settlement_accounting.sql` reduces it from the
   append-only refund row through `nodex.tg_refund_reduce_settled`, and the

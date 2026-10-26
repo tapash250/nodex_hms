@@ -405,6 +405,9 @@ abstract final class ConflictPolicyRegistry {
   /// An AI routing profile (Module 39).
   static const String aiRoutingProfile = 'ai_routing_profile';
 
+  /// A registered AI model and its lifecycle (Module 39).
+  static const String aiModel = 'ai_model';
+
   /// Dated staff shift block.
   static const String staffShift = 'staff_shift';
 
@@ -452,6 +455,9 @@ abstract final class ConflictPolicyRegistry {
 
   /// Departmental flow reading (Module 02).
   static const String departmentMetric = 'department_metric';
+
+  /// Facility executive KPI snapshot (Module 01).
+  static const String executiveKpiSnapshot = 'executive_kpi_snapshot';
 
   /// Clinical discussion thread (Module 43).
   static const String clinicalThread = 'clinical_thread';
@@ -1305,6 +1311,15 @@ abstract final class ConflictPolicyRegistry {
           'not one a device may make for itself, so the server owns the profile '
           'and the client reconciles.',
     ),
+    aiModel: ConflictPolicyEntry(
+      resourceType: aiModel,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'Approving or activating a model is a governance act bound to a '
+          'named administrator and a passed evaluation. The server re-checks '
+          'both and owns the resulting lifecycle; a local approval the server '
+          'refuses is reconciled away, never merged.',
+    ),
     staffShift: ConflictPolicyEntry(
       resourceType: staffShift,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1628,6 +1643,14 @@ abstract final class ConflictPolicyRegistry {
           'and never edited: a corrected figure is a later reading with its '
           'own timestamp, not an edit of the old one.',
     ),
+    executiveKpiSnapshot: ConflictPolicyEntry(
+      resourceType: executiveKpiSnapshot,
+      policy: ConflictPolicy.serverAuthoritative,
+      rationale:
+          'An executive snapshot is derived server-side from the operational '
+          'tables. A device reads it and never writes it; a client copy that '
+          'differs from the server reading is discarded rather than merged.',
+    ),
     clinicalThread: ConflictPolicyEntry(
       resourceType: clinicalThread,
       policy: ConflictPolicy.serverAuthoritative,
@@ -1803,6 +1826,7 @@ abstract final class ConflictPolicyRegistry {
     'department_hierarchies': departmentTree,
     'billing_tariffs': billingTariff,
     'ai_routing_profiles': aiRoutingProfile,
+    'ai_model_registry': aiModel,
     'staff_shifts': staffShift,
     'duty_allocations': dutyAllocation,
     'attendance_logs': attendanceLog,
@@ -1819,6 +1843,7 @@ abstract final class ConflictPolicyRegistry {
     'doctor_assignments': doctorAssignment,
     'clinical_performance_indices': performanceIndex,
     'operational_department_metrics': departmentMetric,
+    'executive_kpi_snapshots': executiveKpiSnapshot,
     'clinical_threads': clinicalThread,
     'clinical_messages': clinicalMessage,
     'clinical_attachments': clinicalAttachment,

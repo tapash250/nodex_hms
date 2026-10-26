@@ -15,7 +15,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nodex_hms/ai/model_registry/model_registry.dart';
 import 'package:nodex_hms/ai/orchestrator/ai_engines.dart';
 import 'package:nodex_hms/app/providers.dart';
+import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/core/config/nodex_environment.dart';
+import 'package:nodex_hms/core/errors/nodex_error.dart';
+import 'package:nodex_hms/domain/session/session_state.dart';
+import 'package:nodex_hms/features/ai_governance/ai_governance_controller.dart';
+import 'package:nodex_hms/features/session/session_controller.dart';
 
 /// AI governance screen.
 class AiGovernanceScreen extends ConsumerWidget {
@@ -99,77 +104,7 @@ class AiGovernanceScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           Text('Registered models', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
-          FutureBuilder<List<ModelRecord>>(
-            future: ref.watch(aiModelRegistryProvider).allModels(),
-            builder:
-                (
-                  BuildContext context,
-                  AsyncSnapshot<List<ModelRecord>> snapshot,
-                ) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Card(
-                      child: Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    );
-                  }
-
-                  final List<ModelRecord> models =
-                      snapshot.data ?? const <ModelRecord>[];
-                  if (models.isEmpty) {
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              'No models are registered.',
-                              style: theme.textTheme.bodyLarge,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Every AI engine therefore routes to a manual '
-                              'workflow. Clinical workflows remain fully usable '
-                              'without AI.',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: models
-                        .map(
-                          (ModelRecord model) => Card(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            child: ListTile(
-                              leading: Icon(
-                                model.isEligibleForClinicalExecution
-                                    ? Icons.verified_outlined
-                                    : Icons.block_outlined,
-                                color: model.isEligibleForClinicalExecution
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.error,
-                              ),
-                              title: Text(model.displayName),
-                              subtitle: Text(
-                                '${model.provider} • '
-                                '${model.lifecycleStatus.wireValue} • '
-                                'evaluation ${model.evaluationStatus.wireValue}',
-                              ),
-                            ),
-                          ),
-                        )
-                        .toList(growable: false),
-                  );
-                },
-          ),
+          const _RegisteredModels(),
           const SizedBox(height: 16),
           Text('Declared engines', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -226,6 +161,250 @@ class AiGovernanceScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+class _RegisteredModels extends ConsumerWidget {
+  const _RegisteredModels();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final SessionState session = ref.watch(sessionProvider);
+    final bool canAdminister = session.authorization.can(
+      NodexPermissions.aiGovernanceAdminister,
+    );
+    final bool holdsAdminister =
+        session.snapshot?.permissions.contains(
+          NodexPermissions.aiGovernanceAdminister,
+        ) ??
+        false;
+    final AsyncValue<List<ModelRecord>> models = ref.watch(
+      aiGovernanceModelsProvider,
+    );
+
+    return models.when(
+      loading: () => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (Object error, StackTrace _) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            error is NodexError
+                ? error.message
+                : 'The model registry could not be read.',
+          ),
+        ),
+      ),
+      data: (List<ModelRecord> list) {
+        if (list.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    'No models are registered.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Every AI engine therefore routes to a manual workflow. '
+                    'Clinical workflows remain fully usable without AI.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            if (holdsAdminister && !canAdminister)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Card(
+                  color: Theme.of(context).colorScheme.tertiaryContainer,
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      'Approval and activation require an online connection. '
+                      'The registry is shown from the local projection.',
+                    ),
+                  ),
+                ),
+              ),
+            for (final ModelRecord model in list)
+              _ModelCard(model: model, canAdminister: canAdminister),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ModelCard extends ConsumerWidget {
+  const _ModelCard({required this.model, required this.canAdminister});
+
+  final ModelRecord model;
+  final bool canAdminister;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ThemeData theme = Theme.of(context);
+    final bool evaluated =
+        model.evaluationStatus == ModelEvaluationStatus.passed &&
+        (model.evaluationSetRevision?.trim().isNotEmpty ?? false);
+    final bool canApprove =
+        canAdminister &&
+        evaluated &&
+        model.lifecycleStatus == ModelLifecycleStatus.evaluating;
+    final bool canActivate =
+        canAdminister && model.lifecycleStatus == ModelLifecycleStatus.approved;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(
+                  model.isEligibleForClinicalExecution
+                      ? Icons.verified_outlined
+                      : Icons.block_outlined,
+                  color: model.isEligibleForClinicalExecution
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.error,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        model.displayName,
+                        style: theme.textTheme.titleSmall,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${model.provider} • ${model.modelKey} • '
+                        'revision ${model.modelRevision}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                _EngineChip(
+                  icon: Icons.timeline_outlined,
+                  label: model.lifecycleStatus.wireValue,
+                ),
+                _EngineChip(
+                  icon: Icons.fact_check_outlined,
+                  label: 'evaluation ${model.evaluationStatus.wireValue}',
+                ),
+                _EngineChip(
+                  icon: Icons.shield_outlined,
+                  label: model.clinicalRiskTier.wireValue,
+                ),
+                if (model.evaluationSetRevision != null)
+                  _EngineChip(
+                    icon: Icons.rule_outlined,
+                    label: 'set ${model.evaluationSetRevision}',
+                  ),
+              ],
+            ),
+            if (model.approvedAt != null) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                'Approved ${model.approvedAt!.toLocal().toIso8601String().substring(0, 16).replaceFirst('T', ' ')}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+            if (canApprove || canActivate) ...<Widget>[
+              const SizedBox(height: 12),
+              if (canApprove)
+                FilledButton.icon(
+                  onPressed: () => _approve(context, ref),
+                  icon: const Icon(Icons.verified_outlined),
+                  label: const Text('Approve model'),
+                ),
+              if (canActivate)
+                FilledButton.icon(
+                  onPressed: () => _activate(context, ref),
+                  icon: const Icon(Icons.play_arrow_outlined),
+                  label: const Text('Activate model'),
+                ),
+            ] else if (canAdminister &&
+                model.lifecycleStatus == ModelLifecycleStatus.evaluating &&
+                !evaluated) ...<Widget>[
+              const SizedBox(height: 8),
+              Text(
+                'Approval waits on a passed evaluation against a recorded '
+                'acceptance-set revision.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _approve(BuildContext context, WidgetRef ref) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final String? userId = ref.read(sessionProvider).snapshot?.userId;
+    if (userId == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('The session has no signed-in user.')),
+      );
+      return;
+    }
+    try {
+      await ref
+          .read(aiGovernanceModelsProvider.notifier)
+          .approve(model, approvedBy: userId);
+      messenger.showSnackBar(
+        SnackBar(content: Text('${model.displayName} approved.')),
+      );
+    } on NodexError catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  }
+
+  Future<void> _activate(BuildContext context, WidgetRef ref) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(aiGovernanceModelsProvider.notifier).activate(model);
+      messenger.showSnackBar(
+        SnackBar(content: Text('${model.displayName} activated.')),
+      );
+    } on NodexError catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    }
   }
 }
 

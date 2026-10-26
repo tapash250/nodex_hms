@@ -20,7 +20,9 @@ import 'package:nodex_hms/core/security/second_factor.dart';
 import 'package:nodex_hms/core/security/secure_key_store.dart';
 import 'package:nodex_hms/core/storage/storage_service.dart';
 import 'package:nodex_hms/data/local/local_database.dart';
+import 'package:nodex_hms/data/local/power_sync_ai_model_registry.dart';
 import 'package:nodex_hms/data/remote/supabase_gateway.dart';
+import 'package:nodex_hms/domain/ai_governance/ai_governance_repository.dart';
 import 'package:nodex_hms/domain/analytics/analytics_repository.dart';
 import 'package:nodex_hms/domain/analytics/analytics_use_cases.dart';
 import 'package:nodex_hms/domain/appointments/appointment_repository.dart';
@@ -52,6 +54,7 @@ import 'package:nodex_hms/domain/encounters/problem_list_repository.dart';
 import 'package:nodex_hms/domain/encounters/problem_list_use_cases.dart';
 import 'package:nodex_hms/domain/er/er_repository.dart';
 import 'package:nodex_hms/domain/er/er_use_cases.dart';
+import 'package:nodex_hms/domain/executive/executive_repository.dart';
 import 'package:nodex_hms/domain/feedback/feedback_repository.dart';
 import 'package:nodex_hms/domain/feedback/feedback_use_cases.dart';
 import 'package:nodex_hms/domain/fleet/fleet_repository.dart';
@@ -1492,6 +1495,25 @@ readPerformanceDashboardUseCaseProvider =
     Provider<ReadPerformanceDashboardUseCase>(
       (Ref ref) => ReadPerformanceDashboardUseCase(
         repository: ref.watch(performanceRepositoryProvider),
+      ),
+    );
+
+/// Facility executive KPI snapshots (Module 01).
+final Provider<ExecutiveKpiRepository> executiveKpiRepositoryProvider =
+    Provider<ExecutiveKpiRepository>(
+      (Ref ref) => DefaultExecutiveKpiRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Reading the executive dashboard.
+final Provider<ReadExecutiveKpiUseCase> readExecutiveKpiUseCaseProvider =
+    Provider<ReadExecutiveKpiUseCase>(
+      (Ref ref) => ReadExecutiveKpiUseCase(
+        repository: ref.watch(executiveKpiRepositoryProvider),
       ),
     );
 
@@ -3248,14 +3270,51 @@ final Provider<CancelOtBookingUseCase> cancelOtBookingUseCaseProvider =
 
 /// AI model and routing configuration.
 ///
-/// Phase 1 ships an empty registry. Every engine therefore resolves to a manual
-/// workflow, which is the correct behaviour before any model has passed
-/// evaluation: an unconfigured engine must not silently execute.
+/// Read from the replicated local tables. An empty registry is a truthful
+/// "nothing is approved": every engine then resolves to a manual workflow,
+/// which is the correct behaviour before any model has passed evaluation.
 final Provider<AiModelRegistry> aiModelRegistryProvider =
     Provider<AiModelRegistry>(
-      (Ref ref) => InMemoryAiModelRegistry(
-        models: const <ModelRecord>[],
-        policies: const <RoutingPolicy>[],
+      (Ref ref) => PowerSyncAiModelRegistry(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// AI governance repository (Module 39).
+final Provider<AiGovernanceRepository> aiGovernanceRepositoryProvider =
+    Provider<AiGovernanceRepository>(
+      (Ref ref) => DefaultAiGovernanceRepository(
+        store: PowerSyncPatientStore(
+          database: ref.watch(localDatabaseProvider),
+        ),
+        logger: ref.watch(loggerProvider),
+      ),
+    );
+
+/// Reading the registered models.
+final Provider<ReadAiGovernanceUseCase> readAiGovernanceUseCaseProvider =
+    Provider<ReadAiGovernanceUseCase>(
+      (Ref ref) => ReadAiGovernanceUseCase(
+        repository: ref.watch(aiGovernanceRepositoryProvider),
+      ),
+    );
+
+/// Approving an evaluated model.
+final Provider<ApproveAiModelUseCase> approveAiModelUseCaseProvider =
+    Provider<ApproveAiModelUseCase>(
+      (Ref ref) => ApproveAiModelUseCase(
+        repository: ref.watch(aiGovernanceRepositoryProvider),
+      ),
+    );
+
+/// Activating an approved model.
+final Provider<ActivateAiModelUseCase> activateAiModelUseCaseProvider =
+    Provider<ActivateAiModelUseCase>(
+      (Ref ref) => ActivateAiModelUseCase(
+        repository: ref.watch(aiGovernanceRepositoryProvider),
       ),
     );
 

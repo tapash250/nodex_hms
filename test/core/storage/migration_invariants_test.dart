@@ -807,6 +807,41 @@ void main() {
       }
     });
 
+    test(
+      'the executive bucket replicates one facility and a trailing window',
+      () {
+        final String rules = _read('powersync/sync-rules.yaml');
+        final RegExpMatch? bucket = RegExp(
+          r'\n    executive:\n(.*?)(?=\n    [a-z_]+:\n|\Z)',
+          dotAll: true,
+        ).firstMatch(rules);
+        expect(bucket, isNotNull, reason: 'The executive bucket is missing.');
+        final String block = bucket!.group(1)!;
+        expect(
+          block,
+          contains('f.id as facility_id'),
+          reason:
+              'The executive bucket must derive one facility per active '
+              'facility, including for a tenant-wide membership.',
+        );
+        expect(
+          block,
+          contains('facility_id = bucket.facility_id'),
+          reason:
+              'The executive bucket must filter snapshots to the facility in '
+              'the bucket, not replicate every facility to every device.',
+        );
+        expect(
+          block,
+          contains("interval '30 days'"),
+          reason:
+              'The executive dashboard compares against a trailing 30-day '
+              'baseline, so older snapshots must not replicate.',
+        );
+        expect(block, contains("permission_key = 'executive.read'"));
+      },
+    );
+
     test('facility-scoped buckets filter replication on the facility', () {
       final String rules = _read('powersync/sync-rules.yaml');
       final List<RegExpMatch> buckets = RegExp(
@@ -877,6 +912,109 @@ void main() {
         'supabase/migrations/20260918130000_phase4_refund_settlement_accounting.sql',
       ).replaceAll(RegExp(r'--[^\n]*'), '');
       expect(sql, contains('settled_minor >= 0'));
+    });
+  });
+
+  group('executive snapshot integrity', () {
+    test('a snapshot is append-only', () {
+      final String sql = _read(
+        'supabase/migrations/20260918140000_phase4_executive_dashboard.sql',
+      ).replaceAll(RegExp(r'--[^\n]*'), '');
+      expect(
+        sql,
+        contains('before update or delete on public.executive_kpi_snapshots'),
+      );
+      expect(sql, contains('execute function nodex.tg_block_mutation()'));
+    });
+
+    test('only the capture job inserts a snapshot', () {
+      final String sql = _read(
+        'supabase/migrations/20260918140000_phase4_executive_dashboard.sql',
+      ).replaceAll(RegExp(r'--[^\n]*'), '');
+      expect(sql, contains('for insert to postgres'));
+      expect(
+        sql,
+        isNot(contains('for insert to authenticated')),
+        reason:
+            'A client role that can insert a snapshot can fabricate an '
+            'executive reading; capture belongs to the server job.',
+      );
+    });
+  });
+
+  group('AI model governance', () {
+    test('the registry admits governance updates only through administer', () {
+      final String sql = _read(
+        'supabase/migrations/20260918150000_phase4_ai_model_governance_approval.sql',
+      ).replaceAll(RegExp(r'--[^\n]*'), '');
+      expect(
+        sql,
+        contains('create policy ai_model_registry_update_governance'),
+      );
+      expect(sql, contains('has_permission_anywhere'));
+      expect(
+        sql,
+        contains("'ai_governance.administer'"),
+        reason:
+            'The update policy must be keyed on the online-only governance '
+            'permission, not on a role that a device can cache.',
+      );
+    });
+
+    test('the lifecycle trigger is forward-only and actor-bound', () {
+      final String sql = _read(
+        'supabase/migrations/20260918150000_phase4_ai_model_governance_approval.sql',
+      ).replaceAll(RegExp(r'--[^\n]*'), '');
+      expect(sql, contains('create trigger ai_model_governance_guard'));
+      expect(
+        sql,
+        contains(
+          "(old.lifecycle_status = 'evaluating' and new.lifecycle_status = 'approved')",
+        ),
+      );
+      expect(sql, contains('new.approved_by <> v_actor'));
+      expect(sql, contains('new.approved_at := now()'));
+      expect(sql, contains('model identity and capability are immutable'));
+      expect(
+        sql,
+        contains('approval evidence is frozen once a model is approved'),
+      );
+    });
+
+    test('the mutation handler patches governance columns only', () {
+      final String source = _read(
+        'supabase/functions/mutation-handler/index.ts',
+      );
+      final RegExpMatch? entry = RegExp(
+        r'^  ai_model_registry:\s*\{(.*?)^  \},',
+        dotAll: true,
+        multiLine: true,
+      ).firstMatch(source);
+      expect(entry, isNotNull, reason: 'ai_model_registry is not registered.');
+      final String rule = entry!.group(1)!;
+      expect(rule, contains("operations: ['patch']"));
+      expect(
+        rule,
+        isNot(contains('upsert')),
+        reason:
+            'A device may approve an existing model but may not create one; '
+            'the registry is populated from a reviewed catalogue.',
+      );
+      for (final String column in <String>[
+        'lifecycle_status',
+        'evaluation_status',
+        'evaluation_set_revision',
+        'approved_by',
+        'approved_at',
+        'enabled',
+        'updated_at',
+      ]) {
+        expect(
+          rule,
+          contains('$column:'),
+          reason: 'The governance patch cannot carry $column without it.',
+        );
+      }
     });
   });
 }

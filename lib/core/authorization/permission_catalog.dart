@@ -430,6 +430,9 @@ abstract final class NodexPermissions {
   /// Record clinical performance indicators (Module 03).
   static const String performanceManage = 'performance.manage';
 
+  /// Read enterprise KPI snapshots (Module 01).
+  static const String executiveRead = 'executive.read';
+
   /// Read departmental flow (Module 02).
   static const String operationsRead = 'operations.read';
 

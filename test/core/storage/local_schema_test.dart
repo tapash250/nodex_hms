@@ -170,6 +170,7 @@ void main() {
           LocalTables.doctorAssignments,
           LocalTables.clinicalPerformanceIndices,
           LocalTables.operationalDepartmentMetrics,
+          LocalTables.executiveKpiSnapshots,
           LocalTables.clinicalThreads,
           LocalTables.clinicalMessages,
           LocalTables.clinicalAttachments,
@@ -186,6 +187,30 @@ void main() {
         });
       },
     );
+
+    test('executive snapshots mirror the Module 01 schema', () {
+      final Table table = schema.tables.firstWhere(
+        (Table candidate) =>
+            candidate.name == LocalTables.executiveKpiSnapshots,
+      );
+      expect(
+        table.columns.map((Column column) => column.name).toSet(),
+        containsAll(<String>{
+          'tenant_id',
+          'facility_id',
+          'snapshot_timestamp',
+          'occupancy_rate',
+          'active_inpatients',
+          'er_waiting_count',
+          'daily_gross_revenue',
+          'daily_net_revenue',
+          'bed_turnover_rate',
+          'average_length_of_stay_days',
+          'ai_executive_summary',
+          'created_at',
+        }),
+      );
+    });
 
     test('replicates only the caller-owned audit slice', () {
       // Append-only history is read through the server, not held locally: a

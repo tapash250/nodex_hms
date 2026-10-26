@@ -2929,6 +2929,27 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     operations: ['upsert'],
     auditActionUpsert: 'settings.ai_profile.activated',
   },
+  // AI model governance. A model is approved or activated, never created, by a
+  // device: the registry is populated server-side from a reviewed catalogue.
+  // Only the governance columns are writable, and only as a patch. RLS and the
+  // lifecycle trigger re-check the permission, the evaluation evidence and the
+  // approver's identity.
+  ai_model_registry: {
+    columns: {
+      evaluation_status: 'text',
+      evaluation_set_revision: 'text',
+      lifecycle_status: 'text',
+      enabled: 'boolean',
+      priority: 'integer',
+      approved_by: 'uuid',
+      approved_at: 'timestamp',
+      intended_use: 'text',
+      updated_at: 'timestamp',
+    },
+    operations: ['patch'],
+    auditActionUpsert: 'ai.model.approved',
+    auditActionPatch: 'ai.model.lifecycle.changed',
+  },
   // Module 08 (doctor & specialist directory).
   practitioner_profiles: {
     columns: {

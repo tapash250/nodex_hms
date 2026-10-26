@@ -640,6 +640,7 @@ void main() {
       'it_tickets',
       'form_templates',
       'form_responses',
+      'ai_model_registry',
       'ward_vitals',
       'icu_beds',
       'icu_nursing_handover',
@@ -717,6 +718,17 @@ void main() {
       'billing_tariffs',
       'ai_routing_profiles',
     ];
+
+    test('AI model governance is server-authoritative', () {
+      expect(
+        ConflictPolicyRegistry.policyFor('ai_model_registry').policy,
+        ConflictPolicy.serverAuthoritative,
+        reason:
+            'An approval is bound to a named administrator and a passed '
+            'evaluation; the server owns the lifecycle, so a local approval '
+            'it refuses must reconcile away rather than merge.',
+      );
+    });
 
     test('every writable table resolves to a registered policy', () {
       for (final String table in writableTables) {

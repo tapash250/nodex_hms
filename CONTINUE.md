@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 2147 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 2208 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -629,20 +629,23 @@ first and hands the use case the assertion, not the code.
 The agreed run of four modules (13 → 06 → 42 → 40) is complete; modules 27, 29,
 30, 32, 33, 34, 35, 36, 37, 38 and 39 continue the sequence into Domain C.
 
-**53 of the 54 clinical modules now have a vertical slice** — every one
-except **module 01**, the global executive dashboard, which is the home
-landing page: its KPI snapshots, bed turnover, revenue/burn, ER census and AI
-anomaly alerts are not built. The rest of the run: The run after the audit
-was: 31 (patient accounts, ledger and payment splits) → 41 (task engine) → 45
-(widget library) → 48 (master data tables) → 49 (chart engine) → 46 (adaptive
-component system) → 50 (patient journey) → 47 (forms builder) → 44 (productivity
-apps) → 43 (clinical messaging) → 02 (operations dashboard) → 03 (performance
-dashboard) → 04 (doctor cockpit) → 05 (patient portal) → 51 (icon repository) →
-52 (security suite) → 53 (operational utilities) → 54 (global search). Each was
-committed on its own with the same pattern: Postgres schema + RLS, PowerSync
-local schema, repository with a test seam, permission-gated use cases, screens,
-sync bucket, mutation-handler registration, conflict policy, tests, then
-format/analyze/test.
+**54 of the 54 clinical modules now have a vertical slice.** Module 01, the
+global executive dashboard, is the home landing surface: the server captures a
+facility reading (occupancy, inpatient census, emergency queue, gross and net
+revenue, bed turnover, ALOS) into an append-only snapshot, PowerSync replicates
+a trailing 30 days per facility, and the screen derives four risk points from
+the figures against the facility's own baseline. No AI narrative is shown until
+an approved summary is attached to a snapshot. The rest of the run: The run
+after the audit was: 31 (patient accounts, ledger and payment splits) → 41
+(task engine) → 45 (widget library) → 48 (master data tables) → 49 (chart
+engine) → 46 (adaptive component system) → 50 (patient journey) → 47 (forms
+builder) → 44 (productivity apps) → 43 (clinical messaging) → 02 (operations
+dashboard) → 03 (performance dashboard) → 04 (doctor cockpit) → 05 (patient
+portal) → 51 (icon repository) → 52 (security suite) → 53 (operational
+utilities) → 54 (global search). Each was committed on its own with the same
+pattern: Postgres schema + RLS, PowerSync local schema, repository with a test
+seam, permission-gated use cases, screens, sync bucket, mutation-handler
+registration, conflict policy, tests, then format/analyze/test.
 
 What is left is no longer a module. It is the work that needs a decision, a
 device or a person who is not this session — listed in **Known gaps** below and
@@ -673,7 +676,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (2147 tests).
+  mutation-verified (2208 tests).
 - ~~**No storage buckets**~~ — **defined; apply pending.** Migration
   `20260917260000_phase3_storage_buckets.sql` creates three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and

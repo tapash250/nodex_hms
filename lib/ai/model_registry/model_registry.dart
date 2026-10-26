@@ -92,6 +92,7 @@ enum ModelEvaluationStatus {
 final class ModelRecord {
   /// Creates a registry record.
   const ModelRecord({
+    this.id = '',
     required this.modelKey,
     required this.provider,
     required this.displayName,
@@ -103,6 +104,8 @@ final class ModelRecord {
     required this.evaluationStatus,
     required this.enabled,
     this.evaluationSetRevision,
+    this.approvedBy,
+    this.approvedAt,
     this.supportsStructuredJson = false,
     this.supportsToolCalling = false,
     this.supportsVision = false,
@@ -113,6 +116,9 @@ final class ModelRecord {
     this.priority = 100,
     this.intendedUse,
   });
+
+  /// Local row identifier, empty for a record that has not been persisted.
+  final String id;
 
   /// Deployment-neutral identifier used by routing policy and clinical code.
   final String modelKey;
@@ -146,6 +152,12 @@ final class ModelRecord {
 
   /// Revision of the locked acceptance set the evaluation was run against.
   final String? evaluationSetRevision;
+
+  /// The administrator who approved the model, when approval has happened.
+  final String? approvedBy;
+
+  /// When the model was approved, when approval has happened.
+  final DateTime? approvedAt;
 
   /// Whether the model can be constrained to schema-valid JSON.
   final bool supportsStructuredJson;
@@ -240,6 +252,7 @@ final class ModelRecord {
     bool parseBool(Object? raw) => raw == true || raw == 1 || raw == '1';
 
     return ModelRecord(
+      id: row['id'] as String? ?? '',
       modelKey: row['model_key']! as String,
       provider: row['provider']! as String,
       displayName:
@@ -262,6 +275,8 @@ final class ModelRecord {
       ),
       enabled: parseBool(row['enabled']),
       evaluationSetRevision: row['evaluation_set_revision'] as String?,
+      approvedBy: row['approved_by'] as String?,
+      approvedAt: DateTime.tryParse(row['approved_at'] as String? ?? ''),
       supportsStructuredJson: parseBool(row['supports_structured_json']),
       supportsToolCalling: parseBool(row['supports_tool_calling']),
       supportsVision: parseBool(row['supports_vision']),

@@ -976,6 +976,32 @@ sync_rules:
         - select * from public.form_responses where tenant_id = bucket.tenant_id
         - select * from public.icd10_codes
 
+    # Module 01 (global executive dashboard): one bucket per facility. A
+    # tenant-wide membership receives a bucket for every active facility; a
+    # facility-bound membership receives only its own. The trailing 30-day
+    # window is the baseline the four risk points are compared against.
+    executive:
+      parameters:
+        - select
+            m.tenant_id as tenant_id,
+            f.id as facility_id
+          from public.memberships m
+          join public.role_permissions rp on rp.role_key = m.role_key
+          join public.facilities f
+            on f.tenant_id = m.tenant_id and f.status = 'active'
+          where m.user_id = :user_id
+            and m.role_key <> 'patient'
+            and m.status = 'active'
+            and m.valid_from <= now()
+            and (m.valid_until is null or m.valid_until > now())
+            and rp.permission_key = 'executive.read'
+            and (m.facility_id is null or m.facility_id = f.id)
+      data:
+        - select * from public.executive_kpi_snapshots
+          where tenant_id = bucket.tenant_id
+            and facility_id = bucket.facility_id
+            and snapshot_timestamp >= now() - interval '30 days'
+
     # Module 02 (operations dashboard): the flow readings the dashboard shows.
     # A trailing window travels so the dashboard can show where a queue was
     # building as well as where it is now.

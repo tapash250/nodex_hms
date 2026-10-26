@@ -13,6 +13,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nodex_hms/app/router/navigation_destinations.dart';
 import 'package:nodex_hms/core/authorization/authorization_snapshot.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
+import 'package:nodex_hms/features/home/executive_kpi_section.dart';
 import 'package:nodex_hms/features/session/pin_quick_switch.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
@@ -67,6 +68,8 @@ class HomeScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: <Widget>[
           _SessionSummaryCard(session: session),
+          const SizedBox(height: 16),
+          const ExecutiveKpiSection(),
           const SizedBox(height: 16),
           if (snapshot != null) ...<Widget>[
             Text('Assigned roles', style: theme.textTheme.titleMedium),
