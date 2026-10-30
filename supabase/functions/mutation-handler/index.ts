@@ -132,6 +132,36 @@ export function resolveDeviceId(req: Request, m: { device_id?: unknown }): strin
   return null
 }
 
+/// Maps a PostgREST/PostgreSQL error to the rejection vocabulary the client
+/// already understands. Authorization failures raised by the patient-scope
+/// trigger use SQLSTATE 42501, the same class as an RLS denial, so they must
+/// not be reported as an internal error that invites an endless retry.
+export function classifyApplyError(error: { message: string; code?: string }): string {
+  if (
+    error.code === '42501' ||
+    error.code === '28000' ||
+    error.message.includes('NODEX:')
+  ) {
+    return 'forbidden'
+  }
+  if (
+    error.code === '23505' ||
+    error.code === '23P01' ||
+    error.message.includes('conflicting key value')
+  ) {
+    return 'conflict'
+  }
+  if (
+    error.code === '23503' ||
+    error.code === '23514' ||
+    error.code === '22P02' ||
+    error.code === '22000'
+  ) {
+    return 'validation'
+  }
+  return 'internal'
+}
+
 // ---------------------------------------------------------------------------
 // Registry: the only place a table becomes writable offline.
 //
@@ -3146,13 +3176,19 @@ export default {
     const userId = ctx.claims.sub
     const { data: profile, error: profileError } = await ctx.supabase
       .from('app_users')
-      .select('primary_tenant_id')
+      .select('primary_tenant_id, status')
       .eq('id', userId)
       .maybeSingle()
 
     if (profileError || !profile?.primary_tenant_id) {
       return Response.json(
         { error: 'no tenant membership; account not provisioned' },
+        { status: 403 },
+      )
+    }
+    if (profile.status !== 'active') {
+      return Response.json(
+        { error: 'the account is not active' },
         { status: 403 },
       )
     }
@@ -3206,46 +3242,143 @@ export default {
         continue
       }
 
-      // The row's tenant is the tenant the payload names, not silently the
-      // caller's primary tenant. Without this, a member of two hospitals would
-      // write into the second while the ledger and the audit trail recorded the
-      // first — a provenance lie that survives every later review.
-      let rowTenantId = tenantId
-      const claimedTenant = m.data.tenant_id
-      if (typeof claimedTenant === 'string' && claimedTenant !== tenantId) {
-        const { data: membership } = await ctx.supabase
-          .from('memberships')
-          .select('tenant_id')
-          .eq('tenant_id', claimedTenant)
-          .eq('user_id', userId)
-          .eq('status', 'active')
-          .maybeSingle()
-        if (!membership) {
+      // The row's tenant is resolved, not assumed. An upsert must name it; a
+      // patch resolves it from the row the caller can already see. Without
+      // this, a member of two hospitals could patch a row in the second while
+      // the ledger and the audit trail recorded the first — a provenance lie
+      // that survives every later review.
+      const claimedTenant = typeof m.data.tenant_id === 'string' ? m.data.tenant_id : null
+      let rowTenantId: string
+      if (m.operation === 'upsert') {
+        if (!claimedTenant) {
           results.push({
             id: m.id,
             outcome: 'rejected',
-            rejection_class: 'forbidden',
-            detail: 'no active membership in the tenant the row names',
+            rejection_class: 'validation',
+            detail: 'tenant_id is required for an upsert',
           })
           continue
         }
         rowTenantId = claimedTenant
+      } else {
+        const { data: existingRow, error: rowError } = await ctx.supabase
+          .from(m.table)
+          .select('tenant_id')
+          .eq('id', m.row_id)
+          .maybeSingle()
+        if (rowError) {
+          results.push({
+            id: m.id,
+            outcome: 'rejected',
+            rejection_class: 'internal',
+            detail: `could not resolve the row tenant: ${rowError.message}`,
+          })
+          continue
+        }
+        if (!existingRow?.tenant_id) {
+          results.push({
+            id: m.id,
+            outcome: 'rejected',
+            rejection_class: 'not_found',
+            detail: 'no row with that id is visible to this account',
+          })
+          continue
+        }
+        rowTenantId = String(existingRow.tenant_id)
+        if (claimedTenant && claimedTenant !== rowTenantId) {
+          results.push({
+            id: m.id,
+            outcome: 'rejected',
+            rejection_class: 'forbidden',
+            detail: 'the payload tenant does not match the row tenant',
+          })
+          continue
+        }
       }
 
-      // Provenance is only as good as the device it names. A body-supplied
-      // device id is resolved against the caller's own enrolment under RLS;
-      // an unowned or unenrolled id is dropped rather than written into the
-      // ledger as fact.
-      let deviceId = resolveDeviceId(req, m)
-      if (deviceId) {
+      // Membership validity is checked here for a clean rejection and again in
+      // the write transaction, where the membership row is locked. The two
+      // checks are not redundant: this one returns a typed decision, the
+      // trigger closes the revocation race.
+      const { data: membershipRows, error: membershipError } = await ctx.supabase
+        .from('memberships')
+        .select('status, valid_from, valid_until')
+        .eq('tenant_id', rowTenantId)
+        .eq('user_id', userId)
+      if (membershipError) {
+        results.push({
+          id: m.id,
+          outcome: 'rejected',
+          rejection_class: 'internal',
+          detail: `could not resolve membership: ${membershipError.message}`,
+        })
+        continue
+      }
+      const nowMs = Date.now()
+      const hasCurrentMembership = (membershipRows ?? []).some((row) => {
+        if (row.status !== 'active') return false
+        const from = Date.parse(String(row.valid_from))
+        const until = row.valid_until === null ? null : Date.parse(String(row.valid_until))
+        return Number.isFinite(from) && from <= nowMs &&
+          (until === null || (Number.isFinite(until) && until > nowMs))
+      })
+      if (!hasCurrentMembership) {
+        results.push({
+          id: m.id,
+          outcome: 'rejected',
+          rejection_class: 'forbidden',
+          detail: 'no active, unexpired membership in the tenant the row names',
+        })
+        continue
+      }
+
+      // Provenance is only as good as the device it names. A supplied device
+      // must be the caller's own, active and unrevoked; an invalid or revoked
+      // device rejects the mutation rather than silently uploading it unbound.
+      // The same value is attached to the PostgREST request below so the
+      // database trigger can re-check it in the write transaction.
+      const bodyDevice = typeof m.device_id === 'string' && m.device_id.length > 0
+        ? m.device_id
+        : null
+      const headerDevice = req.headers.get('x-device-id')
+      const deviceClaim = bodyDevice ?? (headerDevice && headerDevice.length > 0 ? headerDevice : null)
+      let deviceId: string | null = null
+      if (deviceClaim) {
+        if (!UUID_RE.test(deviceClaim)) {
+          results.push({
+            id: m.id,
+            outcome: 'rejected',
+            rejection_class: 'validation',
+            detail: 'device id must be a uuid',
+          })
+          continue
+        }
+        if (headerDevice !== null && headerDevice !== deviceClaim) {
+          results.push({
+            id: m.id,
+            outcome: 'rejected',
+            rejection_class: 'forbidden',
+            detail: 'the device header does not match the mutation body',
+          })
+          continue
+        }
         const { data: device } = await ctx.supabase
           .from('devices')
-          .select('id')
-          .eq('id', deviceId)
+          .select('id, status, revoked_at')
+          .eq('id', deviceClaim)
           .eq('assigned_user_id', userId)
           .eq('tenant_id', rowTenantId)
           .maybeSingle()
-        if (!device) deviceId = null
+        if (!device || device.status !== 'active' || device.revoked_at !== null) {
+          results.push({
+            id: m.id,
+            outcome: 'rejected',
+            rejection_class: 'forbidden',
+            detail: 'the device is not authorized for this tenant or user',
+          })
+          continue
+        }
+        deviceId = deviceClaim
       }
 
       // Idempotency ledger. A duplicate (tenant_id, idempotency_key) means this
@@ -3347,18 +3480,27 @@ export default {
         return error
       }
 
+      // Attach the device id to the PostgREST request so the database trigger
+      // sees the same provenance the ledger records. ctx.supabase is a
+      // per-request client; this header cannot leak into another request.
+      if (deviceId) {
+        ctx.supabase.rest.headers.set('x-device-id', deviceId)
+      } else {
+        ctx.supabase.rest.headers.delete('x-device-id')
+      }
+
       const table = ctx.supabase.from(m.table)
-      let applyError: { message: string } | null = null
+      let applyError: { message: string; code?: string } | null = null
       let appliedRows = 1
       if (m.operation === 'upsert') {
         const r = await table.upsert({ id: m.row_id, ...cols.data })
-        applyError = r.error ? { message: r.error.message } : null
+        applyError = r.error ? { message: r.error.message, code: r.error.code } : null
       } else {
         // `select('id')` makes a no-op patch observable. Without it PostgREST
         // reports success when zero rows matched, and the ledger would claim a
         // change that never happened.
         const r = await table.update(cols.data).eq('id', m.row_id).select('id')
-        applyError = r.error ? { message: r.error.message } : null
+        applyError = r.error ? { message: r.error.message, code: r.error.code } : null
         appliedRows = r.data?.length ?? 0
       }
 
@@ -3368,7 +3510,7 @@ export default {
         results.push({
           id: m.id,
           outcome: 'rejected',
-          rejection_class: 'internal',
+          rejection_class: classifyApplyError(applyError),
           detail: `apply failed: ${applyError.message}`,
         })
         continue
