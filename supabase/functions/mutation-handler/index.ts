@@ -3173,7 +3173,11 @@ export default {
     // The user-scoped client resolves the caller's identity and memberships
     // under RLS; the admin client exists for the audit row and the mutation
     // ledger, which clients cannot write by design.
-    const userId = ctx.claims.sub
+    const userId = ctx.userClaims?.id
+    if (!userId) {
+      return Response.json({ error: 'unauthenticated' }, { status: 401 })
+    }
+
     const { data: profile, error: profileError } = await ctx.supabase
       .from('app_users')
       .select('primary_tenant_id, status')
