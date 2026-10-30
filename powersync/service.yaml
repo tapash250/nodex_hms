@@ -1,0 +1,53 @@
+# PowerSync Cloud service config for the Nodex development instance.
+# yaml-language-server: $schema=https://unpkg.com/@powersync/cli-schemas@latest/json-schema/service-config.json
+
+# Managed by the PowerSync CLI; see cli.yaml for the linked instance.
+_type: cloud
+
+# [required] Instance name for display in the PowerSync Cloud dashboard.
+name: Development
+
+# [required] Deployment region. Cannot be changed after initial deployment.
+#
+# PowerSync Cloud region names are short codes, not AWS region names:
+#   jp -> AWS ap-northeast-1 (Tokyo)
+# The Supabase project is in ap-northeast-1, so a Tokyo PowerSync instance
+# keeps the replication connection in-region instead of crossing the Pacific
+# to us. The Free plan has no documented region restriction; confirm the plan
+# in the dashboard before creating the instance.
+#
+# The development instance is deployed in `jp` and linked in cli.yaml. Region is
+# immutable, so a replacement instance must be created in the target region;
+# do not try to move an existing instance.
+region: jp
+
+# Source database connection.
+#
+# PS_DATABASE_URI must connect as the dedicated `powersync_role` (never the
+# postgres superuser) and must not contain the password. Example:
+#   postgresql://powersync_role@db.neoernavfntxsotwvmwq.supabase.co:5432/postgres
+#
+# Keep the direct Supabase host. Do not switch to the Supavisor pooler: logical
+# replication needs a session that survives the replication stream, and the
+# pooler is not the supported replication endpoint. The direct host currently
+# resolves IPv6-only (2406:da14:...); PowerSync Cloud egress includes
+# 2602:817::/44 for IPv6, so the connection is expected to work without an IPv4
+# add-on. Verify connectivity from the deployed instance, not from this host.
+#
+# POWERSYNC_DATABASE_PASSWORD holds the powersync_role password and is read
+# from the process environment; it is never committed.
+replication:
+  connections:
+    - type: postgresql
+      uri: !env PS_DATABASE_URI
+      password:
+        secret: !env POWERSYNC_DATABASE_PASSWORD
+      # PowerSync trusts Supabase's certificate chain; verify-full checks the
+      # hostname and chain. Do not downgrade to require or prefer.
+      sslmode: verify-full
+
+# Supabase Auth. The project uses ES256 asymmetric JWT signing keys, so
+# PowerSync auto-detects the JWKS URI and the `authenticated` audience from the
+# Supabase connection string. No legacy JWT secret is configured.
+client_auth:
+  supabase: true

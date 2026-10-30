@@ -1,0 +1,1226 @@
+# NODEX Enterprise HMS — PowerSync Sync Streams.
+#
+# This is the full-coverage configuration. It keeps the reviewed
+# identity/patient/ward streams and adds every table in the local schema that
+# the legacy rules described but the earlier 18-table deployment omitted.
+#
+# Every parameter derives from the verified Supabase JWT (auth.user_id()).
+# The client cannot request another user's scope.
+#
+# Known limitation: Sync Streams cannot evaluate time-based expressions, so
+# memberships.valid_until is not checked here. Expiry is a WAL event:
+# nodex.expire_memberships() runs every minute and flips status to 'expired',
+# and every scope query joins status = 'active'. The mutation trigger and RLS
+# helpers still check valid_until at the exact instant.
+#
+# Local-only tables (local_mutation_log, local_diagnostics, scratchpads) are
+# deliberately never replicated.
+
+config:
+  edition: 3
+
+with:
+  # Active memberships, used for tenant master data.
+  my_tenants: |
+    SELECT tenant_id
+    FROM memberships
+    WHERE user_id = auth.user_id()
+      AND status = 'active'
+
+  # Active memberships whose role grants patient.read. Mirrors the RLS gate on
+  # public.patients, public.beds and public.bed_assignments.
+  my_patient_tenants: |
+    SELECT m.tenant_id
+    FROM memberships m
+    JOIN role_permissions rp ON rp.role_key = m.role_key
+    WHERE m.user_id = auth.user_id()
+      AND m.status = 'active'
+      AND rp.permission_key = 'patient.read'
+
+  # Active memberships whose role grants encounter.read. Mirrors the RLS gate on
+  # public.clinical_encounters, public.patient_allergies,
+  # public.clinical_problems and public.encounter_amendments.
+  my_encounter_tenants: |
+    SELECT m.tenant_id
+    FROM memberships m
+    JOIN role_permissions rp ON rp.role_key = m.role_key
+    WHERE m.user_id = auth.user_id()
+      AND m.status = 'active'
+      AND rp.permission_key = 'encounter.read'
+
+  # Patients explicitly assigned to the caller. The tenant is part of the
+  # result: an assignment row in another tenant must not grant scope over a
+  # patient in this one.
+  my_assigned_patient_ids: |
+    SELECT da.tenant_id, da.patient_id
+    FROM doctor_assignments da
+    JOIN patients p
+      ON p.id = da.patient_id
+     AND p.tenant_id = da.tenant_id
+    JOIN memberships m
+      ON m.tenant_id = da.tenant_id
+     AND m.user_id = auth.user_id()
+     AND m.status = 'active'
+    WHERE da.doctor_id = auth.user_id()
+      AND da.status = 'active'
+
+  # Patients with an active encounter where the caller is the attending or the
+  # creator. Mirrors the trigger's encounter branch, so a clinician can finish
+  # an encounter that was opened before a dashboard assignment existed.
+  my_encounter_patient_ids: |
+    SELECT e.tenant_id, e.patient_id
+    FROM clinical_encounters e
+    JOIN patients p
+      ON p.id = e.patient_id
+     AND p.tenant_id = e.tenant_id
+    JOIN memberships m
+      ON m.tenant_id = e.tenant_id
+     AND m.user_id = auth.user_id()
+     AND m.status = 'active'
+    WHERE (e.attending_physician_id = auth.user_id() OR e.created_by = auth.user_id())
+      AND (e.status = 'planned' OR e.status = 'in_progress')
+
+  # Patients currently occupying a bed in a ward the caller covers. A null
+  # facility_id or ward_id on the membership means facility-wide or
+  # tenant-wide coverage, matching nodex.has_facility_access.
+  my_ward_patient_ids: |
+    SELECT ba.tenant_id, ba.patient_id
+    FROM bed_assignments ba
+    JOIN patients p
+      ON p.id = ba.patient_id
+     AND p.tenant_id = ba.tenant_id
+    JOIN beds b ON b.id = ba.bed_id
+    JOIN wards w ON w.id = b.ward_id
+    JOIN memberships m ON m.tenant_id = ba.tenant_id
+    JOIN role_permissions rp ON rp.role_key = m.role_key
+    WHERE ba.status = 'active'
+      AND b.tenant_id = ba.tenant_id
+      AND w.tenant_id = ba.tenant_id
+      AND m.user_id = auth.user_id()
+      AND m.status = 'active'
+      AND rp.permission_key = 'patient.read'
+      AND (m.facility_id IS NULL OR m.facility_id = w.facility_id)
+      AND (m.ward_id IS NULL OR m.ward_id = b.ward_id)
+
+  # Portal links for the signed-in patient account.
+  my_portal_links: |
+    SELECT l.patient_id, l.tenant_id
+    FROM patient_portal_links l
+    JOIN memberships m ON m.tenant_id = l.tenant_id
+    JOIN role_permissions rp ON rp.role_key = m.role_key
+    WHERE l.portal_user_id = auth.user_id()
+      AND l.revoked_at IS NULL
+      AND m.user_id = auth.user_id()
+      AND m.status = 'active'
+      AND rp.permission_key = 'portal.access'
+
+  bucket_lab_workflows: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_rx_pharmacy: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_appt_schedule: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'appointment.read'
+
+  bucket_billing_ledger: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'billing.read'
+
+  bucket_inventory_stock: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_icu_census: |
+    select m.tenant_id as tenant_id, m.facility_id as facility_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_er_triage: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_blood_bank: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_operation_theatre: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_radiology: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_physiotherapy: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_nutrition: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_telemedicine: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_discharge_management: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'patient.read'
+
+  bucket_floor_map: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'ward_floor.read'
+
+  bucket_staff_directory: |
+    select m.tenant_id as tenant_id, m.facility_id as facility_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'staff_directory.read'
+
+  bucket_contacts: |
+    select m.tenant_id as tenant_id, m.facility_id as facility_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'contacts.read'
+
+  bucket_calendar: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'calendar.read'
+
+  bucket_fleet: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'fleet.read'
+
+  bucket_biomedical: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'biomedical.read'
+
+  bucket_waste: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'waste.read'
+
+  bucket_insurance: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'insurance.read'
+
+  bucket_documents: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'documents.read'
+
+  bucket_statutory: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'statutory.read'
+
+  bucket_quality: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'quality.read'
+
+  bucket_feedback: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'feedback.read'
+
+  bucket_visitor: |
+    select m.tenant_id as tenant_id, m.facility_id as facility_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'visitor.read'
+
+  bucket_analytics: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'analytics.read'
+
+  bucket_settings: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'settings.read'
+
+  bucket_workforce: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'workforce.read'
+
+  bucket_hr: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'hr.read'
+
+  bucket_payroll: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'payroll.read'
+
+  bucket_nursing_station: |
+    select m.tenant_id as tenant_id, m.facility_id as facility_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'nursing_station.read'
+
+  bucket_task_engine: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'tasks.read'
+
+  bucket_form_builder: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'forms.read'
+
+  bucket_executive: |
+    select m.tenant_id as tenant_id, f.id as facility_id from memberships m join role_permissions rp on rp.role_key = m.role_key join facilities f on f.tenant_id = m.tenant_id and f.status = 'active' where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'executive.read' and (m.facility_id is null or m.facility_id = f.id)
+
+  bucket_operations: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'operations.read'
+
+  bucket_performance: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'performance.read'
+
+  bucket_clinical_messaging: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'messaging.read'
+
+  bucket_productivity: |
+    select m.tenant_id as tenant_id from memberships m join role_permissions rp on rp.role_key = m.role_key where m.user_id = auth.user_id() and m.role_key <> 'patient' and m.status = 'active' and rp.permission_key = 'workitems.read'
+
+streams:
+  # The caller's own identity, memberships, enrolled device and per-stream sync
+  # health. RLS equivalent: app_users_select_self, memberships_select_self,
+  # devices_select_own, sync_cursors_select_own.
+  identity:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM app_users WHERE id = auth.user_id()
+      - SELECT * FROM memberships WHERE user_id = auth.user_id()
+      - SELECT * FROM devices WHERE assigned_user_id = auth.user_id()
+      - |
+        SELECT * FROM sync_cursors
+        WHERE device_id IN (
+          SELECT id FROM devices WHERE assigned_user_id = auth.user_id()
+        )
+
+  # Tenant master data for every tenant the caller is an active member of.
+  # Facilities, departments and wards also honour the membership's facility
+  # scope, mirroring nodex.has_facility_access: a null facility_id is
+  # tenant-wide, a non-null facility_id covers only that facility.
+  tenant_master:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM tenants WHERE id IN (SELECT tenant_id FROM my_tenants)
+      - |
+        SELECT facilities.* FROM facilities
+        JOIN memberships m ON m.tenant_id = facilities.tenant_id
+        WHERE m.user_id = auth.user_id()
+          AND m.status = 'active'
+          AND (m.facility_id IS NULL OR m.facility_id = facilities.id)
+      - |
+        SELECT departments.* FROM departments
+        JOIN memberships m ON m.tenant_id = departments.tenant_id
+        WHERE m.user_id = auth.user_id()
+          AND m.status = 'active'
+          AND (m.facility_id IS NULL OR m.facility_id = departments.facility_id)
+      - |
+        SELECT wards.* FROM wards
+        JOIN memberships m ON m.tenant_id = wards.tenant_id
+        WHERE m.user_id = auth.user_id()
+          AND m.status = 'active'
+          AND (m.facility_id IS NULL OR m.facility_id = wards.facility_id)
+
+  # Assignment-scoped patient projection. A patient is synced only when the
+  # caller is the active attending/consulting doctor, has an active encounter,
+  # or the patient is in a bed the caller's ward/facility membership covers.
+  patients:
+    auto_subscribe: true
+    queries:
+      - |
+        SELECT patients.* FROM patients
+        JOIN my_patient_tenants pt ON pt.tenant_id = patients.tenant_id
+        JOIN my_assigned_patient_ids a
+          ON a.tenant_id = patients.tenant_id
+         AND a.patient_id = patients.id
+      - |
+        SELECT patients.* FROM patients
+        JOIN my_patient_tenants pt ON pt.tenant_id = patients.tenant_id
+        JOIN my_encounter_patient_ids e
+          ON e.tenant_id = patients.tenant_id
+         AND e.patient_id = patients.id
+      - |
+        SELECT patients.* FROM patients
+        JOIN my_patient_tenants pt ON pt.tenant_id = patients.tenant_id
+        JOIN my_ward_patient_ids w
+          ON w.tenant_id = patients.tenant_id
+         AND w.patient_id = patients.id
+      - |
+        SELECT patient_merge_history.* from patient_merge_history
+        JOIN my_patient_tenants pt ON pt.tenant_id = patient_merge_history.tenant_id
+
+  # Clinical records for the patients in scope, gated by encounter.read. Each
+  # table has one query per scope branch for the same composite-tenant reason.
+  patient_clinical:
+    auto_subscribe: true
+    queries:
+      - |
+        SELECT patient_allergies.* FROM patient_allergies
+        JOIN my_encounter_tenants et ON et.tenant_id = patient_allergies.tenant_id
+        JOIN my_assigned_patient_ids a
+          ON a.tenant_id = patient_allergies.tenant_id
+         AND a.patient_id = patient_allergies.patient_id
+      - |
+        SELECT patient_allergies.* FROM patient_allergies
+        JOIN my_encounter_tenants et ON et.tenant_id = patient_allergies.tenant_id
+        JOIN my_encounter_patient_ids e
+          ON e.tenant_id = patient_allergies.tenant_id
+         AND e.patient_id = patient_allergies.patient_id
+      - |
+        SELECT patient_allergies.* FROM patient_allergies
+        JOIN my_encounter_tenants et ON et.tenant_id = patient_allergies.tenant_id
+        JOIN my_ward_patient_ids w
+          ON w.tenant_id = patient_allergies.tenant_id
+         AND w.patient_id = patient_allergies.patient_id
+      - |
+        SELECT clinical_encounters.* FROM clinical_encounters
+        JOIN my_encounter_tenants et ON et.tenant_id = clinical_encounters.tenant_id
+        JOIN my_assigned_patient_ids a
+          ON a.tenant_id = clinical_encounters.tenant_id
+         AND a.patient_id = clinical_encounters.patient_id
+      - |
+        SELECT clinical_encounters.* FROM clinical_encounters
+        JOIN my_encounter_tenants et ON et.tenant_id = clinical_encounters.tenant_id
+        JOIN my_encounter_patient_ids e
+          ON e.tenant_id = clinical_encounters.tenant_id
+         AND e.patient_id = clinical_encounters.patient_id
+      - |
+        SELECT clinical_encounters.* FROM clinical_encounters
+        JOIN my_encounter_tenants et ON et.tenant_id = clinical_encounters.tenant_id
+        JOIN my_ward_patient_ids w
+          ON w.tenant_id = clinical_encounters.tenant_id
+         AND w.patient_id = clinical_encounters.patient_id
+      - |
+        SELECT clinical_problems.* FROM clinical_problems
+        JOIN my_encounter_tenants et ON et.tenant_id = clinical_problems.tenant_id
+        JOIN my_assigned_patient_ids a
+          ON a.tenant_id = clinical_problems.tenant_id
+         AND a.patient_id = clinical_problems.patient_id
+      - |
+        SELECT clinical_problems.* FROM clinical_problems
+        JOIN my_encounter_tenants et ON et.tenant_id = clinical_problems.tenant_id
+        JOIN my_encounter_patient_ids e
+          ON e.tenant_id = clinical_problems.tenant_id
+         AND e.patient_id = clinical_problems.patient_id
+      - |
+        SELECT clinical_problems.* FROM clinical_problems
+        JOIN my_encounter_tenants et ON et.tenant_id = clinical_problems.tenant_id
+        JOIN my_ward_patient_ids w
+          ON w.tenant_id = clinical_problems.tenant_id
+         AND w.patient_id = clinical_problems.patient_id
+      - |
+        SELECT encounter_amendments.* FROM encounter_amendments
+        JOIN clinical_encounters ce
+          ON ce.id = encounter_amendments.encounter_id
+         AND ce.tenant_id = encounter_amendments.tenant_id
+        JOIN my_encounter_tenants et ON et.tenant_id = encounter_amendments.tenant_id
+        JOIN my_assigned_patient_ids a
+          ON a.tenant_id = encounter_amendments.tenant_id
+         AND a.patient_id = ce.patient_id
+      - |
+        SELECT encounter_amendments.* FROM encounter_amendments
+        JOIN clinical_encounters ce
+          ON ce.id = encounter_amendments.encounter_id
+         AND ce.tenant_id = encounter_amendments.tenant_id
+        JOIN my_encounter_tenants et ON et.tenant_id = encounter_amendments.tenant_id
+        JOIN my_encounter_patient_ids e
+          ON e.tenant_id = encounter_amendments.tenant_id
+         AND e.patient_id = ce.patient_id
+      - |
+        SELECT encounter_amendments.* FROM encounter_amendments
+        JOIN clinical_encounters ce
+          ON ce.id = encounter_amendments.encounter_id
+         AND ce.tenant_id = encounter_amendments.tenant_id
+        JOIN my_encounter_tenants et ON et.tenant_id = encounter_amendments.tenant_id
+        JOIN my_ward_patient_ids w
+          ON w.tenant_id = encounter_amendments.tenant_id
+         AND w.patient_id = ce.patient_id
+      - |
+        SELECT discharges.* from discharges
+        JOIN my_patient_tenants pt ON pt.tenant_id = discharges.tenant_id
+        JOIN my_assigned_patient_ids a
+          ON a.tenant_id = discharges.tenant_id
+         AND a.patient_id = discharges.patient_id
+      - |
+        SELECT discharges.* from discharges
+        JOIN my_patient_tenants pt ON pt.tenant_id = discharges.tenant_id
+        JOIN my_encounter_patient_ids e
+          ON e.tenant_id = discharges.tenant_id
+         AND e.patient_id = discharges.patient_id
+      - |
+        SELECT discharges.* from discharges
+        JOIN my_patient_tenants pt ON pt.tenant_id = discharges.tenant_id
+        JOIN my_ward_patient_ids w
+          ON w.tenant_id = discharges.tenant_id
+         AND w.patient_id = discharges.patient_id
+      - |
+        SELECT encounter_scribe_drafts.* from encounter_scribe_drafts
+        JOIN clinical_encounters ce
+          ON ce.id = encounter_scribe_drafts.encounter_id
+         AND ce.tenant_id = encounter_scribe_drafts.tenant_id
+        JOIN my_encounter_tenants et ON et.tenant_id = encounter_scribe_drafts.tenant_id
+        JOIN my_assigned_patient_ids a
+          ON a.tenant_id = encounter_scribe_drafts.tenant_id
+         AND a.patient_id = ce.patient_id
+      - |
+        SELECT encounter_scribe_drafts.* from encounter_scribe_drafts
+        JOIN clinical_encounters ce
+          ON ce.id = encounter_scribe_drafts.encounter_id
+         AND ce.tenant_id = encounter_scribe_drafts.tenant_id
+        JOIN my_encounter_tenants et ON et.tenant_id = encounter_scribe_drafts.tenant_id
+        JOIN my_encounter_patient_ids e
+          ON e.tenant_id = encounter_scribe_drafts.tenant_id
+         AND e.patient_id = ce.patient_id
+      - |
+        SELECT encounter_scribe_drafts.* from encounter_scribe_drafts
+        JOIN clinical_encounters ce
+          ON ce.id = encounter_scribe_drafts.encounter_id
+         AND ce.tenant_id = encounter_scribe_drafts.tenant_id
+        JOIN my_encounter_tenants et ON et.tenant_id = encounter_scribe_drafts.tenant_id
+        JOIN my_ward_patient_ids w
+          ON w.tenant_id = encounter_scribe_drafts.tenant_id
+         AND w.patient_id = ce.patient_id
+
+  # The caller's own assignment list, used by the doctor dashboard offline.
+  doctor_assignments:
+    auto_subscribe: true
+    query: |
+      SELECT doctor_assignments.* FROM doctor_assignments
+      JOIN patients
+        ON patients.id = doctor_assignments.patient_id
+       AND patients.tenant_id = doctor_assignments.tenant_id
+      WHERE doctor_assignments.doctor_id = auth.user_id()
+        AND doctor_assignments.status = 'active'
+        AND doctor_assignments.tenant_id IN (SELECT tenant_id FROM my_patient_tenants)
+
+  # Role and permission catalogues. Global configuration, not tenant data.
+  catalog:
+    auto_subscribe: true
+    queries:
+      - |
+        SELECT key AS id, key, display_name, description, role_class,
+               is_privileged, offline_capable
+        FROM roles
+      - |
+        SELECT key AS id, key, display_name, description, module_code,
+               risk_tier, requires_online
+        FROM permissions
+      - |
+        SELECT role_key || ':' || permission_key AS id, role_key, permission_key
+        FROM role_permissions
+
+  # Beds and occupancy for the caller's wards/facilities, gated by patient.read.
+  ward_census:
+    auto_subscribe: true
+    queries:
+      - |
+        SELECT beds.* FROM beds
+        JOIN wards w ON w.id = beds.ward_id
+        JOIN memberships m ON m.tenant_id = beds.tenant_id
+        JOIN role_permissions rp ON rp.role_key = m.role_key
+        WHERE m.user_id = auth.user_id()
+          AND m.status = 'active'
+          AND rp.permission_key = 'patient.read'
+          AND w.tenant_id = beds.tenant_id
+          AND (m.facility_id IS NULL OR m.facility_id = w.facility_id)
+          AND (m.ward_id IS NULL OR m.ward_id = beds.ward_id)
+      - |
+        SELECT bed_assignments.* FROM bed_assignments
+        JOIN patients p
+          ON p.id = bed_assignments.patient_id
+         AND p.tenant_id = bed_assignments.tenant_id
+        JOIN beds ON beds.id = bed_assignments.bed_id
+        JOIN wards w ON w.id = beds.ward_id
+        JOIN memberships m ON m.tenant_id = bed_assignments.tenant_id
+        JOIN role_permissions rp ON rp.role_key = m.role_key
+        WHERE bed_assignments.status = 'active'
+          AND beds.tenant_id = bed_assignments.tenant_id
+          AND w.tenant_id = bed_assignments.tenant_id
+          AND m.user_id = auth.user_id()
+          AND m.status = 'active'
+          AND rp.permission_key = 'patient.read'
+          AND (m.facility_id IS NULL OR m.facility_id = w.facility_id)
+          AND (m.ward_id IS NULL OR m.ward_id = beds.ward_id)
+
+  # AI governance configuration: registry, routing policies and deployment
+  # profiles are global read-only configuration. No PHI, no credentials.
+  ai_configuration:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM ai_model_registry
+      - SELECT * FROM ai_routing_policies
+      - SELECT * FROM ai_deployment_profiles WHERE is_active = true
+
+  # Audit rows the caller authored themselves. The full trail stays server-side
+  # under audit.read; only the actor's own history belongs on a device.
+  audit_self:
+    auto_subscribe: true
+    query: |
+      SELECT * FROM audit_events WHERE actor_id = auth.user_id()
+
+  # Patient portal: only rows belonging to the patient the portal account is
+  # linked to. The patient role holds no clinical read permission, so this is
+  # the only path to the patient's own record.
+  patient_portal:
+    auto_subscribe: true
+    queries:
+      - |
+        SELECT appointments.* FROM appointments
+        JOIN my_portal_links l ON l.patient_id = appointments.patient_id
+      - |
+        SELECT lab_orders.* FROM lab_orders
+        JOIN my_portal_links l ON l.patient_id = lab_orders.patient_id
+      - |
+        SELECT lab_results.* FROM lab_results
+        JOIN lab_orders o ON o.id = lab_results.lab_order_id
+        JOIN my_portal_links l ON l.patient_id = o.patient_id
+        WHERE lab_results.status = 'verified' OR lab_results.status = 'corrected'
+      - |
+        SELECT prescriptions.* FROM prescriptions
+        JOIN my_portal_links l ON l.patient_id = prescriptions.patient_id
+        WHERE prescriptions.status = 'finalized'
+      - |
+        SELECT prescription_items.* FROM prescription_items
+        JOIN prescriptions p ON p.id = prescription_items.prescription_id
+        JOIN my_portal_links l ON l.patient_id = p.patient_id
+        WHERE p.status = 'finalized'
+          AND prescription_items.status <> 'cancelled'
+      - |
+        SELECT patient_portal_links.* FROM patient_portal_links
+        JOIN my_portal_links l ON l.patient_id = patient_portal_links.patient_id
+        WHERE patient_portal_links.portal_user_id = auth.user_id()
+
+  # Lab Workflows (gated by patient.read)
+  lab_workflows:
+    auto_subscribe: true
+    queries:
+      - |
+        select lab_orders.* from lab_orders 
+        join bucket_lab_workflows scope on scope.tenant_id = lab_orders.tenant_id
+        where lab_orders.tenant_id = scope.tenant_id
+      - |
+        select lab_specimens.* from lab_specimens
+        join bucket_lab_workflows scope on scope.tenant_id = lab_specimens.tenant_id
+         join lab_orders o on o.id = lab_specimens.lab_order_id where o.tenant_id = scope.tenant_id
+      - |
+        select lab_results.* from lab_results
+        join bucket_lab_workflows scope on scope.tenant_id = lab_results.tenant_id
+         where lab_results.tenant_id = scope.tenant_id
+
+  # Rx Pharmacy (gated by patient.read)
+  rx_pharmacy:
+    auto_subscribe: true
+    queries:
+      - |
+        select prescriptions.* from prescriptions 
+        join bucket_rx_pharmacy scope on scope.tenant_id = prescriptions.tenant_id
+        where prescriptions.tenant_id = scope.tenant_id
+      - |
+        select prescription_items.* from prescription_items
+        join bucket_rx_pharmacy scope on scope.tenant_id = prescription_items.tenant_id
+         join prescriptions p on p.id = prescription_items.prescription_id where p.tenant_id = scope.tenant_id
+      - |
+        select pharmacy_dispenses.* from pharmacy_dispenses
+        join bucket_rx_pharmacy scope on scope.tenant_id = pharmacy_dispenses.tenant_id
+         where pharmacy_dispenses.tenant_id = scope.tenant_id
+      - |
+        select medication_administrations.* from medication_administrations
+        join bucket_rx_pharmacy scope on scope.tenant_id = medication_administrations.tenant_id
+         where medication_administrations.tenant_id = scope.tenant_id
+
+  # Appt Schedule (gated by appointment.read)
+  appt_schedule:
+    auto_subscribe: true
+    queries:
+      - |
+        select appointments.* from appointments 
+        join bucket_appt_schedule scope on scope.tenant_id = appointments.tenant_id
+        where appointments.tenant_id = scope.tenant_id
+
+  # Billing Ledger (gated by billing.read)
+  billing_ledger:
+    auto_subscribe: true
+    queries:
+      - |
+        select invoices.* from invoices 
+        join bucket_billing_ledger scope on scope.tenant_id = invoices.tenant_id
+        where invoices.tenant_id = scope.tenant_id
+      - |
+        select invoice_lines.* from invoice_lines
+        join bucket_billing_ledger scope on scope.tenant_id = invoice_lines.tenant_id
+         join invoices i on i.id = invoice_lines.invoice_id where i.tenant_id = scope.tenant_id
+      - |
+        select payments.* from payments 
+        join bucket_billing_ledger scope on scope.tenant_id = payments.tenant_id
+        where payments.tenant_id = scope.tenant_id
+      - |
+        select refunds.* from refunds 
+        join bucket_billing_ledger scope on scope.tenant_id = refunds.tenant_id
+        where refunds.tenant_id = scope.tenant_id
+      - |
+        select patient_accounts.* from patient_accounts 
+        join bucket_billing_ledger scope on scope.tenant_id = patient_accounts.tenant_id
+        where patient_accounts.tenant_id = scope.tenant_id
+      - |
+        select ledger_entries.* from ledger_entries 
+        join bucket_billing_ledger scope on scope.tenant_id = ledger_entries.tenant_id
+        where ledger_entries.tenant_id = scope.tenant_id
+      - |
+        select payment_allocations.* from payment_allocations
+        join bucket_billing_ledger scope on scope.tenant_id = payment_allocations.tenant_id
+         join payments p on p.id = payment_allocations.payment_id where p.tenant_id = scope.tenant_id
+
+  # Inventory Stock (gated by patient.read)
+  inventory_stock:
+    auto_subscribe: true
+    queries:
+      - |
+        select stock_items.* from stock_items 
+        join bucket_inventory_stock scope on scope.tenant_id = stock_items.tenant_id
+        where stock_items.tenant_id = scope.tenant_id
+      - |
+        select stock_locations.* from stock_locations 
+        join bucket_inventory_stock scope on scope.tenant_id = stock_locations.tenant_id
+        where stock_locations.tenant_id = scope.tenant_id
+      - |
+        select stock_batches.* from stock_batches
+        join bucket_inventory_stock scope on scope.tenant_id = stock_batches.tenant_id
+         join stock_items i on i.id = stock_batches.item_id where i.tenant_id = scope.tenant_id
+      - |
+        select stock_movements.* from stock_movements 
+        join bucket_inventory_stock scope on scope.tenant_id = stock_movements.tenant_id
+        where stock_movements.tenant_id = scope.tenant_id
+
+  # Icu Census (gated by patient.read)
+  icu_census:
+    auto_subscribe: true
+    queries:
+      - |
+        select icu_beds.* from icu_beds
+        join bucket_icu_census scope on scope.tenant_id = icu_beds.tenant_id
+         join beds b on b.id = icu_beds.bed_id join wards w on w.id = b.ward_id where icu_beds.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR w.facility_id = scope.facility_id)
+      - |
+        select icu_vitals.* from icu_vitals
+        join bucket_icu_census scope on scope.tenant_id = icu_vitals.tenant_id
+         join icu_beds i on i.id = icu_vitals.icu_bed_id join beds b on b.id = i.bed_id join wards w on w.id = b.ward_id where icu_vitals.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR w.facility_id = scope.facility_id)
+      - |
+        select icu_nursing_handover.* from icu_nursing_handover
+        join bucket_icu_census scope on scope.tenant_id = icu_nursing_handover.tenant_id
+         join icu_beds i on i.id = icu_nursing_handover.icu_bed_id join beds b on b.id = i.bed_id join wards w on w.id = b.ward_id where icu_nursing_handover.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR w.facility_id = scope.facility_id)
+      - |
+        select ventilator_events.* from ventilator_events
+        join bucket_icu_census scope on scope.tenant_id = ventilator_events.tenant_id
+         join icu_beds i on i.id = ventilator_events.icu_bed_id join beds b on b.id = i.bed_id join wards w on w.id = b.ward_id where ventilator_events.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR w.facility_id = scope.facility_id)
+
+  # Er Triage (gated by patient.read)
+  er_triage:
+    auto_subscribe: true
+    queries:
+      - |
+        select triage_assessments.* from triage_assessments 
+        join bucket_er_triage scope on scope.tenant_id = triage_assessments.tenant_id
+        where triage_assessments.tenant_id = scope.tenant_id
+      - |
+        select er_visits.* from er_visits
+        join bucket_er_triage scope on scope.tenant_id = er_visits.tenant_id
+         join triage_assessments t on t.id = er_visits.triage_id where t.tenant_id = scope.tenant_id
+
+  # Blood Bank (gated by patient.read)
+  blood_bank:
+    auto_subscribe: true
+    queries:
+      - |
+        select transfusion_requests.* from transfusion_requests 
+        join bucket_blood_bank scope on scope.tenant_id = transfusion_requests.tenant_id
+        where transfusion_requests.tenant_id = scope.tenant_id
+      - |
+        select blood_units.* from blood_units 
+        join bucket_blood_bank scope on scope.tenant_id = blood_units.tenant_id
+        where blood_units.tenant_id = scope.tenant_id
+      - |
+        select transfusions.* from transfusions 
+        join bucket_blood_bank scope on scope.tenant_id = transfusions.tenant_id
+        where transfusions.tenant_id = scope.tenant_id
+
+  # Operation Theatre (gated by patient.read)
+  operation_theatre:
+    auto_subscribe: true
+    queries:
+      - |
+        select ot_bookings.* from ot_bookings 
+        join bucket_operation_theatre scope on scope.tenant_id = ot_bookings.tenant_id
+        where ot_bookings.tenant_id = scope.tenant_id
+      - |
+        select ot_preop_assessments.* from ot_preop_assessments 
+        join bucket_operation_theatre scope on scope.tenant_id = ot_preop_assessments.tenant_id
+        where ot_preop_assessments.tenant_id = scope.tenant_id
+      - |
+        select ot_anesthesia_records.* from ot_anesthesia_records 
+        join bucket_operation_theatre scope on scope.tenant_id = ot_anesthesia_records.tenant_id
+        where ot_anesthesia_records.tenant_id = scope.tenant_id
+      - |
+        select ot_procedure_logs.* from ot_procedure_logs 
+        join bucket_operation_theatre scope on scope.tenant_id = ot_procedure_logs.tenant_id
+        where ot_procedure_logs.tenant_id = scope.tenant_id
+      - |
+        select ot_postop_records.* from ot_postop_records 
+        join bucket_operation_theatre scope on scope.tenant_id = ot_postop_records.tenant_id
+        where ot_postop_records.tenant_id = scope.tenant_id
+
+  # Radiology (gated by patient.read)
+  radiology:
+    auto_subscribe: true
+    queries:
+      - |
+        select imaging_orders.* from imaging_orders 
+        join bucket_radiology scope on scope.tenant_id = imaging_orders.tenant_id
+        where imaging_orders.tenant_id = scope.tenant_id
+      - |
+        select imaging_studies.* from imaging_studies
+        join bucket_radiology scope on scope.tenant_id = imaging_studies.tenant_id
+         join imaging_orders o on o.id = imaging_studies.imaging_order_id where o.tenant_id = scope.tenant_id
+      - |
+        select imaging_reports.* from imaging_reports
+        join bucket_radiology scope on scope.tenant_id = imaging_reports.tenant_id
+         where imaging_reports.tenant_id = scope.tenant_id
+
+  # Physiotherapy (gated by patient.read)
+  physiotherapy:
+    auto_subscribe: true
+    queries:
+      - |
+        select physio_sessions.* from physio_sessions 
+        join bucket_physiotherapy scope on scope.tenant_id = physio_sessions.tenant_id
+        where physio_sessions.tenant_id = scope.tenant_id
+      - |
+        select physio_exercise_plans.* from physio_exercise_plans 
+        join bucket_physiotherapy scope on scope.tenant_id = physio_exercise_plans.tenant_id
+        where physio_exercise_plans.tenant_id = scope.tenant_id
+      - |
+        select physio_recovery_notes.* from physio_recovery_notes
+        join bucket_physiotherapy scope on scope.tenant_id = physio_recovery_notes.tenant_id
+         join physio_sessions s on s.id = physio_recovery_notes.session_id where s.tenant_id = scope.tenant_id
+
+  # Nutrition (gated by patient.read)
+  nutrition:
+    auto_subscribe: true
+    queries:
+      - |
+        select diet_assessments.* from diet_assessments 
+        join bucket_nutrition scope on scope.tenant_id = diet_assessments.tenant_id
+        where diet_assessments.tenant_id = scope.tenant_id
+      - |
+        select diet_meal_plans.* from diet_meal_plans 
+        join bucket_nutrition scope on scope.tenant_id = diet_meal_plans.tenant_id
+        where diet_meal_plans.tenant_id = scope.tenant_id
+      - |
+        select diet_meal_plan_days.* from diet_meal_plan_days
+        join bucket_nutrition scope on scope.tenant_id = diet_meal_plan_days.tenant_id
+         join diet_meal_plans p on p.id = diet_meal_plan_days.meal_plan_id where p.tenant_id = scope.tenant_id
+      - |
+        select diet_intake_logs.* from diet_intake_logs
+        join bucket_nutrition scope on scope.tenant_id = diet_intake_logs.tenant_id
+         join diet_meal_plan_days d on d.id = diet_intake_logs.meal_plan_day_id join diet_meal_plans p on p.id = d.meal_plan_id where p.tenant_id = scope.tenant_id
+
+  # Telemedicine (gated by patient.read)
+  telemedicine:
+    auto_subscribe: true
+    queries:
+      - |
+        select tele_consultations.* from tele_consultations 
+        join bucket_telemedicine scope on scope.tenant_id = tele_consultations.tenant_id
+        where tele_consultations.tenant_id = scope.tenant_id
+      - |
+        select tele_vitals_overlays.* from tele_vitals_overlays
+        join bucket_telemedicine scope on scope.tenant_id = tele_vitals_overlays.tenant_id
+         join tele_consultations c on c.id = tele_vitals_overlays.consultation_id where c.tenant_id = scope.tenant_id
+      - |
+        select tele_consultation_archives.* from tele_consultation_archives
+        join bucket_telemedicine scope on scope.tenant_id = tele_consultation_archives.tenant_id
+         join tele_consultations c on c.id = tele_consultation_archives.consultation_id where c.tenant_id = scope.tenant_id
+
+  # Discharge Management (gated by patient.read)
+  discharge_management:
+    auto_subscribe: true
+    queries:
+      - |
+        select discharge_clearances.* from discharge_clearances
+        join bucket_discharge_management scope on scope.tenant_id = discharge_clearances.tenant_id
+         join discharges d on d.id = discharge_clearances.discharge_id where d.tenant_id = scope.tenant_id
+      - |
+        select discharge_medication_reconciliations.* from discharge_medication_reconciliations
+        join bucket_discharge_management scope on scope.tenant_id = discharge_medication_reconciliations.tenant_id
+         join discharges d on d.id = discharge_medication_reconciliations.discharge_id where d.tenant_id = scope.tenant_id
+      - |
+        select discharge_medication_reconciliation_items.* from discharge_medication_reconciliation_items
+        join bucket_discharge_management scope on scope.tenant_id = discharge_medication_reconciliation_items.tenant_id
+         join discharge_medication_reconciliations r on r.id = discharge_medication_reconciliation_items.reconciliation_id join discharges d on d.id = r.discharge_id where d.tenant_id = scope.tenant_id
+      - |
+        select discharge_settlements.* from discharge_settlements
+        join bucket_discharge_management scope on scope.tenant_id = discharge_settlements.tenant_id
+         join discharges d on d.id = discharge_settlements.discharge_id where d.tenant_id = scope.tenant_id
+      - |
+        select discharge_ai_summaries.* from discharge_ai_summaries
+        join bucket_discharge_management scope on scope.tenant_id = discharge_ai_summaries.tenant_id
+         join discharges d on d.id = discharge_ai_summaries.discharge_id where d.tenant_id = scope.tenant_id
+
+  # Floor Map (gated by ward_floor.read)
+  floor_map:
+    auto_subscribe: true
+    queries:
+      - |
+        select ward_rooms.* from ward_rooms 
+        join bucket_floor_map scope on scope.tenant_id = ward_rooms.tenant_id
+        where ward_rooms.tenant_id = scope.tenant_id
+
+  # Staff Directory (gated by staff_directory.read)
+  staff_directory:
+    auto_subscribe: true
+    queries:
+      - |
+        select practitioner_profiles.* from practitioner_profiles
+        join bucket_staff_directory scope on scope.tenant_id = practitioner_profiles.tenant_id
+         where practitioner_profiles.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR practitioner_profiles.facility_id = scope.facility_id)
+      - |
+        select practitioner_on_calls.* from practitioner_on_calls
+        join bucket_staff_directory scope on scope.tenant_id = practitioner_on_calls.tenant_id
+         join practitioner_profiles p on p.id = practitioner_on_calls.practitioner_id where practitioner_on_calls.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR p.facility_id = scope.facility_id)
+
+  # Contacts (gated by contacts.read)
+  contacts:
+    auto_subscribe: true
+    queries:
+      - |
+        select directory_contacts.* from directory_contacts
+        join bucket_contacts scope on scope.tenant_id = directory_contacts.tenant_id
+         where directory_contacts.tenant_id = scope.tenant_id and (directory_contacts.facility_id is null or (scope.facility_id IS NULL OR directory_contacts.facility_id = scope.facility_id))
+
+  # Calendar (gated by calendar.read)
+  calendar:
+    auto_subscribe: true
+    queries:
+      - |
+        select calendar_events.* from calendar_events 
+        join bucket_calendar scope on scope.tenant_id = calendar_events.tenant_id
+        where calendar_events.tenant_id = scope.tenant_id
+
+  # Fleet (gated by fleet.read)
+  fleet:
+    auto_subscribe: true
+    queries:
+      - |
+        select ambulances.* from ambulances 
+        join bucket_fleet scope on scope.tenant_id = ambulances.tenant_id
+        where ambulances.tenant_id = scope.tenant_id
+      - |
+        select ambulance_duty_assignments.* from ambulance_duty_assignments 
+        join bucket_fleet scope on scope.tenant_id = ambulance_duty_assignments.tenant_id
+        where ambulance_duty_assignments.tenant_id = scope.tenant_id
+      - |
+        select ambulance_dispatches.* from ambulance_dispatches 
+        join bucket_fleet scope on scope.tenant_id = ambulance_dispatches.tenant_id
+        where ambulance_dispatches.tenant_id = scope.tenant_id
+      - |
+        select ambulance_tracking_pings.* from ambulance_tracking_pings 
+        join bucket_fleet scope on scope.tenant_id = ambulance_tracking_pings.tenant_id
+        where ambulance_tracking_pings.tenant_id = scope.tenant_id
+
+  # Biomedical (gated by biomedical.read)
+  biomedical:
+    auto_subscribe: true
+    queries:
+      - |
+        select biomedical_assets.* from biomedical_assets 
+        join bucket_biomedical scope on scope.tenant_id = biomedical_assets.tenant_id
+        where biomedical_assets.tenant_id = scope.tenant_id
+      - |
+        select biomedical_breakdown_tickets.* from biomedical_breakdown_tickets 
+        join bucket_biomedical scope on scope.tenant_id = biomedical_breakdown_tickets.tenant_id
+        where biomedical_breakdown_tickets.tenant_id = scope.tenant_id
+      - |
+        select biomedical_maintenance_records.* from biomedical_maintenance_records 
+        join bucket_biomedical scope on scope.tenant_id = biomedical_maintenance_records.tenant_id
+        where biomedical_maintenance_records.tenant_id = scope.tenant_id
+
+  # Waste (gated by waste.read)
+  waste:
+    auto_subscribe: true
+    queries:
+      - |
+        select waste_categories.* from waste_categories 
+        join bucket_waste scope on scope.tenant_id = waste_categories.tenant_id
+        where waste_categories.tenant_id = scope.tenant_id
+      - |
+        select waste_generation_logs.* from waste_generation_logs 
+        join bucket_waste scope on scope.tenant_id = waste_generation_logs.tenant_id
+        where waste_generation_logs.tenant_id = scope.tenant_id
+      - |
+        select waste_disposal_certificates.* from waste_disposal_certificates 
+        join bucket_waste scope on scope.tenant_id = waste_disposal_certificates.tenant_id
+        where waste_disposal_certificates.tenant_id = scope.tenant_id
+
+  # Insurance (gated by insurance.read)
+  insurance:
+    auto_subscribe: true
+    queries:
+      - |
+        select insurance_payers.* from insurance_payers 
+        join bucket_insurance scope on scope.tenant_id = insurance_payers.tenant_id
+        where insurance_payers.tenant_id = scope.tenant_id
+      - |
+        select insurance_policies.* from insurance_policies 
+        join bucket_insurance scope on scope.tenant_id = insurance_policies.tenant_id
+        where insurance_policies.tenant_id = scope.tenant_id
+      - |
+        select pre_authorisation_requests.* from pre_authorisation_requests 
+        join bucket_insurance scope on scope.tenant_id = pre_authorisation_requests.tenant_id
+        where pre_authorisation_requests.tenant_id = scope.tenant_id
+      - |
+        select insurance_claims.* from insurance_claims 
+        join bucket_insurance scope on scope.tenant_id = insurance_claims.tenant_id
+        where insurance_claims.tenant_id = scope.tenant_id
+
+  # Documents (gated by documents.read)
+  documents:
+    auto_subscribe: true
+    queries:
+      - |
+        select consent_templates.* from consent_templates 
+        join bucket_documents scope on scope.tenant_id = consent_templates.tenant_id
+        where consent_templates.tenant_id = scope.tenant_id
+      - |
+        select consent_records.* from consent_records 
+        join bucket_documents scope on scope.tenant_id = consent_records.tenant_id
+        where consent_records.tenant_id = scope.tenant_id
+      - |
+        select document_vault_documents.* from document_vault_documents 
+        join bucket_documents scope on scope.tenant_id = document_vault_documents.tenant_id
+        where document_vault_documents.tenant_id = scope.tenant_id
+
+  # Statutory (gated by statutory.read)
+  statutory:
+    auto_subscribe: true
+    queries:
+      - |
+        select statutory_birth_records.* from statutory_birth_records 
+        join bucket_statutory scope on scope.tenant_id = statutory_birth_records.tenant_id
+        where statutory_birth_records.tenant_id = scope.tenant_id
+      - |
+        select statutory_death_records.* from statutory_death_records 
+        join bucket_statutory scope on scope.tenant_id = statutory_death_records.tenant_id
+        where statutory_death_records.tenant_id = scope.tenant_id
+      - |
+        select statutory_mlc_intimations.* from statutory_mlc_intimations 
+        join bucket_statutory scope on scope.tenant_id = statutory_mlc_intimations.tenant_id
+        where statutory_mlc_intimations.tenant_id = scope.tenant_id
+      - |
+        select statutory_record_amendments.* from statutory_record_amendments 
+        join bucket_statutory scope on scope.tenant_id = statutory_record_amendments.tenant_id
+        where statutory_record_amendments.tenant_id = scope.tenant_id
+
+  # Quality (gated by quality.read)
+  quality:
+    auto_subscribe: true
+    queries:
+      - |
+        select compliance_audits.* from compliance_audits 
+        join bucket_quality scope on scope.tenant_id = compliance_audits.tenant_id
+        where compliance_audits.tenant_id = scope.tenant_id
+      - |
+        select incident_reports.* from incident_reports 
+        join bucket_quality scope on scope.tenant_id = incident_reports.tenant_id
+        where incident_reports.tenant_id = scope.tenant_id
+      - |
+        select clinical_indicators.* from clinical_indicators 
+        join bucket_quality scope on scope.tenant_id = clinical_indicators.tenant_id
+        where clinical_indicators.tenant_id = scope.tenant_id
+
+  # Feedback (gated by feedback.read)
+  feedback:
+    auto_subscribe: true
+    queries:
+      - |
+        select feedback_surveys.* from feedback_surveys 
+        join bucket_feedback scope on scope.tenant_id = feedback_surveys.tenant_id
+        where feedback_surveys.tenant_id = scope.tenant_id
+      - |
+        select feedback_complaints.* from feedback_complaints 
+        join bucket_feedback scope on scope.tenant_id = feedback_complaints.tenant_id
+        where feedback_complaints.tenant_id = scope.tenant_id
+      - |
+        select complaint_routing_events.* from complaint_routing_events 
+        join bucket_feedback scope on scope.tenant_id = complaint_routing_events.tenant_id
+        where complaint_routing_events.tenant_id = scope.tenant_id
+
+  # Visitor (gated by visitor.read)
+  visitor:
+    auto_subscribe: true
+    queries:
+      - |
+        select ward_visiting_windows.* from ward_visiting_windows
+        join bucket_visitor scope on scope.tenant_id = ward_visiting_windows.tenant_id
+         where ward_visiting_windows.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR ward_visiting_windows.facility_id = scope.facility_id)
+      - |
+        select visitor_registrations.* from visitor_registrations
+        join bucket_visitor scope on scope.tenant_id = visitor_registrations.tenant_id
+         where visitor_registrations.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR visitor_registrations.facility_id = scope.facility_id)
+      - |
+        select visitor_passes.* from visitor_passes
+        join bucket_visitor scope on scope.tenant_id = visitor_passes.tenant_id
+         where visitor_passes.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR visitor_passes.facility_id = scope.facility_id)
+      - |
+        select visitor_badge_prints.* from visitor_badge_prints
+        join bucket_visitor scope on scope.tenant_id = visitor_badge_prints.tenant_id
+        
+        join visitor_passes vp on vp.id = visitor_badge_prints.pass_id and vp.tenant_id = visitor_badge_prints.tenant_id
+        where visitor_badge_prints.tenant_id = scope.tenant_id
+          and (scope.facility_id is null or vp.facility_id = scope.facility_id)
+
+  # Analytics (gated by analytics.read)
+  analytics:
+    auto_subscribe: true
+    queries:
+      - |
+        select analytics_report_definitions.* from analytics_report_definitions 
+        join bucket_analytics scope on scope.tenant_id = analytics_report_definitions.tenant_id
+        where analytics_report_definitions.tenant_id = scope.tenant_id
+      - |
+        select analytics_rollups.* from analytics_rollups 
+        join bucket_analytics scope on scope.tenant_id = analytics_rollups.tenant_id
+        where analytics_rollups.tenant_id = scope.tenant_id
+      - |
+        select analytics_report_runs.* from analytics_report_runs 
+        join bucket_analytics scope on scope.tenant_id = analytics_report_runs.tenant_id
+        where analytics_report_runs.tenant_id = scope.tenant_id
+      - |
+        select analytics_exports.* from analytics_exports 
+        join bucket_analytics scope on scope.tenant_id = analytics_exports.tenant_id
+        where analytics_exports.tenant_id = scope.tenant_id
+
+  # Settings (gated by settings.read)
+  settings:
+    auto_subscribe: true
+    queries:
+      - |
+        select settings_profiles.* from settings_profiles 
+        join bucket_settings scope on scope.tenant_id = settings_profiles.tenant_id
+        where settings_profiles.tenant_id = scope.tenant_id
+      - |
+        select branding_assets.* from branding_assets 
+        join bucket_settings scope on scope.tenant_id = branding_assets.tenant_id
+        where branding_assets.tenant_id = scope.tenant_id
+      - |
+        select department_hierarchies.* from department_hierarchies 
+        join bucket_settings scope on scope.tenant_id = department_hierarchies.tenant_id
+        where department_hierarchies.tenant_id = scope.tenant_id
+      - |
+        select billing_tariffs.* from billing_tariffs 
+        join bucket_settings scope on scope.tenant_id = billing_tariffs.tenant_id
+        where billing_tariffs.tenant_id = scope.tenant_id
+      - |
+        select ai_routing_profiles.* from ai_routing_profiles 
+        join bucket_settings scope on scope.tenant_id = ai_routing_profiles.tenant_id
+        where ai_routing_profiles.tenant_id = scope.tenant_id
+
+  # Workforce (gated by workforce.read)
+  workforce:
+    auto_subscribe: true
+    queries:
+      - |
+        select staff_shifts.* from staff_shifts 
+        join bucket_workforce scope on scope.tenant_id = staff_shifts.tenant_id
+        where staff_shifts.tenant_id = scope.tenant_id
+      - |
+        select duty_allocations.* from duty_allocations 
+        join bucket_workforce scope on scope.tenant_id = duty_allocations.tenant_id
+        where duty_allocations.tenant_id = scope.tenant_id
+      - |
+        select attendance_logs.* from attendance_logs 
+        join bucket_workforce scope on scope.tenant_id = attendance_logs.tenant_id
+        where attendance_logs.tenant_id = scope.tenant_id
+
+  # Hr (gated by hr.read)
+  hr:
+    auto_subscribe: true
+    queries:
+      - |
+        select hr_employees.* from hr_employees 
+        join bucket_hr scope on scope.tenant_id = hr_employees.tenant_id
+        where hr_employees.tenant_id = scope.tenant_id
+      - |
+        select hr_leave_requests.* from hr_leave_requests 
+        join bucket_hr scope on scope.tenant_id = hr_leave_requests.tenant_id
+        where hr_leave_requests.tenant_id = scope.tenant_id
+      - |
+        select hr_holidays.* from hr_holidays 
+        join bucket_hr scope on scope.tenant_id = hr_holidays.tenant_id
+        where hr_holidays.tenant_id = scope.tenant_id
+
+  # Payroll (gated by payroll.read)
+  payroll:
+    auto_subscribe: true
+    queries:
+      - |
+        select hr_payroll_periods.* from hr_payroll_periods 
+        join bucket_payroll scope on scope.tenant_id = hr_payroll_periods.tenant_id
+        where hr_payroll_periods.tenant_id = scope.tenant_id
+      - |
+        select hr_payslips.* from hr_payslips 
+        join bucket_payroll scope on scope.tenant_id = hr_payslips.tenant_id
+        where hr_payslips.tenant_id = scope.tenant_id
+
+  # Nursing Station (gated by nursing_station.read)
+  nursing_station:
+    auto_subscribe: true
+    queries:
+      - |
+        select ward_vitals.* from ward_vitals
+        join bucket_nursing_station scope on scope.tenant_id = ward_vitals.tenant_id
+         join wards w on w.id = ward_vitals.ward_id where ward_vitals.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR w.facility_id = scope.facility_id)
+      - |
+        select ward_handovers.* from ward_handovers
+        join bucket_nursing_station scope on scope.tenant_id = ward_handovers.tenant_id
+         join wards w on w.id = ward_handovers.ward_id where ward_handovers.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR w.facility_id = scope.facility_id)
+      - |
+        select ward_tasks.* from ward_tasks
+        join bucket_nursing_station scope on scope.tenant_id = ward_tasks.tenant_id
+         join wards w on w.id = ward_tasks.ward_id where ward_tasks.tenant_id = scope.tenant_id and (scope.facility_id IS NULL OR w.facility_id = scope.facility_id)
+
+  # Task Engine (gated by tasks.read)
+  task_engine:
+    auto_subscribe: true
+    queries:
+      - |
+        select hospital_tasks.* from hospital_tasks 
+        join bucket_task_engine scope on scope.tenant_id = hospital_tasks.tenant_id
+        where hospital_tasks.tenant_id = scope.tenant_id
+
+  # Form Builder (gated by forms.read)
+  form_builder:
+    auto_subscribe: true
+    queries:
+      - |
+        select form_templates.* from form_templates 
+        join bucket_form_builder scope on scope.tenant_id = form_templates.tenant_id
+        where form_templates.tenant_id = scope.tenant_id
+      - |
+        select form_responses.* from form_responses 
+        join bucket_form_builder scope on scope.tenant_id = form_responses.tenant_id
+        where form_responses.tenant_id = scope.tenant_id
+      - |
+        select icd10_codes.* from icd10_codes
+
+  # Executive (gated by executive.read)
+  executive:
+    auto_subscribe: true
+    queries:
+      - |
+        select executive_kpi_snapshots.* from executive_kpi_snapshots
+        join bucket_executive scope on scope.tenant_id = executive_kpi_snapshots.tenant_id
+        
+        where executive_kpi_snapshots.tenant_id = scope.tenant_id
+          and (scope.facility_id is null or executive_kpi_snapshots.facility_id = scope.facility_id)
+
+  # Operations (gated by operations.read)
+  operations:
+    auto_subscribe: true
+    queries:
+      - |
+        select operational_department_metrics.* from operational_department_metrics 
+        join bucket_operations scope on scope.tenant_id = operational_department_metrics.tenant_id
+        where operational_department_metrics.tenant_id = scope.tenant_id
+
+  # Performance (gated by performance.read)
+  performance:
+    auto_subscribe: true
+    queries:
+      - |
+        select clinical_performance_indices.* from clinical_performance_indices 
+        join bucket_performance scope on scope.tenant_id = clinical_performance_indices.tenant_id
+        where clinical_performance_indices.tenant_id = scope.tenant_id
+
+  # Clinical Messaging (gated by messaging.read)
+  clinical_messaging:
+    auto_subscribe: true
+    queries:
+      - |
+        select clinical_threads.* from clinical_threads
+        join bucket_clinical_messaging scope on scope.tenant_id = clinical_threads.tenant_id
+         where clinical_threads.tenant_id = scope.tenant_id and auth.user_id() IN clinical_threads.participants
+      - |
+        select clinical_messages.* from clinical_messages
+        join bucket_clinical_messaging scope on scope.tenant_id = clinical_messages.tenant_id
+         join clinical_threads t on t.id = clinical_messages.thread_id where t.tenant_id = scope.tenant_id and auth.user_id() IN t.participants
+      - |
+        select clinical_attachments.* from clinical_attachments
+        join bucket_clinical_messaging scope on scope.tenant_id = clinical_attachments.tenant_id
+         join clinical_messages m on m.id = clinical_attachments.message_id join clinical_threads t on t.id = m.thread_id where t.tenant_id = scope.tenant_id and auth.user_id() IN t.participants
+
+  # Productivity (gated by workitems.read)
+  productivity:
+    auto_subscribe: true
+    queries:
+      - |
+        select work_items.* from work_items 
+        join bucket_productivity scope on scope.tenant_id = work_items.tenant_id
+        where work_items.tenant_id = scope.tenant_id
+      - |
+        select it_tickets.* from it_tickets 
+        join bucket_productivity scope on scope.tenant_id = it_tickets.tenant_id
+        where it_tickets.tenant_id = scope.tenant_id

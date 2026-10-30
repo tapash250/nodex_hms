@@ -1,0 +1,4 @@
+# Local deployment secrets. Never commit these.
+.env
+.env.*
+!.env.example

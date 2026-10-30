@@ -70,3 +70,14 @@ app.*.map.json
 /coverage/
 *.lcov
 /test/**/failures/
+
+# PowerSync local deployment credentials
+powersync/.env
+powersync/.env.*
+!powersync/.env.example
+
+# Secret and private key files
+*.pem
+*.key
+*.p12
+*.pfx
