@@ -12,9 +12,10 @@
 ///    device is not entitled to hold must never be replicated, which is enforced
 ///    by sync stream definitions on the server, not by omission in the UI.
 ///
-/// Phase 1 covers identity, tenancy, device state, sync diagnostics and AI
-/// configuration. Clinical tables arrive with their modules in Phase 2, each
-/// carrying its own conflict policy.
+/// The schema covers the full offline operational projection: identity,
+/// tenancy, device state, clinical modules, and the internal audit/AI/analytics
+/// tables. Each replicated table is registered in the conflict-policy registry;
+/// the three local-only tables hold device-private diagnostics and notes.
 library;
 
 import 'package:powersync/powersync.dart'

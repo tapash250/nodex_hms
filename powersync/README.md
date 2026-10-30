@@ -3,11 +3,17 @@
 This directory holds the PowerSync-side configuration that does **not** live in
 the Supabase database: sync rules and the operational setup checklist.
 
-There is deliberately no instance provisioned yet. When you create one:
+The development instance is `6ae4764ab0047aeb6df81fd9` in `jp`. The deployed
+configuration lives at `../../powersync/sync-config.yaml` (50 streams over 146
+replicated tables); `sync-rules.yaml` in this directory is the reviewed legacy
+bucket source kept for comparison and migration history.
 
-1. Create the instance in the PowerSync dashboard, choosing the Supabase
-   integration and this project.
-2. Paste `sync-rules.yaml` into the instance's sync rules editor and deploy.
+To provision or redeploy:
+
+1. Complete the reader-role and publication setup in `../../powersync/SOURCE_DB_SETUP.sql`
+   and apply `20260918200001_expand_powersync_full_coverage.sql`.
+2. Paste `../../powersync/sync-config.yaml` into the instance's sync config
+   editor and deploy.
 3. Complete the reader-role setup in `SETUP.md` **before** first client connect.
 4. Set `NODEX_POWERSYNC_URL` in CI secrets and build defines to the instance URL.
 
@@ -34,9 +40,9 @@ Buckets mirror the membership graph in `public.memberships`:
 | `ai_configuration` | model registry, routing policies, deployment profiles | read-only global configuration, no PHI, no credentials |
 | `audit_self` | audit rows the caller authored | `actor_id = request.user_id()` |
 
-Clinical buckets arrive per-module in Phase 2 with the same review: each
-module's stream must reproduce the scope its RLS helpers enforce, and the
-acceptance test inspects the local database, not the UI. Defined so far:
+Clinical buckets are defined per module with the same review: each module's
+stream must reproduce the scope its RLS helpers enforce, and the acceptance test
+inspects the local database, not the UI. Defined buckets include:
 `mpi_patients` (Module 10), `emr_encounters` (Module 16), `lab_workflows`
 (Module 17), `rx_pharmacy` (Module 25, including superseded versions and the
 MAR), `appt_schedule` (Module 07), `ward_census` (Module 11, beds with active
@@ -115,7 +121,8 @@ the hospital's own description of itself. The
 `emr_encounters` bucket also
 carries the Module 16 problem list and ambient scribe drafts, so a device holding
 a note also holds the machine output behind it and the clinician's decision on
-it. Remaining: the rest of the 54-module scope.
+it. The full set is generated into `../../powersync/sync-config.yaml`, which covers
+all 146 replicated tables.
 
 ## Upload path
 

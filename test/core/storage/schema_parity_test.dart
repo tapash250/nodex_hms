@@ -92,6 +92,53 @@ Set<String> _localSchemaTables() {
   return tables;
 }
 
+/// Table names declared with `Table.localOnly`, which never replicate.
+Set<String> _localOnlySchemaTables() {
+  final String source = _read('lib/core/storage/local_schema.dart');
+  final Map<String, String> constants = <String, String>{
+    for (final RegExpMatch match in RegExp(
+      r"static const String (\w+)\s*=\s*\n?\s*'([a-z0-9_]+)';",
+    ).allMatches(source))
+      match.group(1)!: match.group(2)!,
+  };
+  final Set<String> tables = <String>{};
+  for (final RegExpMatch match in RegExp(
+    r'static const Table _\w+ = Table\.localOnly\(\s*LocalTables\.(\w+)',
+  ).allMatches(source)) {
+    final String? table = constants[match.group(1)!];
+    expect(table, isNotNull, reason: 'Unknown local-only table constant.');
+    tables.add(table!);
+  }
+  return tables;
+}
+
+/// Table names referenced by the deployed sync config.
+Set<String> _syncConfigTables() {
+  final String source = _read('../powersync/sync-config.yaml');
+  final Set<String> known = _localSchemaTables();
+  return RegExp(r'\b(?:from|join)\s+([a-z][a-z0-9_]*)', caseSensitive: false)
+      .allMatches(source)
+      .map((RegExpMatch match) => match.group(1)!.toLowerCase())
+      .where(known.contains)
+      .toSet();
+}
+
+/// Table names in the full-coverage publication migration.
+Set<String> _coverageMigrationTables() {
+  final String source = _read(
+    'supabase/migrations/20260918200001_expand_powersync_full_coverage.sql',
+  );
+  final RegExpMatch? block = RegExp(
+    r'synced_tables\s+text\[\]\s*:=\s*array\[(.*?)\];',
+    dotAll: true,
+  ).firstMatch(source);
+  expect(block, isNotNull, reason: 'Coverage migration table array not found.');
+  return RegExp("'([a-z0-9_]+)'")
+      .allMatches(block!.group(1)!)
+      .map((RegExpMatch match) => match.group(1)!)
+      .toSet();
+}
+
 /// Table -> conflict resource mappings declared in the conflict registry.
 Map<String, String> _conflictMappings() {
   final String source = _read('lib/core/sync/conflict_policy.dart');
@@ -234,7 +281,7 @@ Set<String> _guardedBeyondTimestamp() {
 void main() {
   group('local schema covers replication', () {
     test('every synced table has a local table definition', () {
-      final Set<String> missing = _syncedTables().difference(
+      final Set<String> missing = _syncConfigTables().difference(
         _localSchemaTables(),
       );
       expect(
@@ -247,7 +294,7 @@ void main() {
     });
 
     test('every synced table exists in the migrations', () {
-      final Set<String> unknown = _syncedTables().difference(
+      final Set<String> unknown = _syncConfigTables().difference(
         _migrationTables(),
       );
       expect(
@@ -260,7 +307,7 @@ void main() {
     test('local schema declares no unreplicated table outside the '
         'local-only allowlist', () {
       final Set<String> extra = _localSchemaTables()
-          .difference(_syncedTables())
+          .difference(_syncConfigTables())
           .difference(_localOnlyTables);
       expect(
         extra,
@@ -299,6 +346,79 @@ void main() {
         reason: 'Built but not declared: ${listed.difference(declared)}',
       );
       expect(listed.length, NodexLocalSchema.build().tables.length);
+    });
+
+    test(
+      'local schema declares 149 tables: 146 replicated and 3 local-only',
+      () {
+        final Set<String> replicated = _localSchemaTables();
+        final Set<String> localOnly = _localOnlySchemaTables();
+        expect(replicated.length, 146);
+        expect(localOnly.length, 3);
+        expect(replicated.intersection(localOnly), isEmpty);
+        expect(replicated.union(localOnly).length, 149);
+        expect(localOnly, _localOnlyTables);
+      },
+    );
+
+    test('sync config covers every replicated table exactly', () {
+      final Set<String> replicated = _localSchemaTables();
+      final Set<String> synced = _syncConfigTables();
+      expect(
+        replicated.difference(synced),
+        isEmpty,
+        reason:
+            'A replicated table with no sync-config query never materializes. '
+            'Missing: ${replicated.difference(synced).toList()..sort()}',
+      );
+      expect(
+        synced.difference(replicated),
+        isEmpty,
+        reason:
+            'The sync config references a table the local schema does not '
+            'declare: ${synced.difference(replicated).toList()..sort()}',
+      );
+      expect(synced.length, replicated.length);
+    });
+
+    test('legacy sync rules cover every replicated table exactly', () {
+      final Set<String> replicated = _localSchemaTables();
+      final Set<String> legacy = _syncedTables();
+      expect(
+        replicated.difference(legacy),
+        isEmpty,
+        reason:
+            'The reviewed legacy rules dropped a replicated table: '
+            '${replicated.difference(legacy).toList()..sort()}',
+      );
+      expect(
+        legacy.difference(replicated),
+        isEmpty,
+        reason:
+            'The legacy rules reference a table the local schema does not '
+            'declare: ${legacy.difference(replicated).toList()..sort()}',
+      );
+    });
+
+    test('publication migration covers every replicated table exactly', () {
+      final Set<String> replicated = _localSchemaTables();
+      final Set<String> published = _coverageMigrationTables();
+      expect(
+        replicated.difference(published),
+        isEmpty,
+        reason:
+            'A replicated table is missing from the publication migration and '
+            'will never emit WAL: '
+            '${replicated.difference(published).toList()..sort()}',
+      );
+      expect(
+        published.difference(replicated),
+        isEmpty,
+        reason:
+            'The publication migration names a table the local schema does '
+            'not declare: ${published.difference(replicated).toList()..sort()}',
+      );
+      expect(published.length, replicated.length);
     });
   });
 
@@ -396,7 +516,7 @@ void main() {
         reason: 'Writable table with no migration.',
       );
       expect(
-        writable.difference(_syncedTables()),
+        writable.difference(_syncConfigTables()),
         isEmpty,
         reason:
             'A writable table that is not replicated can never receive a local '
