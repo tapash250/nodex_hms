@@ -114,7 +114,7 @@ Set<String> _localOnlySchemaTables() {
 
 /// Table names referenced by the deployed sync config.
 Set<String> _syncConfigTables() {
-  final String source = _read('../powersync/sync-config.yaml');
+  final String source = _read('powersync/sync-config.yaml');
   final Set<String> known = _localSchemaTables();
   return RegExp(r'\b(?:from|join)\s+([a-z][a-z0-9_]*)', caseSensitive: false)
       .allMatches(source)
