@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nodex_hms/app/providers.dart';
 import 'package:nodex_hms/core/config/nodex_environment.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
+import 'package:nodex_hms/features/session/pin_quick_switch.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
 /// Settings screen.
@@ -90,6 +91,23 @@ class SettingsScreen extends ConsumerWidget {
                       'Requires biometric or device credential to resume',
                     ),
                     onTap: () => ref.read(sessionProvider.notifier).lock(),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.pin_outlined),
+                    title: const Text('Set quick-switch PIN'),
+                    subtitle: const Text(
+                      'Lets the next clinician take over this device',
+                    ),
+                    onTap: () async {
+                      final bool saved = await askToSetPin(context, ref);
+                      if (saved && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('PIN saved.')),
+                        );
+                      }
+                    },
                   ),
                   const Divider(),
                   ListTile(

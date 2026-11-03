@@ -29,6 +29,19 @@ abstract interface class SessionRepository {
   /// Whether an authenticated session exists.
   bool hasSession();
 
+  /// The authenticated principal identifier, or null when there is no session.
+  ///
+  /// Used to bind a cached authorization snapshot to the principal who is
+  /// actually signed in, so a second clinician on a shared device cannot
+  /// inherit the previous user's permissions.
+  String? currentUserId();
+
+  /// Whether the session was locked when the application last stopped.
+  Future<bool> isLocked();
+
+  /// Persists the locked state across application restarts.
+  Future<void> setLocked({required bool locked});
+
   /// Obtains a fresh authorization snapshot from the server.
   Future<AuthorizationSnapshot> refreshAuthorization({
     required String tenantId,
@@ -40,7 +53,16 @@ abstract interface class SessionRepository {
   /// Returns null rather than throwing when the cached payload fails digest
   /// verification, after discarding it: a tampered snapshot must not become an
   /// authorization decision.
-  Future<AuthorizationSnapshot?> cachedAuthorization();
+  ///
+  /// When [userId] is supplied, a snapshot cached for another principal is
+  /// discarded. When [deviceFingerprint] is supplied, a snapshot cached for
+  /// another physical device is discarded as well. Both bindings are required
+  /// for an offline restart: without them a shared tablet could resume the
+  /// previous clinician's permissions.
+  Future<AuthorizationSnapshot?> cachedAuthorization({
+    String? userId,
+    String? deviceFingerprint,
+  });
 
   /// Discards the cached snapshot.
   Future<void> clearCachedAuthorization();
@@ -59,6 +81,12 @@ final class DefaultSessionRepository implements SessionRepository {
 
   /// Storage slot holding the cached authorization snapshot.
   static const String _snapshotSlot = 'nodex.authorization.snapshot.v1';
+
+  /// Storage slot binding the cached snapshot to the device that obtained it.
+  static const String _bindingSlot = 'nodex.authorization.binding.v1';
+
+  /// Storage slot recording that the session is locked.
+  static const String _lockSlot = 'nodex.session.locked.v1';
 
   final SupabaseGateway _gateway;
   final SecureKeyStore _keyStore;
@@ -85,6 +113,7 @@ final class DefaultSessionRepository implements SessionRepository {
   @override
   Future<void> signOut() async {
     await clearCachedAuthorization();
+    await setLocked(locked: false);
     await _gateway.signOut();
     _logger.info(
       _module,
@@ -100,6 +129,21 @@ final class DefaultSessionRepository implements SessionRepository {
 
   @override
   bool hasSession() => _gateway.currentSession() != null;
+
+  @override
+  String? currentUserId() => _gateway.currentSession()?.userId;
+
+  @override
+  Future<bool> isLocked() async => (await _keyStore.read(_lockSlot)) == 'true';
+
+  @override
+  Future<void> setLocked({required bool locked}) async {
+    if (locked) {
+      await _keyStore.write(_lockSlot, 'true');
+    } else {
+      await _keyStore.delete(_lockSlot);
+    }
+  }
 
   @override
   Future<AuthorizationSnapshot> refreshAuthorization({
@@ -137,7 +181,7 @@ final class DefaultSessionRepository implements SessionRepository {
       );
     }
 
-    await _cacheSnapshot(snapshot);
+    await _cacheSnapshot(snapshot, deviceFingerprint: device.fingerprint);
 
     _logger.info(
       _module,
@@ -159,7 +203,10 @@ final class DefaultSessionRepository implements SessionRepository {
   }
 
   @override
-  Future<AuthorizationSnapshot?> cachedAuthorization() async {
+  Future<AuthorizationSnapshot?> cachedAuthorization({
+    String? userId,
+    String? deviceFingerprint,
+  }) async {
     final String? raw = await _keyStore.read(_snapshotSlot);
     if (raw == null || raw.isEmpty) {
       return null;
@@ -214,11 +261,71 @@ final class DefaultSessionRepository implements SessionRepository {
       return null;
     }
 
+    if (userId != null && snapshot.userId != userId) {
+      await clearCachedAuthorization();
+      _logger.critical(
+        _module,
+        'Discarded a cached snapshot issued to another principal.',
+        operation: 'session.load_cached_authorization',
+        outcome: 'quarantined',
+        errorCode: 'snapshot_user_mismatch',
+      );
+      return null;
+    }
+
+    if (deviceFingerprint != null) {
+      final _SnapshotBinding? binding = await _readBinding();
+      if (!cachedSnapshotIsBound(
+        snapshot: snapshot,
+        userId: userId,
+        deviceFingerprint: deviceFingerprint,
+        boundDeviceId: binding?.deviceId,
+        boundFingerprint: binding?.deviceFingerprint,
+      )) {
+        await clearCachedAuthorization();
+        _logger.critical(
+          _module,
+          'Discarded a cached snapshot that is not bound to this device.',
+          operation: 'session.load_cached_authorization',
+          outcome: 'quarantined',
+          errorCode: 'snapshot_device_mismatch',
+        );
+        return null;
+      }
+    }
+
     return snapshot;
   }
 
   @override
-  Future<void> clearCachedAuthorization() => _keyStore.delete(_snapshotSlot);
+  Future<void> clearCachedAuthorization() async {
+    await _keyStore.delete(_snapshotSlot);
+    await _keyStore.delete(_bindingSlot);
+  }
+
+  Future<_SnapshotBinding?> _readBinding() async {
+    final String? raw = await _keyStore.read(_bindingSlot);
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    try {
+      final Object? decoded = jsonDecode(raw);
+      if (decoded is! Map<String, Object?>) {
+        return null;
+      }
+      final Object? deviceId = decoded['device_id'];
+      final Object? fingerprint = decoded['device_fingerprint'];
+      if (deviceId is! String || fingerprint is! String) {
+        return null;
+      }
+      return _SnapshotBinding(
+        deviceId: deviceId,
+        deviceFingerprint: fingerprint,
+      );
+    } on Object {
+      return null;
+    }
+  }
 
   /// Caches [snapshot] with a locally recomputed digest.
   ///
@@ -226,7 +333,10 @@ final class DefaultSessionRepository implements SessionRepository {
   /// timestamp rendering. Storing a locally computed digest keeps verification
   /// self-consistent across serialisation round trips, while still detecting any
   /// edit to the cached payload.
-  Future<void> _cacheSnapshot(AuthorizationSnapshot snapshot) async {
+  Future<void> _cacheSnapshot(
+    AuthorizationSnapshot snapshot, {
+    required String deviceFingerprint,
+  }) async {
     final String digest = PayloadDigest.forSnapshot(
       userId: snapshot.userId,
       tenantId: snapshot.tenantId,
@@ -249,5 +359,45 @@ final class DefaultSessionRepository implements SessionRepository {
     };
 
     await _keyStore.write(_snapshotSlot, jsonEncode(payload));
+    await _keyStore.write(
+      _bindingSlot,
+      jsonEncode(<String, Object?>{
+        'device_id': snapshot.deviceId,
+        'device_fingerprint': deviceFingerprint,
+      }),
+    );
   }
+}
+
+/// The device a cached authorization snapshot belongs to.
+final class _SnapshotBinding {
+  const _SnapshotBinding({
+    required this.deviceId,
+    required this.deviceFingerprint,
+  });
+
+  final String deviceId;
+  final String deviceFingerprint;
+}
+
+/// Whether a cached snapshot belongs to [userId] on [deviceFingerprint].
+///
+/// Pure so the binding rule is testable without a gateway or a platform
+/// keystore. A missing binding is a mismatch: a snapshot cached before binding
+/// was introduced must be reissued rather than trusted.
+bool cachedSnapshotIsBound({
+  required AuthorizationSnapshot snapshot,
+  required String? userId,
+  required String deviceFingerprint,
+  required String? boundDeviceId,
+  required String? boundFingerprint,
+}) {
+  if (userId != null && snapshot.userId != userId) {
+    return false;
+  }
+  if (boundDeviceId == null || boundFingerprint == null) {
+    return false;
+  }
+  return snapshot.deviceId == boundDeviceId &&
+      boundFingerprint == deviceFingerprint;
 }

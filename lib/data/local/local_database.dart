@@ -19,7 +19,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:powersync/powersync.dart';
 
 /// Owns the encrypted local operational projection.
-final class LocalDatabase {
+class LocalDatabase {
   /// Creates a database service.
   LocalDatabase({required this._keyManager, required this._logger});
 
@@ -165,26 +165,50 @@ final class LocalDatabase {
     );
   }
 
+  /// Number of mutations still waiting in the PowerSync upload queue.
+  ///
+  /// Read before sign-out so queued clinical work is never discarded silently.
+  Future<int> pendingMutationCount() async {
+    final PowerSyncDatabase? open = _database;
+    if (open == null) {
+      return 0;
+    }
+    return (await open.getUploadQueueStats()).count;
+  }
+
   /// Disconnects and clears all local data, retaining the encryption key.
   ///
   /// This is the sign-out path. The device stays enrolled and can re-replicate on
   /// the next successful sign-in.
   ///
-  /// Pending uploads are counted before clearing so that discarding
-  /// unsynchronized clinical work is recorded rather than silent.
-  Future<void> signOutAndClear() async {
+  /// Unsynchronized clinical writes block the standard path: clearing the
+  /// database would destroy work the server never received. Pass [force] only
+  /// after the clinician has explicitly confirmed the loss.
+  Future<void> signOutAndClear({bool force = false}) async {
     final PowerSyncDatabase? open = _database;
     if (open == null) {
       return;
     }
 
-    final int pendingUploads = open.currentStatus.uploading ? 1 : 0;
+    final int pendingUploads = (await open.getUploadQueueStats()).count;
+    if (pendingUploads > 0 && !force) {
+      throw PersistenceError(
+        message:
+            'Sign-out was stopped: $pendingUploads unsynchronized clinical '
+            'change${pendingUploads == 1 ? '' : 's'} remain on this device. '
+            'Reconnect to upload them, or confirm a forced sign-out.',
+        code: 'pending_mutations',
+        context: <String, Object?>{'pending_mutations': pendingUploads},
+      );
+    }
+
     if (pendingUploads > 0) {
       _logger.warning(
         _module,
-        'Clearing local data while an upload was in flight.',
+        'Clearing local data while unsynchronized mutations were queued.',
         operation: 'database.sign_out',
         outcome: 'data_discarded',
+        dimensions: <String, Object?>{'pending_mutations': pendingUploads},
       );
     }
 

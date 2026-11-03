@@ -125,6 +125,35 @@ abstract interface class SecondFactorVerifier {
   });
 }
 
+/// A verifier that refuses every code.
+///
+/// Wired into release builds until a provider-backed MFA implementation exists.
+/// Failing closed keeps the master settings hub locked rather than accepting a
+/// six-digit code this app could itself have generated.
+final class UnavailableSecondFactorVerifier implements SecondFactorVerifier {
+  /// Creates the closed verifier.
+  const UnavailableSecondFactorVerifier();
+
+  @override
+  Future<SecondFactorAssertion?> verify({
+    required String tenantId,
+    required String userId,
+    required String purpose,
+    required String code,
+    SecondFactorMethod method = SecondFactorMethod.totp,
+    DateTime? at,
+  }) async => null;
+}
+
+/// Chooses the verifier for the running build.
+///
+/// A release build must never receive [StubSecondFactorVerifier]: the stub
+/// accepts any well-formed six-digit code, which is not a second factor.
+SecondFactorVerifier secondFactorVerifierFor({required bool isReleaseBuild}) =>
+    isReleaseBuild
+    ? const UnavailableSecondFactorVerifier()
+    : const StubSecondFactorVerifier();
+
 /// A placeholder verifier for the development build.
 ///
 /// It accepts a six-digit code and refuses the obviously fake ones. It is not a

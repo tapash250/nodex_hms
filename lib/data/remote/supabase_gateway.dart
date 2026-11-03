@@ -258,12 +258,17 @@ final class SupabaseGateway implements ObjectStore {
           ? context['error'] as String
           : null;
 
-      // The function signals an unprovisioned account with 403; surface it as
-      // an authorization failure so the session layer can explain it.
-      if (error.status == 403) {
-        throw AuthorizationError(
-          message: errorText ?? 'This account is not provisioned for uploads.',
-          code: 'account_not_provisioned',
+      // Authentication failures are transient: the Supabase client refreshes
+      // the JWT and the caller retries. Reporting them as permanent would make
+      // the uploader discard clinical writes because a token expired.
+      if (error.status == 401 || error.status == 403) {
+        throw RemoteError(
+          message: errorText ?? 'The mutation path refused the credentials.',
+          statusCode: error.status,
+          isTransient: true,
+          code: error.status == 401
+              ? 'mutation_authentication_expired'
+              : 'mutation_forbidden',
         );
       }
 

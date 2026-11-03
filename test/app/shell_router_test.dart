@@ -25,7 +25,9 @@ import 'package:nodex_hms/core/authorization/authorization_policy.dart';
 import 'package:nodex_hms/core/authorization/authorization_snapshot.dart';
 import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
+import 'package:nodex_hms/features/inventory/inventory_item_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
+import 'package:nodex_hms/features/search/global_search_screen.dart';
 import 'package:nodex_hms/features/session/session_controller.dart';
 
 const Set<String> _allClinicalPermissions = <String>{
@@ -243,6 +245,61 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(InventoryScreen), findsOneWidget);
+    });
+
+    testWidgets('the inventory item route resolves to the detail screen', (
+      WidgetTester tester,
+    ) async {
+      final (ProviderContainer container, GoRouter router) = await pumpApp(
+        tester,
+        _session(
+          SessionPhase.active,
+          permissions: const <String>{NodexPermissions.inventoryMovement},
+        ),
+      );
+      addTearDown(container.dispose);
+
+      router.go('/inventory/item-1');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(InventoryItemScreen), findsOneWidget);
+    });
+
+    testWidgets('global search is refused without patient.read', (
+      WidgetTester tester,
+    ) async {
+      final (ProviderContainer container, GoRouter router) = await pumpApp(
+        tester,
+        _session(
+          SessionPhase.active,
+          permissions: const <String>{NodexPermissions.inventoryMovement},
+        ),
+      );
+      addTearDown(container.dispose);
+
+      router.go('/search');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GlobalSearchScreen), findsNothing);
+      expect(find.text('NODEX'), findsOneWidget);
+    });
+
+    testWidgets('global search is reachable with patient.read', (
+      WidgetTester tester,
+    ) async {
+      final (ProviderContainer container, GoRouter router) = await pumpApp(
+        tester,
+        _session(
+          SessionPhase.active,
+          permissions: const <String>{NodexPermissions.patientRead},
+        ),
+      );
+      addTearDown(container.dispose);
+
+      router.go('/search');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GlobalSearchScreen), findsOneWidget);
     });
   });
 

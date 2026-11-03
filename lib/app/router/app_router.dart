@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nodex_hms/app/router/navigation_destinations.dart';
 import 'package:nodex_hms/app/shell/adaptive_shell.dart';
+import 'package:nodex_hms/core/authorization/permission_catalog.dart';
 import 'package:nodex_hms/domain/session/session_state.dart';
 import 'package:nodex_hms/features/ai_governance/ai_governance_screen.dart';
 import 'package:nodex_hms/features/analytics/analytics_warehouse_screen.dart';
@@ -51,6 +52,7 @@ import 'package:nodex_hms/features/icons/medical_icons_screen.dart';
 import 'package:nodex_hms/features/icu/icu_bed_detail_screen.dart';
 import 'package:nodex_hms/features/icu/icu_list_screen.dart';
 import 'package:nodex_hms/features/insurance/insurance_board_screen.dart';
+import 'package:nodex_hms/features/inventory/inventory_item_screen.dart';
 import 'package:nodex_hms/features/inventory/inventory_screen.dart';
 import 'package:nodex_hms/features/laboratory/lab_order_screen.dart';
 import 'package:nodex_hms/features/messaging/clinical_thread_screen.dart';
@@ -146,6 +148,14 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             NodexRoutes.quarantined,
           };
           if (preSessionRoutes.contains(location)) {
+            return NodexDestinations.home.routePath;
+          }
+
+          // The global search reads patient records, so it carries the same
+          // permission as the patient index even though it is not a navigation
+          // destination.
+          if (location == '/search' &&
+              !session.authorization.can(NodexPermissions.patientRead)) {
             return NodexDestinations.home.routePath;
           }
 
@@ -486,6 +496,13 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
             path: NodexDestinations.inventory.routePath,
             builder: (BuildContext context, GoRouterState state) =>
                 const InventoryScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: ':id',
+                builder: (BuildContext context, GoRouterState state) =>
+                    InventoryItemScreen(itemId: state.pathParameters['id']!),
+              ),
+            ],
           ),
           GoRoute(
             path: NodexDestinations.syncDiagnostics.routePath,

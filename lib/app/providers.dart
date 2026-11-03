@@ -7,6 +7,7 @@
 /// satisfies them.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nodex_hms/ai/contracts/ai_contracts.dart';
 import 'package:nodex_hms/ai/gateway/adapters/stub_adapters.dart';
@@ -2034,12 +2035,12 @@ readAnalyticsWarehouseUseCaseProvider = Provider<ReadAnalyticsWarehouseUseCase>(
 
 /// The second-factor verifier the master settings hub steps up with.
 ///
-/// The stub stands in for the identity provider's own multi-factor challenge,
-/// which is where a real code belongs: a code this app generated and this app
-/// checked would be a code an attacker on this device could generate too.
+/// Release builds get a verifier that refuses every code: the development stub
+/// accepts any well-formed six-digit value and must never ship. Until Supabase
+/// Auth MFA is wired, a release build keeps the master settings hub closed.
 final Provider<SecondFactorVerifier> secondFactorVerifierProvider =
     Provider<SecondFactorVerifier>(
-      (Ref ref) => const StubSecondFactorVerifier(),
+      (Ref ref) => secondFactorVerifierFor(isReleaseBuild: kReleaseMode),
     );
 
 /// Master settings repository over the encrypted local projection.

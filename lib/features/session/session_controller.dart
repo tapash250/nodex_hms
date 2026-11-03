@@ -64,7 +64,14 @@ final class SessionController extends Notifier<SessionState> {
   /// permission set.
   Future<void> bootstrap() async {
     await _startConnectivityWatch();
+    await restoreSession();
+  }
 
+  /// Establishes the session from cached state without touching connectivity.
+  ///
+  /// Split from [bootstrap] so the cached-snapshot binding rules can be
+  /// exercised without a platform connectivity channel.
+  Future<void> restoreSession() async {
     final SessionDevice device = ref.read(sessionDeviceProvider);
     state = state.copyWith(device: device);
 
@@ -73,10 +80,37 @@ final class SessionController extends Notifier<SessionState> {
       return;
     }
 
-    final AuthorizationSnapshot? cached = await _repository
-        .cachedAuthorization();
+    final String? currentUserId = _repository.currentUserId();
+    if (currentUserId == null) {
+      // hasSession() was true but the principal is gone: treat the device as
+      // signed out rather than hydrating a snapshot nobody owns.
+      await _repository.clearCachedAuthorization();
+      state = state.copyWith(
+        phase: SessionPhase.unauthenticated,
+        clearUser: true,
+        clearSnapshot: true,
+        message: 'Sign in again to restore clinical access.',
+      );
+      return;
+    }
+
+    final AuthorizationSnapshot? cached = await _repository.cachedAuthorization(
+      userId: currentUserId,
+      deviceFingerprint: device.fingerprint,
+    );
+    final bool lockedAtRestart = await _repository.isLocked();
 
     if (cached == null) {
+      if (lockedAtRestart) {
+        // The lock flag survives even when the snapshot cannot be hydrated.
+        // Do not refresh past the lock screen: unlocking is the only way in.
+        state = state.copyWith(
+          phase: SessionPhase.locked,
+          clearSnapshot: true,
+          message: 'Unlock to restore clinical access.',
+        );
+        return;
+      }
       // Authenticated with no usable snapshot. Online, a refresh can recover;
       // offline, the device must reconnect before clinical work resumes.
       state = state.copyWith(
@@ -111,6 +145,19 @@ final class SessionController extends Notifier<SessionState> {
       return;
     }
 
+    // A snapshot that survived the process is only usable after the lock flag
+    // is honoured: killing the app must not bypass the lock screen.
+    if (await _repository.isLocked()) {
+      state = state.copyWith(
+        phase: SessionPhase.locked,
+        snapshot: cached,
+        tenantId: cached.tenantId,
+        clearMessage: true,
+      );
+      _scheduleAuthorizationExpiry(cached);
+      return;
+    }
+
     state = state.copyWith(
       phase: SessionPhase.active,
       snapshot: cached,
@@ -137,6 +184,10 @@ final class SessionController extends Notifier<SessionState> {
     required String tenantId,
   }) async {
     try {
+      // A new principal must never inherit the previous clinician's cached
+      // permissions, even if the subsequent refresh fails offline.
+      await _repository.clearCachedAuthorization();
+      await _repository.setLocked(locked: false);
       await _repository.signIn(email: email, password: password);
       state = state.copyWith(
         phase: SessionPhase.awaitingAuthorization,
@@ -202,6 +253,9 @@ final class SessionController extends Notifier<SessionState> {
         clearSnapshot: true,
         message: _authorizationDenialMessage(error),
       );
+      // The cached snapshot is now known to be denied; discard it so a later
+      // offline bootstrap cannot resurrect the revoked permissions.
+      await _repository.clearCachedAuthorization();
     } on ConnectivityError {
       // Keep the existing window; local-first operation continues.
       _logger.info(
@@ -240,11 +294,30 @@ final class SessionController extends Notifier<SessionState> {
   ///
   /// The snapshot is retained: locking protects the screen, it does not revoke
   /// authorization, so an interrupted ward round resumes without a round trip.
-  void lock() {
+  Future<void> lock() async {
     if (state.phase != SessionPhase.active) {
       return;
     }
     state = state.copyWith(phase: SessionPhase.locked);
+    try {
+      // Persisted before the UI settles so a process kill cannot drop the lock.
+      await _repository.setLocked(locked: true);
+    } on Object catch (error, stackTrace) {
+      // Logging is best-effort here: a broken logger must not prevent the lock
+      // from taking effect in memory.
+      try {
+        _logger.critical(
+          _module,
+          'The lock state could not be persisted; a restart may resume unlocked.',
+          operation: 'session.lock',
+          outcome: 'failed',
+          stackTrace: stackTrace,
+          dimensions: <String, Object?>{'error': '$error'},
+        );
+      } on Object {
+        // Ignored: the session is still locked for this process.
+      }
+    }
   }
 
   /// Unlocks a locked session.
@@ -271,20 +344,107 @@ final class SessionController extends Notifier<SessionState> {
       return;
     }
 
+    try {
+      await _repository.setLocked(locked: false);
+    } on Object catch (error, stackTrace) {
+      // The in-memory unlock proceeds; a restart will lock again, which is the
+      // safe direction for a persistence failure.
+      try {
+        _logger.error(
+          _module,
+          'The lock state could not be cleared; a restart will lock again.',
+          operation: 'session.unlock',
+          outcome: 'degraded',
+          stackTrace: stackTrace,
+          dimensions: <String, Object?>{'error': '$error'},
+        );
+      } on Object {
+        // Ignored: logging must not block the unlock path.
+      }
+    }
+
     state = state.copyWith(phase: SessionPhase.active, clearMessage: true);
   }
 
   /// Signs out, clearing local clinical data.
-  Future<void> signOut() async {
+  ///
+  /// Fails closed. If encrypted local data cannot be cleared, the session is
+  /// not reported as signed out: leaving the previous clinician's patients on
+  /// disk while showing a sign-in screen is worse than a visible failure.
+  ///
+  /// Queued, unsynchronized mutations block the standard path. [force] is only
+  /// for a clinician who has explicitly accepted losing those writes.
+  Future<void> signOut({bool force = false}) async {
     _authorizationExpiryTimer?.cancel();
-    try {
-      if (_localDatabase.isOpen) {
-        await _localDatabase.signOutAndClear();
+
+    if (_localDatabase.isOpen) {
+      final int pending;
+      try {
+        pending = await _localDatabase.pendingMutationCount();
+      } on Object catch (error, stackTrace) {
+        _logger.critical(
+          _module,
+          'Sign-out was stopped: the local upload queue could not be read.',
+          operation: 'session.sign_out',
+          outcome: 'blocked',
+          stackTrace: stackTrace,
+          dimensions: <String, Object?>{'error': '$error'},
+        );
+        state = state.copyWith(
+          message:
+              'Sign-out was stopped because pending clinical changes could not '
+              'be verified. Retry, or wipe the device from Settings.',
+        );
+        return;
       }
+
+      if (pending > 0 && !force) {
+        _logger.warning(
+          _module,
+          'Sign-out was blocked by unsynchronized clinical mutations.',
+          operation: 'session.sign_out',
+          outcome: 'blocked',
+          dimensions: <String, Object?>{'pending_mutations': pending},
+        );
+        state = state.copyWith(
+          pendingUploadCount: pending,
+          message:
+              '$pending unsynchronized clinical '
+              'change${pending == 1 ? '' : 's'} remain on this device. '
+              'Reconnect to upload them before signing out.',
+        );
+        return;
+      }
+
+      try {
+        await _localDatabase.signOutAndClear(force: force);
+      } on Object catch (error, stackTrace) {
+        _logger.critical(
+          _module,
+          'Failed to clear local data during sign-out; staying signed in.',
+          operation: 'session.sign_out',
+          outcome: 'blocked',
+          stackTrace: stackTrace,
+          dimensions: <String, Object?>{'error': '$error'},
+        );
+        state = state.copyWith(
+          message:
+              'Sign-out was stopped because local clinical data could not be '
+              'cleared. Retry, or wipe the device from Settings.',
+        );
+        return;
+      }
+    }
+
+    try {
+      await _repository.signOut();
     } on Object catch (error, stackTrace) {
-      _logger.error(
+      // Local data is already gone, so the clinical surface must close even if
+      // the remote session could not be revoked. The cached snapshot was
+      // cleared first by the repository.
+      _logger.critical(
         _module,
-        'Failed to clear local data during sign-out.',
+        'Remote sign-out failed after local data was cleared.',
         operation: 'session.sign_out',
         outcome: 'partial',
         stackTrace: stackTrace,
@@ -292,7 +452,6 @@ final class SessionController extends Notifier<SessionState> {
       );
     }
 
-    await _repository.signOut();
     state = SessionState(
       phase: SessionPhase.unauthenticated,
       connectivity: state.connectivity,

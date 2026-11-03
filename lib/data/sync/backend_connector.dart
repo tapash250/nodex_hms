@@ -15,9 +15,12 @@
 /// resolved by an implicit last-write-wins.
 library;
 
+import 'dart:convert';
+
 import 'package:nodex_hms/core/errors/error_mapper.dart';
 import 'package:nodex_hms/core/errors/nodex_error.dart';
 import 'package:nodex_hms/core/logging/nodex_logger.dart';
+import 'package:nodex_hms/core/storage/local_schema.dart';
 import 'package:nodex_hms/core/sync/conflict_policy.dart';
 import 'package:nodex_hms/data/remote/supabase_gateway.dart';
 import 'package:nodex_hms/data/sync/mutation_batch.dart';
@@ -43,6 +46,61 @@ typedef MutationSubmitter = Future<List<MutationDecision>> Function(
   List<Map<String, Object?>> mutations, {
   String? deviceId,
 });
+
+/// A mutation the server refused, recorded before the upload queue is cleared.
+///
+/// The record is non-PHI: identifiers, the rejection class and the server's
+/// non-PHI detail only. It makes a refused clinical write visible in sync
+/// diagnostics instead of vanishing with the queue entry.
+final class MutationJournalRecord {
+  /// Creates a record.
+  const MutationJournalRecord({
+    required this.entry,
+    required this.transactionId,
+    required this.status,
+    required this.rejectionClass,
+    required this.detail,
+    required this.conflictPolicy,
+  });
+
+  /// The queue entry that was refused.
+  final CrudEntry entry;
+
+  /// PowerSync transaction the entry belonged to.
+  final int? transactionId;
+
+  /// `rejected`, `conflicted` or `server_authoritative`.
+  final String status;
+
+  /// Server rejection class, when supplied.
+  final String? rejectionClass;
+
+  /// Server detail, non-PHI by contract.
+  final String? detail;
+
+  /// Registered conflict policy wire value, when the table has one.
+  final String? conflictPolicy;
+
+  /// Stable idempotency key for the refused mutation.
+  String get idempotencyKey => '${transactionId ?? 'tx'}-${entry.clientId}';
+}
+
+/// Persists refused mutations and reconciles server-authoritative conflicts.
+///
+/// Implementations must write the record before the caller completes the CRUD
+/// transaction. A journal failure therefore leaves the batch queued rather than
+/// discarding it.
+abstract interface class MutationJournal {
+  /// Records a refused mutation.
+  Future<void> record(MutationJournalRecord record);
+
+  /// Applies the server-authoritative resolution for [record].
+  ///
+  /// PowerSync re-replicates the server row on the next checkpoint, which is
+  /// what discards the local projection. Implementations may add a local
+  /// reconciliation step; they must not enqueue a compensating write.
+  Future<void> reconcileServerAuthoritative(MutationJournalRecord record);
+}
 
 /// Connects PowerSync to Supabase through the authorized mutation path.
 final class NodexBackendConnector extends PowerSyncBackendConnector {
@@ -94,6 +152,7 @@ final class NodexBackendConnector extends PowerSyncBackendConnector {
     final MutationUploader uploader = MutationUploader(
       submit: _gateway.submitMutations,
       logger: _logger,
+      journal: PowerSyncMutationJournal(database: database, logger: _logger),
     );
     await uploader.upload(transaction, deviceId: _deviceId?.call());
   }
@@ -109,9 +168,10 @@ final class MutationUploader {
   factory MutationUploader({
     required MutationSubmitter submit,
     required NodexLogger logger,
-  }) => MutationUploader._(submit, logger);
+    MutationJournal? journal,
+  }) => MutationUploader._(submit, logger, journal);
 
-  MutationUploader._(this._submit, this._logger);
+  MutationUploader._(this._submit, this._logger, this._journal);
 
   static const String _module = 'sync.connector';
 
@@ -124,6 +184,7 @@ final class MutationUploader {
 
   final MutationSubmitter _submit;
   final NodexLogger _logger;
+  final MutationJournal? _journal;
 
   /// Uploads [transaction], returning the aggregate outcome.
   ///
@@ -176,9 +237,20 @@ final class MutationUploader {
             case MutationOutcome.rejected:
               if (match.decision.rejectionClass == 'conflict') {
                 sawConflict = true;
-                _handleConflict(match.entry, match.decision);
+                await _handleConflict(
+                  match.entry,
+                  match.decision,
+                  transactionId: transaction.transactionId,
+                );
               } else {
                 sawRejection = true;
+                await _record(
+                  match.entry,
+                  transactionId: transaction.transactionId,
+                  status: UploadOutcome.rejected.name,
+                  rejectionClass: match.decision.rejectionClass,
+                  detail: match.decision.detail,
+                );
                 _logRejection(match.entry, match.decision);
               }
           }
@@ -255,12 +327,31 @@ final class MutationUploader {
   }
 
   /// Routes a server-reported conflict through the entity's policy.
-  void _handleConflict(CrudEntry entry, MutationDecision decision) {
+  Future<void> _handleConflict(
+    CrudEntry entry,
+    MutationDecision decision, {
+    required int? transactionId,
+  }) async {
     final ConflictPolicyEntry policy = ConflictPolicyRegistry.policyFor(
       entry.table,
     );
+    final MutationJournalRecord record = MutationJournalRecord(
+      entry: entry,
+      transactionId: transactionId,
+      status: policy.policy == ConflictPolicy.serverAuthoritative
+          ? 'server_authoritative'
+          : UploadOutcome.conflicted.name,
+      rejectionClass: decision.rejectionClass,
+      detail: decision.detail,
+      conflictPolicy: policy.policy.wireValue,
+    );
+
+    // Record before anything is completed or thrown: the queue must never
+    // surrender a clinical write that has no local trace.
+    await _journal?.record(record);
 
     if (policy.policy == ConflictPolicy.serverAuthoritative) {
+      await _journal?.reconcileServerAuthoritative(record);
       _logger.warning(
         _module,
         'Mutation conflicted; the server-authoritative policy discards the '
@@ -295,6 +386,32 @@ final class MutationUploader {
     );
   }
 
+  /// Records a refused entry when a journal is configured.
+  Future<void> _record(
+    CrudEntry entry, {
+    required int? transactionId,
+    required String status,
+    required String? rejectionClass,
+    required String? detail,
+  }) async {
+    final MutationJournal? journal = _journal;
+    if (journal == null) {
+      return;
+    }
+    await journal.record(
+      MutationJournalRecord(
+        entry: entry,
+        transactionId: transactionId,
+        status: status,
+        rejectionClass: rejectionClass,
+        detail: detail,
+        conflictPolicy: ConflictPolicyRegistry.policyFor(entry.table)
+            .policy
+            .wireValue,
+      ),
+    );
+  }
+
   void _logRejection(CrudEntry entry, MutationDecision decision) {
     _logger.error(
       _module,
@@ -314,13 +431,26 @@ final class MutationUploader {
     NodexError error,
     CrudTransaction transaction,
   ) async {
+    // Authentication failures are transient by design: the Supabase client
+    // refreshes the JWT and PowerSync retries. Dropping the batch here would
+    // destroy clinical writes because a token happened to be stale.
+    if (error is AuthorizationError) {
+      _logger.warning(
+        _module,
+        'Upload was refused by authentication or authorization; the batch '
+        'remains queued for a credential refresh and retry.',
+        operation: 'sync.upload',
+        outcome: UploadOutcome.retryLater.name,
+        errorCode: error.code,
+      );
+      throw error;
+    }
+
     // Permanent rejections must leave the queue, or the client retries forever
     // against a server that will never accept the write. The mutation is recorded
     // as rejected so it stays visible in sync diagnostics.
     final bool isPermanent =
-        error is ValidationError ||
-        error is AuthorizationError ||
-        error is IntegrityError;
+        error is ValidationError || error is IntegrityError;
 
     if (error is SyncConflictError) {
       _logger.warning(
@@ -344,6 +474,15 @@ final class MutationUploader {
       // merge or a human decision, so the batch stays queued for the sync
       // reconciler rather than being dropped here.
       if (entry.policy == ConflictPolicy.serverAuthoritative) {
+        for (final CrudEntry crudEntry in transaction.crud) {
+          await _record(
+            crudEntry,
+            transactionId: transaction.transactionId,
+            status: 'server_authoritative',
+            rejectionClass: error.code,
+            detail: error.message,
+          );
+        }
         await transaction.complete();
         return UploadOutcome.conflicted;
       }
@@ -351,6 +490,17 @@ final class MutationUploader {
     }
 
     if (isPermanent) {
+      // Record every entry before the queue is cleared. If the journal write
+      // fails, the exception propagates and the batch stays queued.
+      for (final CrudEntry crudEntry in transaction.crud) {
+        await _record(
+          crudEntry,
+          transactionId: transaction.transactionId,
+          status: UploadOutcome.rejected.name,
+          rejectionClass: error.code,
+          detail: error.message,
+        );
+      }
       _logger.error(
         _module,
         'Upload permanently rejected; the mutation is retained for review.',
@@ -376,6 +526,123 @@ final class MutationUploader {
     );
     throw error;
   }
+}
+
+/// Writes refused mutations into the local-only audit tables.
+///
+/// The rows are local-only, so they are never replicated and never enter the
+/// upload queue. A write failure is rethrown: the caller keeps the mutation
+/// queued rather than losing it without a trace.
+final class PowerSyncMutationJournal implements MutationJournal {
+  /// Creates a journal over [database].
+  factory PowerSyncMutationJournal({
+    required PowerSyncDatabase database,
+    required NodexLogger logger,
+  }) => PowerSyncMutationJournal._(database, logger);
+
+  PowerSyncMutationJournal._(this._database, this._logger);
+
+  static const String _module = 'sync.journal';
+
+  final PowerSyncDatabase _database;
+  final NodexLogger _logger;
+
+  @override
+  Future<void> record(MutationJournalRecord record) async {
+    final String now = DateTime.now().toUtc().toIso8601String();
+    final Map<String, Object?> data =
+        record.entry.opData ?? const <String, Object?>{};
+    final Object? tenantId = data['tenant_id'];
+    final Object? userId =
+        data['updated_by'] ?? data['created_by'] ?? data['recorded_by'];
+
+    try {
+      await _database.execute(
+        'INSERT INTO ${LocalTables.localMutationLog} ('
+        'tenant_id, user_id, device_id, operation, resource_type, '
+        'resource_id, idempotency_key, conflict_policy, status, '
+        'attempt_count, origin, payload_digest, rejection_class, '
+        'rejection_detail, client_created_at, last_attempt_at'
+        ') VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        <Object?>[
+          tenantId,
+          userId,
+          data['device_id'],
+          _operation(record.entry.op),
+          record.entry.table,
+          record.entry.id,
+          record.idempotencyKey,
+          record.conflictPolicy,
+          record.status,
+          1,
+          'online',
+          null,
+          record.rejectionClass,
+          record.detail,
+          now,
+          now,
+        ],
+      );
+      await _database.execute(
+        'INSERT INTO ${LocalTables.localDiagnostics} ('
+        'recorded_at, level, module, operation, outcome, error_code, '
+        'message, dimensions'
+        ') VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        <Object?>[
+          now,
+          'warning',
+          _module,
+          'sync.upload',
+          record.status,
+          record.rejectionClass,
+          'A queued mutation was refused by the server.',
+          jsonEncode(<String, Object?>{
+            'resource_type': record.entry.table,
+            'row_id': record.entry.id,
+            'idempotency_key': record.idempotencyKey,
+            'conflict_policy': record.conflictPolicy,
+          }),
+        ],
+      );
+    } on Object catch (error, stackTrace) {
+      _logger.critical(
+        _module,
+        'A refused mutation could not be recorded; the batch stays queued.',
+        operation: 'sync.journal',
+        outcome: 'failed',
+        stackTrace: stackTrace,
+        dimensions: <String, Object?>{'error': '$error'},
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> reconcileServerAuthoritative(
+    MutationJournalRecord record,
+  ) async {
+    // PowerSync applies the authoritative server row on the next replication
+    // checkpoint. Writing the row here would itself enter the upload queue as a
+    // new mutation, so the resolution is recorded rather than replayed.
+    _logger.info(
+      _module,
+      'Server-authoritative conflict recorded; the next checkpoint applies the '
+      'server row.',
+      operation: 'sync.reconcile',
+      outcome: 'server_authoritative',
+      dimensions: <String, Object?>{
+        'resource_type': record.entry.table,
+        'row_id': record.entry.id,
+        'idempotency_key': record.idempotencyKey,
+      },
+    );
+  }
+
+  static String _operation(UpdateType operation) => switch (operation) {
+    UpdateType.put => 'upsert',
+    UpdateType.patch => 'patch',
+    UpdateType.delete => 'delete',
+  };
 }
 
 /// One queue entry paired with the decision the server returned for it.

@@ -43,10 +43,38 @@ CrudEntry _entry({
   opData,
 );
 
-MutationUploader _uploader(MutationSubmitter submit) => MutationUploader(
+MutationUploader _uploader(
+  MutationSubmitter submit, {
+  MutationJournal? journal,
+}) => MutationUploader(
   submit: submit,
   logger: NodexLogger(sinks: <NodexLogSink>[]),
+  journal: journal,
 );
+
+final class _RecordingJournal implements MutationJournal {
+  final List<MutationJournalRecord> records = <MutationJournalRecord>[];
+  int reconciliations = 0;
+  bool fail = false;
+
+  @override
+  Future<void> record(MutationJournalRecord record) async {
+    if (fail) {
+      throw const PersistenceError(
+        message: 'journal unavailable',
+        code: 'journal_unavailable',
+      );
+    }
+    records.add(record);
+  }
+
+  @override
+  Future<void> reconcileServerAuthoritative(
+    MutationJournalRecord record,
+  ) async {
+    reconciliations++;
+  }
+}
 
 List<MutationDecision> _applied(List<Map<String, Object?>> payload) =>
     <MutationDecision>[
@@ -331,6 +359,152 @@ void main() {
         throwsA(isA<ConnectivityError>()),
       );
       expect(sizes, <int>[100, 50]);
+      expect(completions, 0);
+    });
+  });
+
+  group('authentication failures', () {
+    test('a 401 leaves the batch queued for a token refresh', () async {
+      int completions = 0;
+      final CrudTransaction transaction = _transaction(
+        <CrudEntry>[_entry(clientId: 1, table: 'lab_orders', transactionId: 7)],
+        transactionId: 7,
+        onComplete: () => completions++,
+      );
+
+      Future<List<MutationDecision>> submit(
+        List<Map<String, Object?>> mutations, {
+        String? deviceId,
+      }) async => throw const RemoteError(
+        message: 'token expired',
+        statusCode: 401,
+        isTransient: true,
+        code: 'mutation_authentication_expired',
+      );
+
+      await expectLater(
+        _uploader(submit).upload(transaction),
+        throwsA(isA<RemoteError>()),
+      );
+      expect(completions, 0);
+    });
+
+    test('an AuthorizationError is not treated as permanent', () async {
+      int completions = 0;
+      final CrudTransaction transaction = _transaction(
+        <CrudEntry>[_entry(clientId: 1, table: 'lab_orders', transactionId: 7)],
+        transactionId: 7,
+        onComplete: () => completions++,
+      );
+
+      Future<List<MutationDecision>> submit(
+        List<Map<String, Object?>> mutations, {
+        String? deviceId,
+      }) async => throw const AuthorizationError(
+        message: 'no session',
+        code: 'no_session',
+      );
+
+      await expectLater(
+        _uploader(submit).upload(transaction),
+        throwsA(isA<AuthorizationError>()),
+      );
+      expect(completions, 0);
+    });
+  });
+
+  group('rejection journal', () {
+    test('a rejected entry is recorded before the queue is cleared', () async {
+      final _RecordingJournal journal = _RecordingJournal();
+      bool recordedBeforeComplete = false;
+      final CrudTransaction transaction = _transaction(
+        <CrudEntry>[_entry(clientId: 1, table: 'lab_orders', transactionId: 7)],
+        transactionId: 7,
+        onComplete: () => recordedBeforeComplete = journal.records.isNotEmpty,
+      );
+
+      Future<List<MutationDecision>> submit(
+        List<Map<String, Object?>> mutations, {
+        String? deviceId,
+      }) async => <MutationDecision>[
+        for (final Map<String, Object?> mutation in mutations)
+          MutationDecision(
+            mutationId: mutation['id']! as String,
+            outcome: MutationOutcome.rejected,
+            rejectionClass: 'forbidden',
+            detail: 'permission denied',
+          ),
+      ];
+
+      final UploadOutcome outcome = await _uploader(
+        submit,
+        journal: journal,
+      ).upload(transaction);
+
+      expect(outcome, UploadOutcome.rejected);
+      expect(journal.records, hasLength(1));
+      expect(journal.records.single.status, 'rejected');
+      expect(journal.records.single.rejectionClass, 'forbidden');
+      expect(journal.records.single.idempotencyKey, '7-1');
+      expect(recordedBeforeComplete, isTrue);
+    });
+
+    test(
+      'a server-authoritative conflict is recorded and reconciled first',
+      () async {
+        final _RecordingJournal journal = _RecordingJournal();
+        bool recordedBeforeComplete = false;
+        final CrudTransaction transaction = _transaction(
+          <CrudEntry>[
+            _entry(clientId: 1, table: 'bed_assignments', transactionId: 7),
+          ],
+          transactionId: 7,
+          onComplete: () => recordedBeforeComplete = journal.records.isNotEmpty,
+        );
+
+        Future<List<MutationDecision>> submit(
+          List<Map<String, Object?>> mutations, {
+          String? deviceId,
+        }) async => _conflict(mutations);
+
+        final UploadOutcome outcome = await _uploader(
+          submit,
+          journal: journal,
+        ).upload(transaction);
+
+        expect(outcome, UploadOutcome.conflicted);
+        expect(journal.records, hasLength(1));
+        expect(journal.records.single.status, 'server_authoritative');
+        expect(journal.reconciliations, 1);
+        expect(recordedBeforeComplete, isTrue);
+      },
+    );
+
+    test('a journal failure keeps the batch queued', () async {
+      int completions = 0;
+      final _RecordingJournal journal = _RecordingJournal()..fail = true;
+      final CrudTransaction transaction = _transaction(
+        <CrudEntry>[_entry(clientId: 1, table: 'lab_orders', transactionId: 7)],
+        transactionId: 7,
+        onComplete: () => completions++,
+      );
+
+      Future<List<MutationDecision>> submit(
+        List<Map<String, Object?>> mutations, {
+        String? deviceId,
+      }) async => <MutationDecision>[
+        for (final Map<String, Object?> mutation in mutations)
+          MutationDecision(
+            mutationId: mutation['id']! as String,
+            outcome: MutationOutcome.rejected,
+            rejectionClass: 'forbidden',
+          ),
+      ];
+
+      await expectLater(
+        _uploader(submit, journal: journal).upload(transaction),
+        throwsA(isA<PersistenceError>()),
+      );
       expect(completions, 0);
     });
   });

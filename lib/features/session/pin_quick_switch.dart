@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nodex_hms/core/security/pin_service.dart';
 import 'package:nodex_hms/core/security/pin_store.dart';
 
 /// The PIN store.
@@ -99,5 +100,104 @@ Future<bool?> askForPin(BuildContext context, WidgetRef ref) async {
     );
   } finally {
     controller.dispose();
+  }
+}
+
+/// Enrols a quick-switch PIN for this device.
+///
+/// Returns true when a PIN was stored. The PIN is hashed by [PinStore] and the
+/// plain text never leaves the dialog's controllers.
+Future<bool> askToSetPin(BuildContext context, WidgetRef ref) async {
+  final TextEditingController pin = TextEditingController();
+  final TextEditingController confirmation = TextEditingController();
+  String? error;
+  bool saving = false;
+
+  try {
+    final bool? saved = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) => AlertDialog(
+          title: const Text('Set quick-switch PIN'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text(
+                'The PIN lets the next clinician take over this device. It is '
+                'stored as a salted digest in the Android Keystore.',
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: pin,
+                autofocus: true,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                maxLength: 8,
+                decoration: const InputDecoration(
+                  labelText: 'PIN',
+                  counterText: '',
+                ),
+              ),
+              TextField(
+                controller: confirmation,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                maxLength: 8,
+                decoration: InputDecoration(
+                  labelText: 'Confirm PIN',
+                  counterText: '',
+                  errorText: error,
+                ),
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (!PinHasher.isAcceptable(pin.text)) {
+                        setState(
+                          () => error =
+                              'Use 4 to 8 digits, not one repeated digit.',
+                        );
+                        return;
+                      }
+                      if (pin.text != confirmation.text) {
+                        setState(() => error = 'The PINs do not match.');
+                        return;
+                      }
+                      setState(() {
+                        saving = true;
+                        error = null;
+                      });
+                      try {
+                        await ref.read(pinStoreProvider).set(pin.text);
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } on Object {
+                        if (dialogContext.mounted) {
+                          setState(() {
+                            saving = false;
+                            error = 'The PIN could not be stored.';
+                          });
+                        }
+                      }
+                    },
+              child: const Text('Save PIN'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return saved ?? false;
+  } finally {
+    pin.dispose();
+    confirmation.dispose();
   }
 }
