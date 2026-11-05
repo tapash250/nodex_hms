@@ -130,8 +130,8 @@ Future<void> main() async {
           powerSyncUrl: environment.powerSyncUrl,
           // The enrolled device UUID, bound to the session during snapshot
           // issuance. Read per upload because enrollment happens after this
-          // connector is built; a not-yet-enrolled device uploads unbound
-          // rather than inventing an identifier.
+          // connector is built; a not-yet-enrolled device leaves the batch
+          // queued rather than uploading unbound.
           resolveDeviceId: () =>
               container.read(sessionProvider).snapshot?.deviceId,
         ),

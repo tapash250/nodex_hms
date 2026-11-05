@@ -32,6 +32,7 @@ AUTHZ = POWERSYNC / "tests" / "authorization.sql"
 
 MIGRATION_A = MIGRATIONS / "20260918160000_phase4_patient_mutation_authorization.sql"
 MIGRATION_B = MIGRATIONS / "20260918170000_phase4_membership_expiry.sql"
+MIGRATION_C = MIGRATIONS / "20260918210000_phase4_mutation_boundary_and_backend_hardening.sql"
 COVERAGE_MIGRATION = MIGRATIONS / "20260918200001_expand_powersync_full_coverage.sql"
 
 # Tables the original SOURCE_DB_SETUP.sql published. The full-coverage migration
@@ -443,17 +444,122 @@ def test_handler() -> None:
     check("hasCurrentMembership" in text, "handler must check membership validity")
     check(".from('devices')" in text, "handler must resolve the device")
     check("device.revoked_at !== null" in text, "handler must reject a revoked device")
+    check("an enrolled device is required for a mutation" in text,
+          "handler must reject an unbound mutation")
     check("the device header does not match the mutation body" in text,
           "handler must reject a device header/body mismatch")
-    check("ctx.supabase.rest.headers.set('x-device-id', deviceId)" in text,
-          "handler must forward the device id to PostgREST")
-    check("ctx.supabase.rest.headers.delete('x-device-id')" in text,
-          "handler must clear a stale device header")
-    check("const table = ctx.supabase.from(m.table)" in text, "handler must apply writes with the user client")
-    set_at = text.find("ctx.supabase.rest.headers.set")
-    apply_at = text.find("const table = ctx.supabase.from(m.table)")
-    check(0 <= set_at < apply_at, "device header must be set before the write")
-    ok("handler: tenant, membership, device, error classification and header forwarding wired")
+    check("ctx.supabaseAdmin.rpc(" in text and "'apply_authorized_mutation'" in text,
+          "handler must apply mutations through the atomic authorized RPC")
+    check("payload_digest: payloadDigest" in text,
+          "handler must send the payload digest to the ledger")
+    check("audit_action: auditAction" in text,
+          "handler must send the audit action to the atomic RPC")
+    check("decision?.rejection_class === 'authorization'" in text,
+          "handler must translate the ledger rejection vocabulary for the client")
+    check("const table = ctx.supabase.from(m.table)" not in text,
+          "handler must not apply clinical writes with the user client")
+    check("await table.upsert" not in text and "await table.update" not in text,
+          "handler must not apply clinical writes with the user client")
+    check("ctx.supabase.rest.headers.set('x-device-id'" not in text,
+          "device provenance must travel in the RPC payload, not a mutable request header")
+    ok("handler: tenant, membership, mandatory device, atomic RPC and error classification wired")
+
+
+def test_boundary_migration() -> None:
+    sql = read(MIGRATION_C)
+    lower = sql.lower()
+
+    handler = read(HANDLER)
+    block = re.search(
+        r"const WRITABLE_TABLES[^=]*=\s*\{(.*?)\n\}\n\n// -+\n// Validation",
+        handler,
+        re.S,
+    )
+    check(block is not None, "handler writable-table registry not found")
+    handler_tables = set(re.findall(r"^  ([a-z][a-z0-9_]*): \{", block.group(1), re.M))
+
+    allowlist = re.search(
+        r"insert\s+into\s+nodex\.authorized_mutation_tables\s*\(table_name\)(.*?)on\s+conflict",
+        sql,
+        re.I | re.S,
+    )
+    check(allowlist is not None, "authorized mutation allowlist insert missing")
+    migration_tables = set(re.findall(r"'([a-z_0-9]+)'", allowlist.group(1)))
+    check(
+        migration_tables == handler_tables,
+        "authorized mutation allowlist drifted from the handler: "
+        f"{sorted(migration_tables ^ handler_tables)}",
+    )
+    check(len(migration_tables) == 131, f"expected 131 authorized tables, found {len(migration_tables)}")
+    missing = migration_tables - created_tables()
+    check(not missing, f"authorized tables not created by any migration: {sorted(missing)}")
+
+    check("create or replace function public.apply_authorized_mutation" in lower,
+          "atomic authorized mutation RPC missing")
+    check("security definer" in lower, "authorized mutation RPC must be SECURITY DEFINER")
+    check("revoke all on function public.apply_authorized_mutation" in lower,
+          "authorized mutation RPC must revoke default execution")
+    check(
+        re.search(
+            r"grant\s+execute\s+on\s+function\s+public\.apply_authorized_mutation\s*\(uuid,\s*jsonb\)\s+to\s+service_role",
+            sql,
+            re.I,
+        ) is not None,
+        "authorized mutation RPC must be executable by service_role only",
+    )
+    check("nodex.authorized_mutation" in lower and "set_config" in lower,
+          "authorized mutation path must be marked transaction-locally")
+    check("nodex.apply_authorized_mutation_row" in lower,
+          "row apply must run through the RLS-subject helper")
+    check("owner to nodex_mutation_writer" in lower,
+          "row helper must be owned by the non-login writer role so RLS still applies")
+    check("grant create on schema nodex to nodex_mutation_writer" in lower,
+          "ownership transfer must grant the new owner CREATE on the function schema")
+    check("revoke create on schema nodex from nodex_mutation_writer" in lower,
+          "the transfer-only CREATE grant must be removed")
+    check("grant insert, update on public.%i to nodex_mutation_writer" in lower,
+          "writer role must hold DML only on the allowlist")
+    check("grant authenticated to nodex_mutation_writer" in lower,
+          "writer role must inherit the authenticated policies")
+    check("request.jwt.claim.sub" in lower and "request.jwt.claims" in lower,
+          "authorized mutation RPC must install the actor identity for auth.uid()")
+    check("request.jwt.claim.role" in lower,
+          "authorized mutation RPC must downgrade the role claim so service_role guards do not skip")
+    check("request.headers" in lower and "x-device-id" in lower,
+          "authorized mutation RPC must install device provenance for the trigger")
+    check("idempotency_key reused with a different payload" in sql,
+          "idempotency retries must reject a payload mismatch")
+    check("payload_digest is distinct from v_digest" in lower,
+          "idempotency retry must compare payload digests")
+    check("insert into public.audit_events" in lower,
+          "authorized mutation RPC must write the audit row in the same transaction")
+    check("nodex.authorized_mutation_tables" in lower,
+          "database-side allowlist missing")
+    check(
+        re.search(
+            r"revoke\s+insert,\s*update,\s*delete\s+on\s+public\.%I\s+from\s+public,\s*anon,\s*authenticated",
+            sql,
+            re.I,
+        ) is not None,
+        "direct client DML must be revoked from allowlisted tables",
+    )
+    check("current_user not in ('authenticated', 'anon', 'authenticated_user')" in lower,
+          "snapshot guard must admit the SECURITY DEFINER owner, not only service_role")
+    check("new.biometric_template_sha256 is distinct from old.biometric_template_sha256" in lower,
+          "signed consent guard must freeze biometric evidence")
+    check("new.witnessed_by is distinct from old.witnessed_by" in lower,
+          "signed consent guard must freeze the witness")
+    check("participant %s has no active messaging membership in this tenant" in lower,
+          "new thread participants must be validated")
+    check("if not (new.participants @> old.participants)" in lower,
+          "a thread update must not remove a participant by replacing them")
+    check("create policy clinical_attachments_insert_participant" in lower,
+          "clinical_attachments must have an INSERT policy")
+    check("create trigger memberships_audit" in lower,
+          "membership role/status changes must be audited")
+    check("reserved clinical event stream" in lower,
+          "clinical_events must document that no emitter is wired")
+    ok("boundary migration: allowlist parity, atomic RPC, snapshot, consent, messaging, audit")
 
 
 def test_seed() -> None:
@@ -505,6 +611,7 @@ def main() -> None:
     test_authorization_migration()
     test_expiry_migration()
     test_handler()
+    test_boundary_migration()
     test_seed()
     test_authorization_tests()
     print("\nall static assertions passed")

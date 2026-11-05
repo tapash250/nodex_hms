@@ -110,8 +110,8 @@ final class NodexBackendConnector extends PowerSyncBackendConnector {
   /// read per batch rather than captured once because the device is enrolled as
   /// part of snapshot issuance, which happens after this connector is
   /// constructed. When it resolves to null — the device is not yet enrolled —
-  /// the mutation is uploaded without a device binding, and the server records
-  /// the ledger row with a null device rather than a fabricated one.
+  /// the batch is left queued. An unbound upload would be rejected by the
+  /// server, and completing the transaction would drop a clinical mutation.
   NodexBackendConnector({
     required this._gateway,
     required this._logger,
@@ -154,7 +154,24 @@ final class NodexBackendConnector extends PowerSyncBackendConnector {
       logger: _logger,
       journal: PowerSyncMutationJournal(database: database, logger: _logger),
     );
-    await uploader.upload(transaction, deviceId: _deviceId?.call());
+    final String? deviceId = _deviceId?.call();
+    if (deviceId == null || deviceId.isEmpty) {
+      // The server requires an enrolled device on every mutation. Completing
+      // the transaction here would turn a missing binding into a permanent
+      // rejection; leaving it queued lets enrollment finish first.
+      _logger.warning(
+        'sync.connector',
+        'No enrolled device; the mutation batch remains queued.',
+        operation: 'sync.upload',
+        outcome: 'deferred',
+        errorCode: 'device_not_enrolled',
+        dimensions: <String, Object?>{
+          'transaction_id': transaction.transactionId,
+        },
+      );
+      return;
+    }
+    await uploader.upload(transaction, deviceId: deviceId);
   }
 }
 
@@ -771,10 +788,10 @@ List<Map<String, Object?>> buildMutationPayloadForEntries({
 
 /// Builds the upload payload for [transaction].
 ///
-/// [deviceId], when supplied, is attached to every entry in the batch. It is
-/// omitted otherwise rather than sent as null: the ledger records an unbound
-/// mutation as unbound, and identity still rests on
-/// (tenant_id, idempotency_key, actor).
+/// [deviceId], when supplied, is attached to every entry in the batch. The
+/// production connector always supplies it; the server requires an enrolled
+/// device on every mutation. It is omitted otherwise rather than sent as null
+/// so a test can exercise the payload shape without inventing an identifier.
 ///
 /// A top-level function rather than a method so it can be exercised directly:
 /// the connector needs a real gateway to construct, and this is pure.

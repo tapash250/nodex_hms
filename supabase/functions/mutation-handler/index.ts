@@ -155,7 +155,8 @@ export function classifyApplyError(error: { message: string; code?: string }): s
     error.code === '23503' ||
     error.code === '23514' ||
     error.code === '22P02' ||
-    error.code === '22000'
+    error.code === '22000' ||
+    error.code === '22023'
   ) {
     return 'validation'
   }
@@ -3264,6 +3265,12 @@ export default {
           continue
         }
         rowTenantId = claimedTenant
+      } else if (m.table === 'ai_model_registry') {
+        // The model registry is global configuration: it has no tenant_id
+        // column. The ledger and audit row still need a tenant, so the
+        // caller's primary tenant is used, and the membership check below
+        // proves the caller is entitled to govern models from it.
+        rowTenantId = tenantId
       } else {
         const { data: existingRow, error: rowError } = await ctx.supabase
           .from(m.table)
@@ -3336,181 +3343,110 @@ export default {
         continue
       }
 
-      // Provenance is only as good as the device it names. A supplied device
-      // must be the caller's own, active and unrevoked; an invalid or revoked
-      // device rejects the mutation rather than silently uploading it unbound.
-      // The same value is attached to the PostgREST request below so the
-      // database trigger can re-check it in the write transaction.
+      // Provenance is only as good as the device it names. Every mutation must
+      // name the caller's own active, unrevoked device: an unbound write has no
+      // attributable author in the ledger, and a revoked device must stop
+      // uploading immediately. The RPC re-checks the same row in the write
+      // transaction.
       const bodyDevice = typeof m.device_id === 'string' && m.device_id.length > 0
         ? m.device_id
         : null
       const headerDevice = req.headers.get('x-device-id')
       const deviceClaim = bodyDevice ?? (headerDevice && headerDevice.length > 0 ? headerDevice : null)
-      let deviceId: string | null = null
-      if (deviceClaim) {
-        if (!UUID_RE.test(deviceClaim)) {
-          results.push({
-            id: m.id,
-            outcome: 'rejected',
-            rejection_class: 'validation',
-            detail: 'device id must be a uuid',
-          })
-          continue
-        }
-        if (headerDevice !== null && headerDevice !== deviceClaim) {
-          results.push({
-            id: m.id,
-            outcome: 'rejected',
-            rejection_class: 'forbidden',
-            detail: 'the device header does not match the mutation body',
-          })
-          continue
-        }
-        const { data: device } = await ctx.supabase
-          .from('devices')
-          .select('id, status, revoked_at')
-          .eq('id', deviceClaim)
-          .eq('assigned_user_id', userId)
-          .eq('tenant_id', rowTenantId)
-          .maybeSingle()
-        if (!device || device.status !== 'active' || device.revoked_at !== null) {
-          results.push({
-            id: m.id,
-            outcome: 'rejected',
-            rejection_class: 'forbidden',
-            detail: 'the device is not authorized for this tenant or user',
-          })
-          continue
-        }
-        deviceId = deviceClaim
-      }
-
-      // Idempotency ledger. A duplicate (tenant_id, idempotency_key) means this
-      // exact mutation already landed — a retry after a lost response.
-      const { data: existing } = await ctx.supabaseAdmin
-        .from('mutations')
-        .select('id, status')
-        .eq('tenant_id', rowTenantId)
-        .eq('idempotency_key', m.idempotency_key)
-        .maybeSingle()
-
-      if (existing) {
+      if (!deviceClaim) {
         results.push({
           id: m.id,
-          outcome: existing.status === 'applied' ? 'already_applied' : 'rejected',
-          rejection_class: existing.status === 'applied' ? undefined : 'duplicate_pending',
-          detail: existing.status === 'applied' ? 'mutation already applied' : `original mutation is ${existing.status}`,
+          outcome: 'rejected',
+          rejection_class: 'forbidden',
+          detail: 'an enrolled device is required for a mutation',
         })
         continue
       }
+      if (!UUID_RE.test(deviceClaim)) {
+        results.push({
+          id: m.id,
+          outcome: 'rejected',
+          rejection_class: 'validation',
+          detail: 'device id must be a uuid',
+        })
+        continue
+      }
+      if (headerDevice !== null && headerDevice !== deviceClaim) {
+        results.push({
+          id: m.id,
+          outcome: 'rejected',
+          rejection_class: 'forbidden',
+          detail: 'the device header does not match the mutation body',
+        })
+        continue
+      }
+      const { data: device } = await ctx.supabase
+        .from('devices')
+        .select('id, status, revoked_at, wipe_requested_at')
+        .eq('id', deviceClaim)
+        .eq('assigned_user_id', userId)
+        .eq('tenant_id', rowTenantId)
+        .maybeSingle()
+      if (!device || device.status !== 'active' || device.revoked_at !== null ||
+          device.wipe_requested_at !== null) {
+        results.push({
+          id: m.id,
+          outcome: 'rejected',
+          rejection_class: 'forbidden',
+          detail: 'the device is not authorized for this tenant or user',
+        })
+        continue
+      }
+      const deviceId: string = deviceClaim
 
-      // Ledger row first, status 'received'. A ledger failure blocks the apply:
-      // a successful write with no ledger row would re-apply on retry.
+      // One transaction owns the ledger row, the clinical write and the audit
+      // row. The RPC installs the actor and device into transaction-local JWT
+      // claims, so auth.uid() and the patient-scope trigger still evaluate the
+      // real clinician. A successful apply commits its ledger transition and
+      // audit row together; a failed apply rolls the clinical write back and
+      // records the rejection. A retry that reuses an idempotency key with
+      // different contents is rejected rather than reported as already
+      // applied.
       //
       // payload_digest attests the contents: a canonical-JSON SHA-256 over the
       // mutation's identity and data, so the ledger can later prove what was
       // asked rather than merely which key it arrived under.
-      const { error: ledgerError } = await ctx.supabaseAdmin.from('mutations').insert({
-        id: m.id,
-        tenant_id: rowTenantId,
-        user_id: userId,
-        device_id: deviceId,
-        operation: m.operation,
-        resource_type: m.table,
-        resource_id: m.row_id,
-        idempotency_key: m.idempotency_key,
-        client_created_at: m.client_created_at,
-        origin: m.origin,
-        payload_digest: await sha256Hex(
-          canonicalJson({
+      const payloadDigest = await sha256Hex(
+        canonicalJson({
+          id: m.id,
+          operation: m.operation,
+          table: m.table,
+          row_id: m.row_id,
+          idempotency_key: m.idempotency_key,
+          origin: m.origin,
+          client_created_at: m.client_created_at,
+          conflict_policy: m.conflict_policy ?? null,
+          data: m.data,
+        }),
+      )
+      const auditAction = m.operation === 'upsert' ? rule.auditActionUpsert : rule.auditActionPatch
+      const { data: applied, error: applyError } = await ctx.supabaseAdmin.rpc(
+        'apply_authorized_mutation',
+        {
+          p_actor: userId,
+          p_mutation: {
             id: m.id,
+            tenant_id: rowTenantId,
+            device_id: deviceId,
             operation: m.operation,
             table: m.table,
             row_id: m.row_id,
             idempotency_key: m.idempotency_key,
             origin: m.origin,
             client_created_at: m.client_created_at,
-            conflict_policy: m.conflict_policy ?? null,
-            data: m.data,
-          }),
-        ),
-        status: 'received',
-      })
-      if (ledgerError) {
-        // Unique violation here means a concurrent duplicate landed first.
-        const duplicate = ledgerError.message.includes('duplicate key')
-        results.push({
-          id: m.id,
-          outcome: duplicate ? 'already_applied' : 'rejected',
-          rejection_class: duplicate ? undefined : 'internal',
-          detail: duplicate ? 'mutation already applied' : `ledger write failed: ${ledgerError.message}`,
-        })
-        continue
-      }
-
-      const markLedger = async (status: 'applied' | 'rejected') => {
-        await ctx.supabaseAdmin
-          .from('mutations')
-          .update({
-            status,
-            applied_at: status === 'applied' ? new Date().toISOString() : null,
-          })
-          .eq('id', m.id)
-      }
-
-      // The audit row records what happened, so it is written after the write.
-      // An audit row written before the write can only guess, and the
-      // append-only trigger means a wrong guess can never be corrected.
-      const auditAction = m.operation === 'upsert' ? rule.auditActionUpsert : rule.auditActionPatch
-      const writeAudit = async (outcome: 'succeeded' | 'failed' | 'rejected', detail?: string) => {
-        const { error } = await ctx.supabaseAdmin.from('audit_events').insert({
-          tenant_id: rowTenantId,
-          actor_id: userId,
-          device_id: deviceId,
-          action: auditAction,
-          resource_type: m.table,
-          resource_id: m.row_id,
-          // Link the audit row to the patient and encounter the payload names,
-          // when it names them. Per-patient audit queries are otherwise blind
-          // to every write made through a child table.
-          patient_id: typeof m.data.patient_id === 'string' ? m.data.patient_id : null,
-          encounter_id: typeof m.data.encounter_id === 'string' ? m.data.encounter_id : null,
-          mutation_id: m.id,
-          origin: m.origin,
-          outcome,
-          risk_tier: 'standard',
-          reason: detail ?? null,
-        })
-        return error
-      }
-
-      // Attach the device id to the PostgREST request so the database trigger
-      // sees the same provenance the ledger records. ctx.supabase is a
-      // per-request client; this header cannot leak into another request.
-      if (deviceId) {
-        ctx.supabase.rest.headers.set('x-device-id', deviceId)
-      } else {
-        ctx.supabase.rest.headers.delete('x-device-id')
-      }
-
-      const table = ctx.supabase.from(m.table)
-      let applyError: { message: string; code?: string } | null = null
-      let appliedRows = 1
-      if (m.operation === 'upsert') {
-        const r = await table.upsert({ id: m.row_id, ...cols.data })
-        applyError = r.error ? { message: r.error.message, code: r.error.code } : null
-      } else {
-        // `select('id')` makes a no-op patch observable. Without it PostgREST
-        // reports success when zero rows matched, and the ledger would claim a
-        // change that never happened.
-        const r = await table.update(cols.data).eq('id', m.row_id).select('id')
-        applyError = r.error ? { message: r.error.message, code: r.error.code } : null
-        appliedRows = r.data?.length ?? 0
-      }
+            payload_digest: payloadDigest,
+            audit_action: auditAction,
+            data: cols.data,
+          },
+        },
+      )
 
       if (applyError) {
-        await markLedger('rejected')
-        await writeAudit('failed', applyError.message)
         results.push({
           id: m.id,
           outcome: 'rejected',
@@ -3520,29 +3456,30 @@ export default {
         continue
       }
 
-      if (appliedRows === 0) {
-        await markLedger('rejected')
-        await writeAudit('rejected', 'no row with that id is visible to this account')
+      const decision = typeof applied === 'object' && applied !== null
+        ? applied as { outcome?: string; rejection_class?: string; detail?: string }
+        : null
+      if (!decision || (decision.outcome !== 'applied' && decision.outcome !== 'already_applied')) {
+        // The ledger uses the schema's vocabulary ('authorization'); the
+        // handler response uses the client's ('forbidden'). Translate rather
+        // than leak a class the client has no branch for.
+        const rejectionClass = decision?.rejection_class === 'authorization'
+          ? 'forbidden'
+          : decision?.rejection_class ?? 'internal'
         results.push({
           id: m.id,
           outcome: 'rejected',
-          rejection_class: 'not_found',
-          detail: 'no row with that id is visible to this account',
+          rejection_class: rejectionClass,
+          detail: decision?.detail ?? 'the authorized mutation returned no outcome',
         })
         continue
       }
 
-      await markLedger('applied')
-      const auditError = await writeAudit('succeeded')
-      results.push(
-        auditError
-          ? {
-              id: m.id,
-              outcome: 'applied',
-              detail: 'applied, but the audit record could not be written; reconcile this mutation',
-            }
-          : { id: m.id, outcome: 'applied' },
-      )
+      results.push({
+        id: m.id,
+        outcome: decision.outcome,
+        detail: decision.detail,
+      })
     }
 
     return Response.json({ results })
