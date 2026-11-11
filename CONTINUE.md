@@ -12,7 +12,7 @@ re-deriving decisions. Read this first, then `README.md` for architecture.
 | Repository | `github.com/tapash250/nodex_hms`, branch `main` |
 | Phase 1 commit | `fe07e07` — "Implement Phase 1 platform foundation" |
 | Supabase project | ref `neoernavfntxsotwvmwq`, name `Nodex_HMS`, region `ap-northeast-1`, PostgreSQL 17 |
-| Migrations | `supabase/migrations/` — 81 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
+| Migrations | `supabase/migrations/` — 95 files (Phase 1 foundation plus the Phase 2–4 vertical slices). Statement content verified against `supabase_migrations.schema_migrations` for the applied set. Note: the migration tool strips `--` comments when recording, so verify semantics not bytes. |
 | Source spec | `NODEX_HMS_Final.pdf`, 44 pages (read with `pdftotext -layout`; the PDF reader tool cannot handle PDFs on this model) |
 
 ---
@@ -46,7 +46,7 @@ flutter analyze --fatal-infos --fatal-warnings
 flutter test
 ```
 
-Expected: no formatting changes, no analyzer issues, 2212 tests passing. If any of
+Expected: no formatting changes, no analyzer issues, 2250 tests passing. If any of
 those fail on a clean checkout, fix that before writing new code — CI enforces
 all three.
 
@@ -54,7 +54,7 @@ all three.
 
 ```bash
 supabase link --project-ref neoernavfntxsotwvmwq
-supabase migration list     # local and remote should match: 88 applied, versions normalized
+supabase migration list     # local and remote should match: 95 applied, versions normalized
 ```
 
 ---
@@ -126,12 +126,64 @@ uses `withSupabase({ auth: 'user' })` per the supabase-server skill (auth key is
 `auth`, not `allow`; modes are `user`/`publishable`/`secret`/`none`). The
 Flutter connector submits CRUD batches with stable UUIDv5 ids and decodes
 per-mutation outcomes; unknown outcomes decode as rejections. The table
-allowlist is empty by design: a table registers with a validator in the same
+allowlist starts empty by design: a table registers with a validator in the same
 change that adds its offline write path.
 
-Next on this path: `device_id` in the mutations ledger (connector currently
-sends null) and a real SHA-256 `payload_digest` instead of the idempotency-key
-placeholder.
+This path now requires an enrolled device on every mutation and verifies a real
+SHA-256 `payload_digest`; the client defers the upload (`device_not_enrolled`)
+instead of dropping it when enrollment has not finished.
+
+### 2a. Phase 4 Batch 3 — mutation boundary and backend hardening
+
+Commit `1eaa0ef` (`1eaa0efdfbfc2e8e8dc7ea077df36144a3fae27f`,
+"fix(backend): make authorized mutations atomic and close direct write path")
+made the authorized RPC the only clinical write path. It applied
+`supabase/migrations/20260918210000_phase4_mutation_boundary_and_backend_hardening.sql`
+to `neoernavfntxsotwvmwq`; `supabase_migrations.schema_migrations` now holds 95
+entries. The ledger version was reconciled from the generated
+`20261105185643` to `20260918210000` so the applied history stays ordered.
+
+The ledger row, the row apply and the audit row now commit in one transaction
+through `public.apply_authorized_mutation`, which is executable only by
+`service_role`. Inside it, `nodex.apply_authorized_mutation_row` sets the
+transaction-local JWT role to `authenticated` and installs the caller's
+identity, then applies the row as `nodex_mutation_writer`, a non-login role
+that inherits `authenticated`. RLS and the patient-scope trigger still run,
+while direct client DML is revoked on the 131-table allowlist. Because the
+claims are transaction-local, one RPC per HTTP request is safe; a second RPC
+inside the same SQL transaction must restore the claims first.
+
+Seven transaction-wrapped live checks passed:
+
+1. `nodex_mutation_writer` enforces RLS and row ownership.
+2. Direct INSERT/UPDATE/DELETE is revoked for `public`, `anon` and
+   `authenticated` across the 131-table allowlist.
+3. A non-service-role session can rotate a snapshot by revoking the prior one.
+4. Signed consent evidence is immutable except for revocation.
+5. A thread message is contained to its participants.
+6. The membership audit trigger records role changes.
+7. An idempotency retry with a different `payload_digest` is rejected; the
+   ledger requires 64-character SHA-256 hex.
+
+### 2b. mutation-handler v15
+
+Commit `d63b477` (`d63b4778411ceb0952adda747782181138ca3b7d`,
+"fix(mutation-handler): resolve 21 Deno TypeScript check errors") added 20
+missing `auditActionPatch` table rule values and removed the unreachable
+`'delete'` comparison at line 3059. Runtime rejection is unchanged: the
+preceding operation check still refuses the request.
+
+`mutation-handler` version 15 is deployed `ACTIVE` with `verify_jwt: true` and
+hash `5c1d87ffe16f058da2f67cc6162d52014ab300173cd5dd932cd4973ab852c527`.
+
+Current verification baseline:
+
+- `npx -y deno check supabase/functions/mutation-handler/index.ts` — 0 errors.
+- `npx -y deno test --allow-env --allow-net supabase/functions/mutation-handler/` — 13 passed, 0 failed, with full type checking.
+- `flutter analyze --fatal-infos --fatal-warnings` — 0 issues.
+- `flutter test` — 2250 passed.
+- `test_config_static.py` and `test_sync_scope.py` — all passed.
+- `pglast` — 45 SQL statements and 7 PL/pgSQL bodies parsed.
 
 ### 3. First clinical modules (MPI, encounters, laboratory and Rx vertical slices landed)
 
@@ -675,7 +727,7 @@ Deferred deliberately, not overlooked.
 - ~~**No widget or integration tests**~~ — **resolved.** The shell/route-guard/
   session-lock widget coverage and the cross-module integration flow
   (appointment → encounter → prescription → pharmacy → billing) are committed and
-  mutation-verified (2212 tests).
+  mutation-verified (2250 tests).
 - ~~**No storage buckets**~~ — **applied.** Migration
   `20260917260000_phase3_storage_buckets.sql` created three private, tenant-scoped
   buckets with membership-derived RLS, a SHA-256 checksum required on upload, and
