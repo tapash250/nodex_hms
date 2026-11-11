@@ -1486,6 +1486,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'nursing.vitals.recorded',
+    auditActionPatch: 'nursing.vitals.updated',
   },
   ward_handovers: {
     columns: {
@@ -1501,6 +1502,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'nursing.handover.recorded',
+    auditActionPatch: 'nursing.handover.updated',
   },
   ward_tasks: {
     columns: {
@@ -1593,6 +1595,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'forms.response.submitted',
+    auditActionPatch: 'forms.response.updated',
   },
   // Module 02 (operations dashboard). A reading of a moment is written once.
   operational_department_metrics: {
@@ -1610,6 +1613,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'operations.metric.recorded',
+    auditActionPatch: 'operations.metric.updated',
   },
   // Module 03 (performance analytics). A reading of a period is written once.
   clinical_performance_indices: {
@@ -1629,6 +1633,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'performance.index.recorded',
+    auditActionPatch: 'performance.index.updated',
   },
   // Module 04 (doctor clinical dashboard). An assignment is taken on and
   // concluded; it is never deleted, because the record of who was
@@ -1695,6 +1700,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'messaging.message.sent',
+    auditActionPatch: 'messaging.message.updated',
   },
   clinical_attachments: {
     columns: {
@@ -1708,6 +1714,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'messaging.attachment.added',
+    auditActionPatch: 'messaging.attachment.updated',
   },
   // Module 44 (productivity apps). A card moves between lanes and a ticket
   // is worked on, so both are patchable; the guards in the migration own the
@@ -1900,6 +1907,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'workforce.attendance.recorded',
+    auditActionPatch: 'workforce.attendance.updated',
   },
   // Module 12 (clinical departments registry).
   departments: {
@@ -2048,6 +2056,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'fleet.tracking.pinged',
+    auditActionPatch: 'fleet.tracking.updated',
   },
   // Module 29 (biomedical assets & calibration).
   biomedical_assets: {
@@ -2113,6 +2122,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'biomedical.maintenance.recorded',
+    auditActionPatch: 'biomedical.maintenance.updated',
   },
   // Module 30 (bio-medical waste management).
   waste_categories: {
@@ -2150,6 +2160,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'waste.generation.logged',
+    auditActionPatch: 'waste.generation.updated',
   },
   waste_disposal_certificates: {
     columns: {
@@ -2476,6 +2487,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'statutory.amendment.appended',
+    auditActionPatch: 'statutory.amendment.updated',
   },
   // Module 35 (quality & NABH compliance hub).
   compliance_audits: {
@@ -2645,6 +2657,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'feedback.routing.appended',
+    auditActionPatch: 'feedback.routing.updated',
   },
   // Module 37 (visitor & pass security).
   ward_visiting_windows: {
@@ -2736,6 +2749,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'visitor.badge.printed',
+    auditActionPatch: 'visitor.badge.updated',
   },
   // Module 38 (reports & operational analytics warehouse). The two tables the
   // client writes from a gate or a request are the catalogue and the run; the
@@ -2835,6 +2849,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'analytics.report.exported',
+    auditActionPatch: 'analytics.report.updated',
   },
   // Module 39 (master settings & AI configuration hub). Date-only windows are
   // 'text' holding YYYY-MM-DD, so a device west of UTC cannot shift a tariff's
@@ -2864,6 +2879,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'settings.profile.activated',
+    auditActionPatch: 'settings.profile.updated',
   },
   branding_assets: {
     columns: {
@@ -2887,6 +2903,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'settings.branding.activated',
+    auditActionPatch: 'settings.branding.updated',
   },
   department_hierarchies: {
     columns: {
@@ -2908,6 +2925,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'settings.department.defined',
+    auditActionPatch: 'settings.department.updated',
   },
   billing_tariffs: {
     columns: {
@@ -2934,6 +2952,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'settings.tariff.approved',
+    auditActionPatch: 'settings.tariff.updated',
   },
   ai_routing_profiles: {
     columns: {
@@ -2959,6 +2978,7 @@ const WRITABLE_TABLES: Readonly<Record<string, TableRule>> = {
     },
     operations: ['upsert'],
     auditActionUpsert: 'settings.ai_profile.activated',
+    auditActionPatch: 'settings.ai_profile.updated',
   },
   // AI model governance. A model is approved or activated, never created, by a
   // device: the registry is populated server-side from a reviewed catalogue.
@@ -3056,7 +3076,7 @@ function validateMutation(raw: unknown): { ok: true; value: IncomingMutation } |
   if (m.operation !== 'upsert' && m.operation !== 'patch') {
     return { ok: false, error: 'operation must be upsert or patch' }
   }
-  if (m.operation === 'delete' || typeof m.data === 'undefined') {
+  if (typeof m.data === 'undefined') {
     return { ok: false, error: 'delete operations are not accepted; retire by status transition' }
   }
   if (typeof m.table !== 'string' || m.table.length === 0) return { ok: false, error: 'table is required' }
